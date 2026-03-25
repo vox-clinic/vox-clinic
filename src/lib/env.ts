@@ -12,7 +12,7 @@ const envSchema = z.object({
     .startsWith('sk-ant-', 'ANTHROPIC_API_KEY must start with "sk-ant-"'),
   OPENAI_API_KEY: z
     .string()
-    .startsWith('sk-', 'OPENAI_API_KEY must start with "sk-"'),
+    .min(1, 'OPENAI_API_KEY must not be empty'),
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
     .url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
@@ -21,7 +21,8 @@ const envSchema = z.object({
     .min(1, 'SUPABASE_SERVICE_ROLE_KEY must not be empty'),
   CLERK_WEBHOOK_SECRET: z
     .string()
-    .min(1, 'CLERK_WEBHOOK_SECRET must not be empty'),
+    .optional()
+    .default(''),
 })
 
 function validateEnv() {
