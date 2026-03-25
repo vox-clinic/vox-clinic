@@ -25,7 +25,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-full flex flex-col">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
+        <div className="flex h-16 items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-vox-primary to-vox-primary/70 bg-clip-text text-transparent">
               VoxClinic
