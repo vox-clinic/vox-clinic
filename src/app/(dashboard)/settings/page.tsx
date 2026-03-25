@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [clinicName, setClinicName] = useState("")
   const [profession, setProfession] = useState("")
   const [procedures, setProcedures] = useState<Procedure[]>([])
@@ -31,7 +32,9 @@ export default function SettingsPage() {
         setProcedures(ws.procedures)
         setCustomFields(ws.customFields)
       })
-      .catch(() => {})
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Erro ao carregar configuracoes")
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -61,6 +64,7 @@ export default function SettingsPage() {
   async function handleSave() {
     setSaving(true)
     setSaved(false)
+    setError(null)
     try {
       await updateWorkspace({
         clinicName,
@@ -69,8 +73,8 @@ export default function SettingsPage() {
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar configuracoes")
     } finally {
       setSaving(false)
     }
@@ -115,6 +119,12 @@ export default function SettingsPage() {
           )}
         </Button>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-vox-error/30 bg-vox-error/5 px-4 py-3 text-sm text-vox-error">
+          {error}
+        </div>
+      )}
 
       {/* Clinic info */}
       <Card>

@@ -21,8 +21,8 @@ export async function processVoiceRegistration(formData: FormData) {
   const audioFile = formData.get("audio") as File | null
   if (!audioFile) throw new Error("No audio file provided")
 
-  if (audioFile.size > 50 * 1024 * 1024) {
-    throw new Error("Arquivo de audio excede o limite de 50MB")
+  if (audioFile.size > 25 * 1024 * 1024) {
+    throw new Error("Arquivo de audio excede o limite de 25MB")
   }
 
   const arrayBuffer = await audioFile.arrayBuffer()
@@ -31,8 +31,13 @@ export async function processVoiceRegistration(formData: FormData) {
   // 1. Upload to Supabase Storage (returns path, not public URL)
   const audioPath = await uploadAudio(buffer, audioFile.name || "recording.webm")
 
-  // 2. Transcribe via Whisper
-  const transcript = await transcribeAudio(buffer, audioFile.name || "recording.webm")
+  // 2. Transcribe via Whisper (with workspace procedure names as vocabulary hints)
+  const workspaceProcedureNames = (user.workspace.procedures as any[]).map((p: any) => p.name)
+  const { text: transcript } = await transcribeAudio(
+    buffer,
+    audioFile.name || "recording.webm",
+    workspaceProcedureNames
+  )
 
   // 3. Extract entities via Claude
   const workspaceConfig = {
@@ -44,10 +49,12 @@ export async function processVoiceRegistration(formData: FormData) {
   // 4. Create Recording in database
   const recording = await db.recording.create({
     data: {
+      workspaceId: user.workspace.id,
       audioUrl: audioPath,
       transcript,
       aiExtractedData: extractedData as any,
       status: "processed",
+      fileSize: audioFile.size,
     },
   })
 
@@ -100,42 +107,44 @@ export async function confirmPatientRegistration(data: ConfirmPatientData) {
     })
   }
 
-  // Create Patient
-  const patient = await db.patient.create({
-    data: {
-      workspaceId,
-      name: data.name,
-      document: data.document ?? null,
-      phone: data.phone ?? null,
-      email: data.email ?? null,
-      birthDate: data.birthDate ? new Date(data.birthDate) : null,
-      customData: data.customData ?? {},
-      alerts: data.alerts ?? [],
-    },
-  })
+  // Atomic: Create Patient + Appointment + link Recording
+  const result = await db.$transaction(async (tx) => {
+    const patient = await tx.patient.create({
+      data: {
+        workspaceId,
+        name: data.name,
+        document: data.document ?? null,
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        birthDate: data.birthDate ? new Date(data.birthDate) : null,
+        customData: data.customData ?? {},
+        alerts: data.alerts ?? [],
+      },
+    })
 
-  // Create Appointment
-  const appointment = await db.appointment.create({
-    data: {
-      patientId: patient.id,
-      workspaceId,
-      procedures: data.procedures ?? [],
-      notes: data.notes ?? null,
-    },
-  })
+    const appointment = await tx.appointment.create({
+      data: {
+        patientId: patient.id,
+        workspaceId,
+        procedures: data.procedures ?? [],
+        notes: data.notes ?? null,
+      },
+    })
 
-  // Update Recording with appointment and patient link
-  await db.recording.update({
-    where: { id: data.recordingId },
-    data: {
-      appointmentId: appointment.id,
-      patientId: patient.id,
-    },
+    await tx.recording.update({
+      where: { id: data.recordingId },
+      data: {
+        appointmentId: appointment.id,
+        patientId: patient.id,
+      },
+    })
+
+    return { patient, appointment }
   })
 
   return {
-    patientId: patient.id,
-    appointmentId: appointment.id,
+    patientId: result.patient.id,
+    appointmentId: result.appointment.id,
     duplicatePatient: duplicatePatient
       ? { id: duplicatePatient.id, name: duplicatePatient.name }
       : null,

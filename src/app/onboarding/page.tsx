@@ -29,6 +29,7 @@ export default function OnboardingPage() {
   const [isPending, startTransition] = useTransition()
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [newProcedure, setNewProcedure] = useState("")
 
   const progressPercent = (step / TOTAL_STEPS) * 100
@@ -87,10 +88,19 @@ export default function OnboardingPage() {
   async function handleConfirmAndSave() {
     if (!selectedProfession || !preview) return
     setIsSaving(true)
+    setSaveError(null)
     try {
-      await generateWorkspace(selectedProfession, answers, clinicName)
+      await generateWorkspace(selectedProfession, clinicName, {
+        procedures: preview.procedures,
+        customFields: preview.customFields,
+        anamnesisTemplate: preview.anamnesisTemplate,
+        categories: preview.categories,
+      })
       router.push("/dashboard")
-    } catch {
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Erro ao salvar workspace. Tente novamente."
+      )
       setIsSaving(false)
     }
   }
@@ -428,6 +438,13 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                 </section>
+
+                {/* Error message */}
+                {saveError && (
+                  <div className="mb-4 rounded-xl border border-vox-error/30 bg-vox-error/5 px-4 py-3 text-sm text-vox-error">
+                    {saveError}
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3">

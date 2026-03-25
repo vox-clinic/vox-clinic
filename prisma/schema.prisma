@@ -34,6 +34,7 @@ model Workspace {
   updatedAt         DateTime @updatedAt
   patients          Patient[]
   appointments      Appointment[]
+  recordings        Recording[]
 }
 
 model Patient {
@@ -52,9 +53,10 @@ model Patient {
   appointments Appointment[]
   recordings   Recording[]
 
+  @@unique([workspaceId, document])
   @@index([workspaceId])
+  @@index([workspaceId, name])
   @@index([document])
-  @@index([name])
 }
 
 model Appointment {
@@ -75,10 +77,13 @@ model Appointment {
 
   @@index([patientId])
   @@index([workspaceId])
+  @@index([workspaceId, date])
 }
 
 model Recording {
   id              String      @id @default(cuid())
+  workspaceId     String?
+  workspace       Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   appointmentId   String?
   appointment     Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   patientId       String?
@@ -87,9 +92,13 @@ model Recording {
   transcript      String?
   aiExtractedData Json?
   status          String      @default("pending")
+  errorMessage    String?
   duration        Int?
+  fileSize        Int?
   createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
+  @@index([workspaceId])
   @@index([appointmentId])
   @@index([patientId])
 }

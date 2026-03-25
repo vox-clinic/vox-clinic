@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Check, Loader2, Pencil } from "lucide-react"
+import { Check, Loader2, Pencil, ArrowLeft, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
-import { confirmConsultation } from "@/server/actions/consultation"
+import { getRecordingForReview, confirmConsultation } from "@/server/actions/consultation"
 import type { AppointmentSummary } from "@/types"
 
 export default function AppointmentReviewPage() {
@@ -19,22 +20,46 @@ export default function AppointmentReviewPage() {
 
   const patientId = searchParams.get("patientId") ?? ""
   const recordingId = searchParams.get("recordingId") ?? ""
-  const audioPath = searchParams.get("audioPath") ?? ""
-  const transcript = searchParams.get("transcript") ?? ""
-  const summaryRaw = searchParams.get("summary")
 
-  const parsed: AppointmentSummary = summaryRaw
-    ? JSON.parse(summaryRaw)
-    : { procedures: [], observations: "", recommendations: "", nextAppointment: null }
+  const [loadingData, setLoadingData] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [transcript, setTranscript] = useState("")
+  const [audioPath, setAudioPath] = useState("")
 
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [procedures, setProcedures] = useState<string[]>(parsed.procedures ?? [])
-  const [observations, setObservations] = useState(parsed.observations ?? "")
-  const [recommendations, setRecommendations] = useState(parsed.recommendations ?? "")
-  const [nextAppointment, setNextAppointment] = useState(parsed.nextAppointment ?? "")
+  const [procedures, setProcedures] = useState<string[]>([])
+  const [observations, setObservations] = useState("")
+  const [recommendations, setRecommendations] = useState("")
+  const [nextAppointment, setNextAppointment] = useState("")
+
+  useEffect(() => {
+    if (!recordingId) {
+      setLoadError("ID da gravacao nao encontrado")
+      setLoadingData(false)
+      return
+    }
+
+    getRecordingForReview(recordingId)
+      .then((data) => {
+        setTranscript(data.transcript)
+        setAudioPath(data.audioUrl ?? "")
+
+        const summary = data.summary
+        if (summary) {
+          setProcedures(summary.procedures ?? [])
+          setObservations(summary.observations ?? "")
+          setRecommendations(summary.recommendations ?? "")
+          setNextAppointment(summary.nextAppointment ?? "")
+        }
+      })
+      .catch((err) => {
+        setLoadError(err instanceof Error ? err.message : "Erro ao carregar dados da gravacao")
+      })
+      .finally(() => setLoadingData(false))
+  }, [recordingId])
 
   async function handleConfirm() {
     setSaving(true)
@@ -62,6 +87,70 @@ export default function AppointmentReviewPage() {
 
   function removeProcedure(index: number) {
     setProcedures((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function handleDiscard() {
+    router.push("/appointments/new")
+  }
+
+  function handleReRecord() {
+    router.back()
+  }
+
+  // Loading state
+  if (loadingData) {
+    return (
+      <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-40" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-20 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-36" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-16 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Error loading data
+  if (loadError) {
+    return (
+      <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
+        <div className="text-center py-12 space-y-4">
+          <h1 className="text-2xl font-bold">Erro ao carregar resumo</h1>
+          <p className="text-muted-foreground">{loadError}</p>
+          <Button variant="outline" onClick={() => router.push("/appointments/new")}>
+            <ArrowLeft className="size-4" />
+            Voltar para Nova Consulta
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -190,6 +279,21 @@ export default function AppointmentReviewPage() {
       )}
 
       <div className="flex gap-3 pt-2">
+        <Button
+          variant="outline"
+          onClick={handleDiscard}
+          disabled={saving}
+        >
+          Descartar
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleReRecord}
+          disabled={saving}
+        >
+          <RotateCcw className="size-4" />
+          Gravar Novamente
+        </Button>
         <Button
           onClick={handleConfirm}
           disabled={saving}

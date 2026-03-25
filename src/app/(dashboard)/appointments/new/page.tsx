@@ -79,14 +79,7 @@ export default function NewAppointmentPage() {
         const fd = new FormData()
         fd.append("audio", blob, "consultation.webm")
         const result = await processConsultation(fd, selectedPatient.id)
-        const params = new URLSearchParams({
-          patientId: selectedPatient.id,
-          recordingId: result.recordingId,
-          audioPath: result.audioPath,
-          transcript: result.transcript,
-          summary: JSON.stringify(result.summary),
-        })
-        router.push(`/appointments/review?${params.toString()}`)
+        router.push(`/appointments/review?recordingId=${result.recordingId}&patientId=${selectedPatient.id}`)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao processar consulta")
         setStep("recording")

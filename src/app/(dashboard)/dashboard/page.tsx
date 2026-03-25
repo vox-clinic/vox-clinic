@@ -1,6 +1,6 @@
 import { getDashboardData } from "@/server/actions/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, CalendarDays, Mic, Search } from "lucide-react"
+import { Users, CalendarDays, Mic, Search, Stethoscope } from "lucide-react"
 import Link from "next/link"
 import { QuickSearch } from "./quick-search"
 
@@ -59,17 +59,24 @@ export default async function DashboardPage() {
             </p>
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/patients/new/voice"
+                href="/appointments/new"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-vox-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-vox-primary/90 transition-colors"
               >
-                <Mic className="size-3.5" />
-                Gravar
+                <Stethoscope className="size-3.5" />
+                Nova Consulta
               </Link>
               <Link
                 href="/patients/new"
                 className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
               >
                 Novo paciente
+              </Link>
+              <Link
+                href="/patients/new/voice"
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                <Mic className="size-3.5" />
+                Cadastro por Voz
               </Link>
             </div>
           </CardContent>
