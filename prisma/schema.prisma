@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  clerkId            String    @unique
+  name               String
+  email              String    @unique
+  profession         String?
+  clinicName         String?
+  onboardingComplete Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  workspace          Workspace?
+}
+
+model Workspace {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  professionType    String
+  customFields      Json     @default("[]")
+  procedures        Json     @default("[]")
+  anamnesisTemplate Json     @default("[]")
+  categories        Json     @default("[]")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  patients          Patient[]
+  appointments      Appointment[]
+}
+
+model Patient {
+  id           String        @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  document     String?
+  phone        String?
+  email        String?
+  birthDate    DateTime?
+  customData   Json          @default("{}")
+  alerts       Json          @default("[]")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  recordings   Recording[]
+
+  @@index([workspaceId])
+  @@index([document])
+  @@index([name])
+}
+
+model Appointment {
+  id           String      @id @default(cuid())
+  patientId    String
+  patient      Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  workspaceId  String
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  date         DateTime    @default(now())
+  procedures   Json        @default("[]")
+  notes        String?
+  aiSummary    String?
+  audioUrl     String?
+  transcript   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  recordings   Recording[]
+
+  @@index([patientId])
+  @@index([workspaceId])
+}
+
+model Recording {
+  id              String      @id @default(cuid())
+  appointmentId   String?
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patientId       String?
+  patient         Patient?    @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  audioUrl        String
+  transcript      String?
+  aiExtractedData Json?
+  status          String      @default("pending")
+  duration        Int?
+  createdAt       DateTime    @default(now())
+
+  @@index([appointmentId])
+  @@index([patientId])
+}

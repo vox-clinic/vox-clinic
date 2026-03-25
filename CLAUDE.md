@@ -6,61 +6,123 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 VoxClinic is a voice-powered intelligent CRM for healthcare and service professionals (dentists, nutritionists, aestheticians, doctors, lawyers). Professionals speak during or after appointments, and the system automatically transcribes, extracts structured data via AI, and populates patient records. The key differentiator is an AI-driven onboarding that generates a fully customized workspace per profession.
 
-## Planned Tech Stack
+## Commands
 
-- **Frontend:** Next.js 14+ (App Router) + TypeScript + Tailwind CSS
-- **Backend/API:** Next.js API Routes (tRPC or REST)
-- **Database:** PostgreSQL via Supabase (with Row Level Security for multi-tenant isolation)
-- **ORM:** Prisma or Drizzle ORM
-- **Auth:** Clerk or NextAuth.js
-- **Speech-to-Text:** OpenAI Whisper API or Deepgram
+```bash
+npm run dev          # Start dev server (Next.js 16 + Turbopack)
+npm run build        # Production build
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npx prisma generate  # Regenerate Prisma client after schema changes
+npx prisma migrate dev  # Run migrations (requires DATABASE_URL)
+npx shadcn@latest add [component] -y  # Add shadcn/ui component
+```
+
+## Tech Stack
+
+- **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + shadcn/ui
+- **Backend/API:** Next.js Server Actions + API Routes
+- **Database:** PostgreSQL via Supabase (with Row Level Security)
+- **ORM:** Prisma
+- **Auth:** Clerk (with pt-BR localization)
+- **Speech-to-Text:** OpenAI Whisper API
 - **AI/LLM:** Anthropic Claude API (Sonnet) — entity extraction, workspace generation, clinical summaries
-- **Storage:** AWS S3 or Supabase Storage (encrypted audio files)
-- **Deploy:** Vercel (frontend) + Railway or Fly.io (workers) — region sa-east-1 (São Paulo)
-- **Payments:** Stripe BR or Pagar.me (BRL, Pix, boleto, recurring billing)
+- **AI Validation:** Zod schemas for all AI responses (`src/lib/schemas.ts`)
+- **Storage:** Supabase Storage (audio files with signed URLs, private bucket)
 
-## Architecture Notes
+## Architecture
 
-- **Multi-tenant via RLS:** Each professional's data is isolated at the database level using Supabase Row Level Security. Every query must be scoped to the user's workspace.
-- **JSONB for dynamic fields:** Patient records, procedures, anamnesis templates, and custom fields use JSONB columns to support profession-specific schemas without migrations per profession.
-- **Audio pipeline:** Browser MediaRecorder API → upload to encrypted storage → worker sends to Whisper/Deepgram → transcription sent to Claude API with profession-specific prompt → structured JSON returned → confirmation screen → save to PostgreSQL.
-- **Confirmation-before-save:** AI-extracted data is never saved automatically. The professional must review and approve on a confirmation screen.
+### Tailwind v4 — No tailwind.config.ts
+This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.css`. There is NO `tailwind.config.ts`. Custom colors are CSS variables:
+- `--color-vox-primary: #1A73E8` → use `bg-vox-primary`, `text-vox-primary`
+- `--color-vox-success: #22c55e`, `--color-vox-warning: #f59e0b`, `--color-vox-error: #f87171`
 
-## Key Domain Entities
+### Route Groups
+- `src/app/(auth)/` — Sign-in/sign-up pages (Clerk components)
+- `src/app/(dashboard)/` — Authenticated pages with layout (sidebar + bottom nav + auth guard)
+- `src/app/onboarding/` — Multi-step onboarding wizard (public after auth)
+- `src/app/api/` — Webhooks and API routes
 
-- **User** (professional): owns a Workspace
-- **Workspace**: profession-specific config (custom_fields, procedures, anamnesis_template as JSONB)
-- **Patient**: belongs to a Workspace, has custom_data (JSONB) and alerts (JSONB)
-- **Appointment**: links Patient to procedures, notes, AI summary, audio, transcript
-- **Recording**: audio file + transcript + AI-extracted data + processing status
-- **MedicalRecord**: versioned clinical entries (never overwritten, full audit trail)
-- **Anamnesis**: patient intake form, source can be voice/form/remote
-- **Document**: TCLE, consent forms, contracts — with content hash for integrity
-- **Signature**: touch/voice/remote_link methods with full audit metadata
+### Navigation
+- `src/components/nav-sidebar.tsx` — Desktop sidebar (hidden on mobile, md+)
+- `src/components/nav-bottom.tsx` — Mobile bottom nav (fixed, md:hidden)
+- Links: Dashboard, Pacientes, Nova Consulta, Configuracoes
+- Active state via `usePathname()` with `bg-vox-primary/10 text-vox-primary`
+
+### Server Actions (src/server/actions/)
+All data mutations use Server Actions with `"use server"` directive:
+- `workspace.ts` — generateWorkspace, getWorkspacePreview, getWorkspace, updateWorkspace
+- `voice.ts` — processVoiceRegistration, confirmPatientRegistration, checkDuplicatePatient
+- `consultation.ts` — processConsultation (returns data only), confirmConsultation (creates Appointment)
+- `patient.ts` — getPatients (paginated), getPatient, updatePatient, createPatient, searchPatients, getRecentPatients
+- `dashboard.ts` — getDashboardData
+
+All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
+
+### AI Pipeline
+- `src/lib/openai.ts` — `transcribeAudio(buffer, filename)` via Whisper API
+- `src/lib/claude.ts` — `extractEntities`, `generateWorkspaceSuggestions`, `generateConsultationSummary`
+  - Uses system message for instructions, user message for transcription (mitigates prompt injection)
+  - `parseAIResponse<T>(text, schema)` helper: extracts JSON, validates with Zod, returns typed data
+- `src/lib/schemas.ts` — Zod schemas: `ExtractedPatientDataSchema`, `WorkspaceConfigSchema`, `AppointmentSummarySchema`
+- `src/lib/storage.ts` — `uploadAudio(buffer, filename)` returns storage path (not URL), `getSignedAudioUrl(path)` returns signed URL with 5min expiration, `getAudioBuffer(path)` downloads from private bucket
+
+### Confirmation-before-save Pattern
+AI-extracted data is NEVER saved automatically to the final record:
+- **Voice registration:** `processVoiceRegistration` creates a Recording with extracted data. Patient + Appointment are only created in `confirmPatientRegistration` after professional review.
+- **Consultation:** `processConsultation` creates a Recording and returns summary data. Appointment is only created in `confirmConsultation` after professional review.
+
+### Audio Recording
+`src/components/record-button.tsx` — Client component using MediaRecorder API. Props:
+- `onRecordingComplete`, `maxDuration`, `size`, `floating`, `disabled`
+- `requireConsent` (default: true) — Shows LGPD consent modal before first recording
+- Audio blobs are kept in memory only (never cached locally per LGPD)
+- Audio size validated server-side (max 50MB)
+
+### Multi-tenant via Prisma
+Every query must be scoped to the user's workspace. Pattern:
+```typescript
+const { userId } = await auth()
+const user = await db.user.findUnique({ where: { clerkId: userId }, include: { workspace: true } })
+const workspaceId = user.workspace.id
+// All queries filter by workspaceId
+```
+
+### JSONB for Dynamic Fields
+Workspace stores profession-specific config as JSON: `customFields`, `procedures`, `anamnesisTemplate`, `categories`. Patient stores `customData` and `alerts` as JSON. This avoids schema changes per profession. CustomData is displayed in patient detail using workspace field definitions for labels.
+
+## Key Domain Entities (Prisma)
+
+- **User**: clerkId, profession, clinicName, onboardingComplete → has one Workspace
+- **Workspace**: professionType, customFields (Json), procedures (Json), anamnesisTemplate (Json)
+- **Patient**: belongs to Workspace, has customData (Json), alerts (Json)
+- **Appointment**: links Patient to procedures, notes, aiSummary, audioUrl (storage path), transcript
+- **Recording**: audioUrl (storage path), transcript, aiExtractedData (Json), status
 
 ## Regulatory Requirements (Brazil)
 
-- **LGPD (Lei 13.709/2018):** Handles sensitive health data (Art. 5, II). Requires specific highlighted consent before audio recording. Patient rights (access, correction, deletion, portability) must be exercisable in-app.
-- **CFM Resolução 1.821/2007:** Medical records must be retained for minimum 20 years.
-- **Audio consent:** Verbal notice + signed TCLE required before any recording. Audio never cached locally — direct upload to encrypted storage.
-- **Encryption:** TLS 1.3 in transit, AES-256 at rest (disk + column-level for sensitive fields), KMS for key management, SHA-256 for document hashing.
-- **Data residency:** All data must remain in Brazilian infrastructure (AWS sa-east-1).
+- **LGPD (Lei 13.709/2018):** Sensitive health data. Requires consent before audio recording (enforced in RecordButton). Audio stored in private Supabase bucket with signed URLs (5min expiry). Audio never cached locally.
+- **CFM Resolucao 1.821/2007:** Medical records retained minimum 20 years.
+- **Confirmation-before-save:** AI-extracted data is never saved automatically. Professional must review and approve.
+- **Data residency:** All data in Brazilian infrastructure (sa-east-1).
 
-## UI/UX Principles
+## UI/UX
 
-- Mobile-first, minimal interface. Voice recording button is the primary UI element (floating action button, always accessible).
-- Design references: Linear (minimalism), Otter.ai (transcription UX).
-- Palette: primary blue (#1A73E8), Inter/Geist Sans typography, 12px border-radius, Lucide/Phosphor icons.
-- Dark mode supported from MVP.
-- WCAG AA compliance required (4.5:1 contrast, 44x44px touch targets).
-- Fields with AI confidence < threshold must be visually highlighted (amber) for review.
+- Mobile-first, minimal interface. RecordButton is the primary UI element.
+- Palette: primary blue (#1A73E8), Geist Sans font, 12px border-radius, Lucide icons.
+- Fields with AI confidence < 0.8 highlighted in amber (border-vox-warning).
+- All UI in Brazilian Portuguese (pt-BR). Dates DD/MM/AAAA, phone +55 DDD, CPF validation.
+- Navigation: sidebar on desktop (w-56, border-r), bottom nav on mobile (fixed, z-50).
+- Error boundary and loading state at dashboard layout level.
+- Patient list with pagination (20 per page) and debounced search (300ms).
 
-## Language
+## Webhook (Clerk)
 
-- All UI, terms, notifications, and emails in Brazilian Portuguese (pt-BR).
-- Currency in BRL (R$), dates in DD/MM/AAAA, phone with DDD (+55), CPF validation.
-- Support Brazilian timezones (BRT, AMT, ACT, FNT) with auto-detection.
+`src/app/api/webhooks/clerk/route.ts` handles:
+- `user.created` — upsert User in database
+- `user.updated` — sync email/name changes
+- `user.deleted` — cascade delete user and related data
 
 ## Reference Document
 
-Full product requirements are in `VoxClinic_PRD_v1.2.docx` at the repo root.
+Full product requirements in `VoxClinic_PRD_v1.2.docx` at repo root.
