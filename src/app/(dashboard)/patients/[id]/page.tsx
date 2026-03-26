@@ -125,17 +125,27 @@ export default async function PatientPage({
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} />
-            <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
-            <ExportButton patientId={patient.id} patientName={patient.name} />
-            <Link href={`/patients/${patient.id}/report`} target="_blank">
+            <div title="Criar nova prescricao de medicamentos para este paciente">
+              <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} />
+            </div>
+            <div title="Gerar atestado, declaracao de comparecimento, encaminhamento ou laudo">
+              <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
+            </div>
+            <div title="Exportar todos os dados deste paciente em CSV (LGPD)">
+              <ExportButton patientId={patient.id} patientName={patient.name} />
+            </div>
+            <Link href={`/patients/${patient.id}/report`} target="_blank" title="Abrir relatorio completo para impressao (Ctrl+P)">
               <Button variant="outline" size="sm" className="gap-1.5">
                 <FileText className="size-3.5" />
                 Relatorio
               </Button>
             </Link>
-            <MergeDialog patientId={patient.id} patientName={patient.name} />
-            <DeactivateButton patientId={patient.id} />
+            <div title="Mesclar outro paciente duplicado neste registro. Transfere consultas, gravacoes e documentos.">
+              <MergeDialog patientId={patient.id} patientName={patient.name} />
+            </div>
+            <div title="Desativar paciente (soft delete — historico preservado por 20 anos conforme CFM)">
+              <DeactivateButton patientId={patient.id} />
+            </div>
           </div>
         </div>
       </div>

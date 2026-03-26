@@ -92,61 +92,144 @@ export default async function PatientReportPage({
 
           {/* Patient Info */}
           <section>
-            <h2 className="text-lg font-semibold mb-4 text-foreground">
+            <h2 className="text-lg font-semibold mb-4 text-slate-900 print:text-black">
               Dados do Paciente
             </h2>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Nome</span>
-                <p className="font-medium">{patient.name}</p>
+                <span className="text-slate-500 print:text-gray-600">Nome</span>
+                <p className="font-medium text-slate-900 print:text-black">{patient.name}</p>
               </div>
               {patient.document && (
                 <div>
-                  <span className="text-muted-foreground">CPF</span>
-                  <p className="font-medium">{patient.document}</p>
+                  <span className="text-slate-500 print:text-gray-600">CPF</span>
+                  <p className="font-medium text-slate-900 print:text-black">{patient.document}</p>
+                </div>
+              )}
+              {patient.rg && (
+                <div>
+                  <span className="text-slate-500 print:text-gray-600">RG</span>
+                  <p className="font-medium text-slate-900 print:text-black">{patient.rg}</p>
                 </div>
               )}
               {patient.phone && (
                 <div>
-                  <span className="text-muted-foreground">Telefone</span>
-                  <p className="font-medium">{patient.phone}</p>
+                  <span className="text-slate-500 print:text-gray-600">Telefone</span>
+                  <p className="font-medium text-slate-900 print:text-black">{patient.phone}</p>
                 </div>
               )}
               {patient.email && (
                 <div>
-                  <span className="text-muted-foreground">Email</span>
-                  <p className="font-medium">{patient.email}</p>
+                  <span className="text-slate-500 print:text-gray-600">Email</span>
+                  <p className="font-medium text-slate-900 print:text-black">{patient.email}</p>
                 </div>
               )}
               {patient.birthDate && (
                 <div>
-                  <span className="text-muted-foreground">Data de Nascimento</span>
-                  <p className="font-medium">
+                  <span className="text-slate-500 print:text-gray-600">Data de Nascimento</span>
+                  <p className="font-medium text-slate-900 print:text-black">
                     {formatDate(patient.birthDate)} ({calculateAge(patient.birthDate)} anos)
                   </p>
+                </div>
+              )}
+              {patient.gender && (
+                <div>
+                  <span className="text-slate-500 print:text-gray-600">Sexo</span>
+                  <p className="font-medium text-slate-900 print:text-black capitalize">{patient.gender}</p>
+                </div>
+              )}
+              {patient.insurance && (
+                <div>
+                  <span className="text-slate-500 print:text-gray-600">Convenio</span>
+                  <p className="font-medium text-slate-900 print:text-black">{patient.insurance}</p>
+                </div>
+              )}
+              {patient.guardian && (
+                <div>
+                  <span className="text-slate-500 print:text-gray-600">Responsavel</span>
+                  <p className="font-medium text-slate-900 print:text-black">{patient.guardian}</p>
                 </div>
               )}
 
               {/* Custom fields from workspace definition */}
               {customFields.map((field: any) => {
-                const value = patient.customData?.[field.key ?? field.name]
+                const value = patient.customData?.[field.key ?? field.name ?? field.id]
                 if (!value) return null
                 return (
-                  <div key={field.key ?? field.name}>
-                    <span className="text-muted-foreground">
+                  <div key={field.key ?? field.name ?? field.id}>
+                    <span className="text-slate-500 print:text-gray-600">
                       {field.label ?? field.name}
                     </span>
-                    <p className="font-medium">{String(value)}</p>
+                    <p className="font-medium text-slate-900 print:text-black">{String(value)}</p>
                   </div>
                 )
               })}
             </div>
           </section>
 
+          {/* Medical History */}
+          {patient.medicalHistory && Object.values(patient.medicalHistory).some(v => v && (Array.isArray(v) ? v.length > 0 : true)) && (
+            <section>
+              <h2 className="text-lg font-semibold mb-3 text-slate-900 print:text-black">
+                Historico Medico
+              </h2>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                {(patient.medicalHistory.allergies as string[] ?? []).length > 0 && (
+                  <div>
+                    <span className="text-slate-500 print:text-gray-600">Alergias</span>
+                    <p className="font-medium text-slate-900 print:text-black">{(patient.medicalHistory.allergies as string[]).join(", ")}</p>
+                  </div>
+                )}
+                {(patient.medicalHistory.chronicDiseases as string[] ?? []).length > 0 && (
+                  <div>
+                    <span className="text-slate-500 print:text-gray-600">Doencas Cronicas</span>
+                    <p className="font-medium text-slate-900 print:text-black">{(patient.medicalHistory.chronicDiseases as string[]).join(", ")}</p>
+                  </div>
+                )}
+                {(patient.medicalHistory.medications as string[] ?? []).length > 0 && (
+                  <div>
+                    <span className="text-slate-500 print:text-gray-600">Medicacoes</span>
+                    <p className="font-medium text-slate-900 print:text-black">{(patient.medicalHistory.medications as string[]).join(", ")}</p>
+                  </div>
+                )}
+                {(patient.medicalHistory.bloodType as string) && (
+                  <div>
+                    <span className="text-slate-500 print:text-gray-600">Tipo Sanguineo</span>
+                    <p className="font-medium text-slate-900 print:text-black">{String(patient.medicalHistory.bloodType)}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Address */}
+          {patient.address && Object.values(patient.address).some(v => v) && (
+            <section>
+              <h2 className="text-lg font-semibold mb-3 text-slate-900 print:text-black">
+                Endereco
+              </h2>
+              <p className="text-sm text-slate-900 print:text-black">
+                {[patient.address.street, patient.address.number, patient.address.complement, patient.address.neighborhood, patient.address.city, patient.address.state, patient.address.zipCode].filter(Boolean).join(", ")}
+              </p>
+            </section>
+          )}
+
+          {/* Tags */}
+          {patient.tags.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold mb-3 text-slate-900 print:text-black">Tags</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {patient.tags.map((tag, i) => (
+                  <span key={i} className="inline-block rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-xs font-medium text-teal-700 print:border-teal-400">{tag}</span>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Alerts */}
           {patient.alerts.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold mb-3 text-foreground">
+              <h2 className="text-lg font-semibold mb-3 text-slate-900 print:text-black">
                 Alertas
               </h2>
               <div className="rounded-xl border border-red-200 bg-red-50 p-4 print:bg-white print:border-red-400">
@@ -167,11 +250,11 @@ export default async function PatientReportPage({
 
           {/* Appointment History */}
           <section className="print:break-before-auto">
-            <h2 className="text-lg font-semibold mb-4 text-foreground">
+            <h2 className="text-lg font-semibold mb-4 text-slate-900 print:text-black">
               Historico de Consultas
             </h2>
             {patient.appointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">
+              <p className="text-sm text-slate-500 italic">
                 Nenhuma consulta registrada.
               </p>
             ) : (
@@ -179,13 +262,13 @@ export default async function PatientReportPage({
                 <table className="w-full text-sm min-w-[500px] print:min-w-0">
                   <thead>
                     <tr className="bg-muted/50 print:bg-gray-100">
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
+                      <th className="text-left px-4 py-2.5 font-medium text-slate-500 print:text-gray-600">
                         Data
                       </th>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
+                      <th className="text-left px-4 py-2.5 font-medium text-slate-500 print:text-gray-600">
                         Procedimentos
                       </th>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
+                      <th className="text-left px-4 py-2.5 font-medium text-slate-500 print:text-gray-600">
                         Observacoes
                       </th>
                     </tr>
@@ -224,7 +307,7 @@ export default async function PatientReportPage({
           {/* AI Summaries */}
           {patient.appointments.some((a) => a.aiSummary) && (
             <section className="print:break-before-auto">
-              <h2 className="text-lg font-semibold mb-4 text-foreground">
+              <h2 className="text-lg font-semibold mb-4 text-slate-900 print:text-black">
                 Resumos de Consultas (IA)
               </h2>
               <div className="space-y-4">
@@ -235,12 +318,12 @@ export default async function PatientReportPage({
                       key={apt.id}
                       className="border border-border rounded-xl p-4 print:border-gray-300"
                     >
-                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                      <p className="text-xs font-medium text-slate-500 print:text-gray-600 mb-2">
                         {formatDate(apt.date)}
                         {apt.procedures.length > 0 &&
                           ` - ${apt.procedures.join(", ")}`}
                       </p>
-                      <p className="text-sm leading-relaxed whitespace-pre-line">
+                      <p className="text-sm leading-relaxed whitespace-pre-line text-slate-800 print:text-black">
                         {apt.aiSummary}
                       </p>
                     </div>
@@ -250,11 +333,11 @@ export default async function PatientReportPage({
           )}
 
           {/* Footer */}
-          <footer className="border-t border-border pt-6 print:border-t-gray-300 mt-8">
-            <p className="text-xs text-muted-foreground">
+          <footer className="border-t border-slate-200 pt-6 print:border-t-gray-300 mt-8">
+            <p className="text-xs text-slate-500 print:text-gray-600">
               Documento gerado por VoxClinic em {today}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-slate-500 print:text-gray-600 mt-1">
               Confidencial - Dados protegidos pela LGPD (Lei 13.709/2018)
             </p>
           </footer>

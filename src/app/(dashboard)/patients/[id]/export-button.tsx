@@ -18,8 +18,43 @@ export function ExportButton({
     setIsExporting(true)
     try {
       const data = await exportPatientData(patientId)
-      const json = JSON.stringify(data, null, 2)
-      const blob = new Blob([json], { type: "application/json" })
+
+      // Build CSV
+      const rows: string[][] = []
+
+      // Patient header
+      rows.push(["=== DADOS DO PACIENTE ==="])
+      rows.push(["Campo", "Valor"])
+      rows.push(["Nome", data.patient.name])
+      if (data.patient.document) rows.push(["CPF", data.patient.document])
+      if (data.patient.phone) rows.push(["Telefone", data.patient.phone])
+      if (data.patient.email) rows.push(["Email", data.patient.email])
+      if (data.patient.birthDate) rows.push(["Data Nascimento", new Date(data.patient.birthDate).toLocaleDateString("pt-BR")])
+      rows.push(["Ativo", data.patient.isActive ? "Sim" : "Nao"])
+      rows.push(["Cadastrado em", new Date(data.patient.createdAt).toLocaleDateString("pt-BR")])
+      rows.push([])
+
+      // Appointments
+      rows.push(["=== CONSULTAS ==="])
+      rows.push(["Data", "Procedimentos", "Observacoes", "Status"])
+      for (const apt of data.appointments) {
+        rows.push([
+          new Date(apt.date).toLocaleDateString("pt-BR"),
+          (apt.procedures as string[]).join("; "),
+          apt.notes || "",
+          apt.status,
+        ])
+      }
+      rows.push([])
+
+      // Export info
+      rows.push(["=== EXPORTACAO ==="])
+      rows.push(["Data exportacao", new Date(data.exportDate).toLocaleDateString("pt-BR")])
+      rows.push(["LGPD", data.lgpdNotice])
+
+      const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n")
+      const bom = "\uFEFF" // UTF-8 BOM for Excel compatibility
+      const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8" })
       const url = URL.createObjectURL(blob)
 
       const safeName = patientName
@@ -31,7 +66,7 @@ export function ExportButton({
 
       const a = document.createElement("a")
       a.href = url
-      a.download = `paciente-${safeName}-dados.json`
+      a.download = `paciente-${safeName}-dados.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
