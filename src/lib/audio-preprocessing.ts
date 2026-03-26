@@ -2,10 +2,25 @@ import ffmpeg from 'fluent-ffmpeg'
 import { Readable, PassThrough } from 'stream'
 import path from 'path'
 
-// Resolve ffmpeg binary path — ffmpeg-static may return incorrect path on Windows
-// so we resolve it relative to node_modules
-const ffmpegPath = path.join(process.cwd(), 'node_modules', 'ffmpeg-static', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
-ffmpeg.setFfmpegPath(ffmpegPath)
+// Resolve ffmpeg binary path
+// In Docker/production: use system ffmpeg installed via apk
+// In development: use ffmpeg-static from node_modules
+function resolveFfmpegPath(): string {
+  // Check system ffmpeg first (Docker with apk add ffmpeg)
+  const { execSync } = require('child_process')
+  try {
+    const systemPath = execSync('which ffmpeg', { encoding: 'utf-8' }).trim()
+    if (systemPath) return systemPath
+  } catch {}
+  // Fallback to ffmpeg-static
+  try {
+    const ffmpegStatic = require('ffmpeg-static')
+    if (ffmpegStatic) return ffmpegStatic
+  } catch {}
+  // Last resort: node_modules path
+  return path.join(process.cwd(), 'node_modules', 'ffmpeg-static', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+}
+ffmpeg.setFfmpegPath(resolveFfmpegPath())
 
 interface PreprocessOptions {
   speed?: number        // 1.0 - 2.0, default 1.4
