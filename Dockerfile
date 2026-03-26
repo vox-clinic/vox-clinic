@@ -13,11 +13,21 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (needs dummy DB URLs at build time)
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" \
+    DIRECT_URL="postgresql://build:build@localhost:5432/build" \
+    npx prisma generate
 
-# Build Next.js
+# Build Next.js (dummy env vars for build - real values injected at runtime via Fly secrets)
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV DIRECT_URL="postgresql://build:build@localhost:5432/build"
+ENV NEXT_PUBLIC_SUPABASE_URL="https://build.supabase.co"
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_build"
+ENV SUPABASE_SERVICE_ROLE_KEY="build-placeholder"
+ENV CLERK_SECRET_KEY="sk_test_build"
+ENV OPENAI_API_KEY="sk-build-placeholder"
+ENV ANTHROPIC_API_KEY="sk-ant-build-placeholder"
 RUN npm run build
 
 # --- Stage 3: Production ---
