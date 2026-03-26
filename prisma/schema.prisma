@@ -206,3 +206,19 @@ model WorkspaceMember {
   @@index([workspaceId])
   @@index([userId])
 }
+
+model WorkspaceInvite {
+  id          String   @id @default(cuid())
+  workspaceId String
+  email       String
+  role        String   @default("member")
+  token       String   @unique @default(cuid())
+  invitedBy   String   // clerkId
+  status      String   @default("pending") // pending, accepted, expired
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([workspaceId])
+  @@index([email])
+  @@unique([workspaceId, email])
+}

@@ -57,6 +57,7 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/appointments/new` — Record consultation for existing patient
   - `/appointments/review` — Review AI summary before confirming
   - `/settings` — Workspace config (procedures, custom fields, clinic name)
+  - `/settings/import` — CSV patient import with column mapping
 - `src/app/onboarding/` — 4-step wizard (profession → questions → clinic → AI preview)
 - `src/app/api/webhooks/clerk/` — User sync webhook
 - `src/app/api/reminders/` — Cron-triggered appointment reminders
@@ -87,6 +88,8 @@ All data mutations use Server Actions with `"use server"` directive:
 - `treatment.ts` — getTreatmentPlans, createTreatmentPlan, addSessionToTreatment, updateTreatmentPlanStatus, deleteTreatmentPlan
 - `notification.ts` — getNotifications, getUnreadCount, markAsRead, markAllAsRead, generateUpcomingNotifications
 - `document.ts` — getPatientDocuments, uploadPatientDocument, getDocumentSignedUrl, deletePatientDocument
+- `import.ts` — importPatients (bulk CSV import with validation)
+- `team.ts` — getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite
 
 All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
 
@@ -152,6 +155,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - **TreatmentPlan**: links Patient + Workspace. name, procedures, totalSessions, completedSessions, status (active/completed/cancelled/paused), notes, startDate, estimatedEndDate, completedAt
 - **Notification**: workspaceId, userId, type (appointment_soon/appointment_missed/treatment_complete/system), title, body, entityType, entityId, read. Polling-based (60s)
 - **PatientDocument**: links Patient + Workspace. name, url (Supabase Storage), type (image/pdf/other), mimeType, fileSize. 10MB limit, signed URLs
+- **WorkspaceInvite**: workspaceId, email, role, token (unique), invitedBy, status (pending/accepted/expired), expiresAt (7 days)
 - **Recording**: audioUrl, transcript, aiExtractedData, status (pending/processed), workspaceId, errorMessage, fileSize, duration
 - **AuditLog**: workspaceId, userId, action, entityType, entityId, details (Json)
 - **ConsentRecord**: workspaceId, patientId?, recordingId?, consentType, givenBy, givenAt
