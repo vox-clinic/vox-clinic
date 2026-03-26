@@ -137,7 +137,7 @@ describe("NotificationBell", () => {
     })
 
     await user.click(screen.getByLabelText("Notificacoes"))
-    await user.click(screen.getByText("Marcar todas como lidas"))
+    await user.click(screen.getByText("Marcar tudo como lido"))
 
     expect(mockMarkAllAsRead).toHaveBeenCalled()
   })
