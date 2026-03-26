@@ -66,6 +66,8 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/admin` — Executive dashboard (KPIs: workspaces, users, patients, plan distribution)
   - `/admin/workspaces` — All workspaces table with search, plan/status badges
   - `/admin/workspaces/[id]` — Per-workspace drill-down (stats, recent activity, toggle status)
+  - `/admin/usuarios` — All platform users table with role, plan, onboarding status
+  - `/admin/roadmap` — Interactive roadmap with progress tracking, filters, category breakdown
 - `src/app/onboarding/` — 4-step wizard (profession → questions → clinic → AI preview)
 - `src/app/api/webhooks/clerk/` — User sync webhook
 - `src/app/api/reminders/` — Cron-triggered appointment reminders (email + WhatsApp with interactive confirm/cancel buttons)
@@ -77,7 +79,7 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
 - `src/app/api/whatsapp/webhook/` — WhatsApp webhook (GET for Meta verification, POST for incoming messages/status updates/appointment confirmations)
 - `src/app/nps/[token]/` — Public NPS survey page (no auth, token-based access, 0-10 score + comment)
 
-### Command Palette (Cmd+K)
+### Command Palette (Ctrl+K)
 - `src/components/command-palette.tsx` — Global search accessible from any page
 - Triggered via `Cmd+K` / `Ctrl+K` keyboard shortcut, or search button in header
 - Three result groups: **Pacientes** (live search via `searchPatients()`), **Paginas**, **Acoes**
@@ -112,7 +114,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `team.ts` — getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite
 - `messaging.ts` — getMessagingConfig, updateMessagingConfig, sendAppointmentMessage (email/WhatsApp/SMS)
 - `whatsapp.ts` — getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth
-- `admin.ts` — requireSuperAdmin guard, getAdminDashboard (cross-workspace aggregates), getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus
+- `admin.ts` — requireSuperAdmin guard, getAdminDashboard, getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus, getAdminUsers
 
 All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
 
@@ -120,9 +122,10 @@ All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope quer
 - `src/components/create-prescription-dialog.tsx` — Modal with dynamic medication rows (add/remove), submits and opens print page
 - `src/components/create-certificate-dialog.tsx` — Modal with type selector (atestado/declaracao/encaminhamento/laudo), conditional fields, auto-generated content
 - `src/components/record-button.tsx` — Audio recording with LGPD consent modal
-- `src/components/command-palette.tsx` — Cmd+K global search
+- `src/components/command-palette.tsx` — Ctrl+K / Cmd+K global search
 - `src/components/notification-bell.tsx` — In-app notification dropdown
 - `src/app/(dashboard)/patients/[id]/merge-dialog.tsx` — Patient merge search + confirm
+- `src/app/(dashboard)/patients/[id]/more-actions-dropdown.tsx` — Dropdown for secondary patient actions (Export, Merge, Deactivate)
 
 ### AI Pipeline
 - `src/lib/openai.ts` — `transcribeAudio(buffer, filename, vocabularyHints?)` via Whisper API
@@ -195,8 +198,8 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 
 ## Key Domain Entities (Prisma)
 
-- **User**: clerkId, profession, clinicName, onboardingComplete → has one Workspace
-- **Workspace**: professionType, customFields, procedures, anamnesisTemplate, categories → has many Patients, Appointments, Recordings
+- **User**: clerkId, role (user/superadmin), profession, clinicName, onboardingComplete → has one Workspace
+- **Workspace**: professionType, customFields, procedures, anamnesisTemplate, categories, plan (free/starter/professional/clinic), planStatus (trialing/active/past_due/canceled), stripeCustomerId, stripeSubId, trialEndsAt → has many Patients, Appointments, Recordings
 - **Patient**: belongs to Workspace. name, document (CPF, unique per workspace), rg, gender, address (JSON: street/number/complement/neighborhood/city/state/zipCode), insurance (convenio), guardian (responsavel), source (origin: instagram/google/indicacao/convenio/site/facebook/outro), tags (String[]), medicalHistory (JSON: allergies/chronicDiseases/medications/bloodType/notes), customData, alerts, isActive (soft delete). Has many Appointments, Recordings, TreatmentPlans
 - **Appointment**: links Patient + Workspace. date, procedures, notes, aiSummary, audioUrl, transcript, status (scheduled/completed/cancelled/no_show)
 - **TreatmentPlan**: links Patient + Workspace. name, procedures, totalSessions, completedSessions, status (active/completed/cancelled/paused), notes, startDate, estimatedEndDate, completedAt
@@ -213,6 +216,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - **NpsSurvey**: workspaceId, patientId, appointmentId? (unique), score (0-10), comment, token (unique, public access), sentAt, answeredAt. Public survey page at `/nps/[token]`
 - **AuditLog**: workspaceId, userId, action, entityType, entityId, details (Json)
 - **ConsentRecord**: workspaceId, patientId?, recordingId?, consentType, givenBy, givenAt
+- **UsageRecord**: workspaceId, period (YYYY-MM), metric (patients/appointments/recordings/storage_mb/whatsapp_messages), value. `@@unique([workspaceId, period, metric])`
 
 ### Key Constraints & Indexes
 - `@@unique([workspaceId, document])` on Patient — CPF unique per workspace (nulls allowed)
@@ -262,9 +266,10 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - Fields with AI confidence < 0.8 highlighted in amber (border-vox-warning).
 - All UI in Brazilian Portuguese (pt-BR). Dates DD/MM/AAAA, phone +55 DDD, CPF validation.
 - Navigation: sidebar on desktop (w-56, 5 items), bottom nav on mobile (grid-cols-5).
-- Dashboard: stat cards (4), today's agenda, recent activity, quick actions sidebar.
-- Calendar: month/week/day/list views, scheduling, quick status actions. Week view supports drag & drop rescheduling (@dnd-kit/core). Time blocking (gray bars for lunch/holidays/etc). Recurring appointments (weekly/biweekly).
-- Patient detail: hero with tags/insurance, action buttons (Prescricao, Atestado, Exportar, Relatorio, Mesclar, Desativar).
+- Dashboard: stat cards (4), today's agenda, recent activity, quick actions in compact horizontal row. Agenda/activity full-width layout.
+- Calendar: month/week/day/list views, scheduling, quick status actions. Week view supports drag & drop rescheduling (@dnd-kit/core). Time blocking (gray bars for lunch/holidays/etc). Recurring appointments (weekly/biweekly). Red "now" indicator line in week view, auto-scrolls to current hour on mount.
+- Patient detail: hero with tags/insurance, action buttons (Prescricao, Atestado). Secondary actions in "Mais" dropdown (Export, Merge, Deactivate). Empty fields hidden by default with "Mostrar todos" toggle.
+- Empty states with contextual CTAs (Tratamentos, Documentos, Gravacoes, Anamnese).
 - Prescriptions & certificates: print-friendly pages (Ctrl+P → PDF).
 - Reports: KPI cards (revenue, appointments, return rate, no-show, NPS), charts (revenue, new patients, status pie), rankings (top patients by frequency/revenue), procedure ranking, hour heatmap. Excel export.
 - NPS survey: public token-based page at `/nps/[token]` with 0-10 score grid + comment.

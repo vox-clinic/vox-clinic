@@ -73,7 +73,7 @@ function CategorySection({ icon, title, description, count, children }: { icon: 
 }
 
 const FEATURES_SUMMARY = {
-  total: 68,
+  total: 70,
   categories: 10,
 }
 
@@ -171,7 +171,7 @@ export default function DocsPage() {
         </CategorySection>
 
         {/* ── 3. PRONTUARIO E IA ── */}
-        <CategorySection icon="🎙️" title="Prontuario e IA" description="Gravacao de voz, transcricao automatica e extracao de dados por inteligencia artificial." count={9}>
+        <CategorySection icon="🎙️" title="Prontuario e IA" description="Gravacao de voz, transcricao automatica e extracao de dados por inteligencia artificial." count={10}>
           <FeatureCard title="Gravacao de Audio" description="Gravacao via MediaRecorder (webm/opus). Consentimento LGPD obrigatorio. Audio nunca salvo localmente. Limite de 25MB." />
           <FeatureCard title="Transcricao por IA (Whisper)" description="Transcricao automatica em portugues via OpenAI Whisper. Vocabulario medico como hints. Timeout de 60 segundos." />
           <FeatureCard title="Extracao de Dados (Claude)" description="Claude Sonnet extrai nome, CPF, telefone, procedimentos, observacoes via tool_use. Validacao Zod. Temperatura 0 para precisao." />
@@ -181,6 +181,7 @@ export default function DocsPage() {
           <FeatureCard title="Reproducao de Audio" description="Player de audio com controles play/pause na aba de gravacoes do paciente. URLs assinadas de 5 minutos." />
           <FeatureCard title="Planos de Tratamento" description="Crie planos com multiplas sessoes (ex: clareamento 6 sessoes). Rastreie progresso, marque sessoes concluidas, pause ou cancele." />
           <FeatureCard title="Anamnese Customizada" description="Template de perguntas por profissao (texto, booleano, selecao). Preenchido na aba Anamnese do paciente. Gerado pela IA no onboarding." />
+          <FeatureCard title="Extracao Estruturada (7 campos)" description="IA separa: procedimentos, diagnostico, observacoes, medicamentos, recomendacoes, proxima consulta e atualizacoes de dados pessoais do paciente." />
         </CategorySection>
 
         {/* ── 4. PRESCRICOES E DOCUMENTOS ── */}
@@ -242,15 +243,16 @@ export default function DocsPage() {
         </CategorySection>
 
         {/* ── 10. INFRAESTRUTURA ── */}
-        <CategorySection icon="📱" title="Infraestrutura e UX" description="Performance, responsividade e experiencia do usuario." count={8}>
+        <CategorySection icon="📱" title="Infraestrutura e UX" description="Performance, responsividade e experiencia do usuario." count={9}>
           <FeatureCard title="Design Responsivo" description="Mobile-first com sidebar no desktop e bottom nav no mobile. Funciona em celular, tablet e desktop." />
           <FeatureCard title="PWA Ready" description="Manifest.json e service worker para instalacao como app. Icones configurados para iOS e Android." />
           <FeatureCard title="Performance" description="Next.js 16 com Turbopack. Server components, cache com unstable_cache. Carregamento rapido com skeletons." />
-          <FeatureCard title="Busca Global (Cmd+K)" description="Command palette acessivel de qualquer pagina. Busca pacientes, paginas e acoes rapidas. Navegacao por teclado." />
+          <FeatureCard title="Busca Global (Ctrl+K)" description="Paleta de comandos acessivel de qualquer pagina. Busca pacientes, paginas e acoes rapidas. Navegacao por teclado." />
           <FeatureCard title="Onboarding com IA" description="Wizard de 4 etapas: escolha da profissao (8 opcoes), perguntas contextuais, dados da clinica, preview editavel gerado por Claude. Workspace pronto em segundos." />
           <FeatureCard title="Impressao em PDF" description="Paginas de recibo, prescricao e atestado otimizadas para impressao (Ctrl+P). Estilos @media print dedicados." />
           <FeatureCard title="Health Check" description="Endpoint /api/health para monitoramento de disponibilidade e integracao com ferramentas de uptime." />
           <FeatureCard title="Validacao de Ambiente" description="Todas as variaveis de ambiente validadas via Zod no startup. App falha rapido se configuracao incorreta." />
+          <FeatureCard title="Indicador de Horario Atual" description="Linha vermelha no calendario semanal mostrando a hora atual, com auto-scroll para o horario do dia." />
         </CategorySection>
 
         {/* Footer */}
