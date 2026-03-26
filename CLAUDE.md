@@ -299,3 +299,13 @@ See `.env.example` for full list with placeholder values.
 - `user.deleted` — cascade delete user and related data
 
 Note: In local dev without webhook access, `generateWorkspace` does user upsert as fallback.
+
+## Public Docs Page
+
+`src/app/docs/page.tsx` — Public feature documentation page at `/docs` (no auth required).
+
+**IMPORTANT FOR ALL AGENTS:** When implementing new features or modifying existing ones, you MUST update this page in the same commit:
+1. Add/update the `<FeatureCard>` in the correct `<CategorySection>`
+2. Increment `FEATURES_SUMMARY.total` counter
+3. Update `lastUpdated` date constant
+4. Add new categories if needed (follow the existing pattern)
