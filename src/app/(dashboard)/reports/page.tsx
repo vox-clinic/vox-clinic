@@ -209,6 +209,24 @@ export default function ReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {data.nps.total > 0 && (
+          <Card className="group relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">NPS</p>
+                  <p className="text-2xl font-bold mt-0.5 tabular-nums">{data.nps.score ?? "-"}</p>
+                  <p className="text-[10px] text-muted-foreground">{data.nps.total} respostas · media {data.nps.average}</p>
+                </div>
+                <div className="flex size-9 items-center justify-center rounded-xl bg-vox-primary/10">
+                  <BarChart3 className="size-4 text-vox-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Charts Grid */}
@@ -349,6 +367,81 @@ export default function ReportsPage() {
                             className="h-full rounded-full bg-vox-primary/60 transition-all duration-500"
                             style={{ width: `${width}%` }}
                           />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Patient Rankings */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Top patients by frequency */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <UserCheck className="size-4 text-vox-primary" />
+              Pacientes mais Frequentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {data.topPatientsByFrequency.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">Sem dados</p>
+              ) : (
+                data.topPatientsByFrequency.map((p, i) => {
+                  const max = data.topPatientsByFrequency[0]?.visits ?? 1
+                  const width = (p.visits / max) * 100
+                  return (
+                    <div key={`freq-${i}`} className="flex items-center gap-3">
+                      <span className="text-[11px] text-muted-foreground w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-xs font-medium truncate">{p.name}</span>
+                          <span className="text-[11px] tabular-nums font-semibold shrink-0 ml-2">{p.visits} consultas</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                          <div className="h-full rounded-full bg-vox-primary/60 transition-all duration-500" style={{ width: `${width}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top patients by revenue */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <DollarSign className="size-4 text-vox-primary" />
+              Pacientes por Receita
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {data.topPatientsByRevenue.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">Sem dados</p>
+              ) : (
+                data.topPatientsByRevenue.filter(p => p.revenue > 0).map((p, i) => {
+                  const max = data.topPatientsByRevenue[0]?.revenue ?? 1
+                  const width = max > 0 ? (p.revenue / max) * 100 : 0
+                  return (
+                    <div key={`rev-${i}`} className="flex items-center gap-3">
+                      <span className="text-[11px] text-muted-foreground w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-xs font-medium truncate">{p.name}</span>
+                          <span className="text-[11px] tabular-nums font-semibold shrink-0 ml-2">{formatBRL(p.revenue)}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                          <div className="h-full rounded-full bg-emerald-500/60 transition-all duration-500" style={{ width: `${width}%` }} />
                         </div>
                       </div>
                     </div>

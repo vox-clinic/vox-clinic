@@ -188,6 +188,23 @@ model Notification {
   @@index([createdAt])
 }
 
+model NpsSurvey {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  patientId     String
+  appointmentId String?  @unique // one survey per appointment
+  score         Int?     // 0-10 NPS score
+  comment       String?
+  token         String   @unique @default(cuid()) // public access token
+  sentAt        DateTime @default(now())
+  answeredAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([patientId])
+  @@index([token])
+}
+
 model PatientDocument {
   id          String   @id @default(cuid())
   patientId   String

@@ -24,6 +24,7 @@ export interface Procedure {
   name: string
   category: string
   price?: number
+  duration?: number // minutes (default 30)
 }
 
 export interface CustomField {

@@ -116,6 +116,35 @@ export async function getReportsData(period: "3m" | "6m" | "12m") {
 
   const totalRevenue = appointments.reduce((sum, a) => sum + (a.price ?? 0), 0)
 
+  // NPS data
+  const npsResponses = await db.npsSurvey.findMany({
+    where: { workspaceId, answeredAt: { not: null }, sentAt: { gte: startDate } },
+    select: { score: true },
+  })
+  const npsScores = npsResponses.filter(r => r.score !== null).map(r => r.score!)
+  const npsAvg = npsScores.length > 0 ? Math.round(npsScores.reduce((s, v) => s + v, 0) / npsScores.length * 10) / 10 : null
+  const npsPromoters = npsScores.filter(s => s >= 9).length
+  const npsDetractors = npsScores.filter(s => s <= 6).length
+  const npsScore = npsScores.length > 0 ? Math.round(((npsPromoters - npsDetractors) / npsScores.length) * 100) : null
+
+  // Patient ranking by frequency and revenue
+  const patientStats: Record<string, { name: string; visits: number; revenue: number }> = {}
+  for (const apt of appointments) {
+    if (!patientStats[apt.patient.id]) {
+      patientStats[apt.patient.id] = { name: apt.patient.name, visits: 0, revenue: 0 }
+    }
+    patientStats[apt.patient.id].visits++
+    patientStats[apt.patient.id].revenue += apt.price ?? 0
+  }
+
+  const topPatientsByFrequency = Object.values(patientStats)
+    .sort((a, b) => b.visits - a.visits)
+    .slice(0, 10)
+
+  const topPatientsByRevenue = Object.values(patientStats)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10)
+
   return {
     totalPatients,
     totalAppointments: appointments.length,
@@ -127,5 +156,8 @@ export async function getReportsData(period: "3m" | "6m" | "12m") {
     topProcedures,
     hourDistribution,
     statusCounts,
+    topPatientsByFrequency,
+    topPatientsByRevenue,
+    nps: { score: npsScore, average: npsAvg, total: npsScores.length, promoters: npsPromoters, detractors: npsDetractors },
   }
 }

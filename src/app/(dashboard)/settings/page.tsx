@@ -50,7 +50,7 @@ import {
 } from "@/server/actions/team"
 import { getMessagingConfig, updateMessagingConfig } from "@/server/actions/messaging"
 
-type Procedure = { id: string; name: string; category: string }
+type Procedure = { id: string; name: string; category: string; duration?: number }
 type CustomField = { id: string; name: string; type: string; required: boolean }
 
 const professionLabels: Record<string, string> = {
@@ -152,9 +152,13 @@ export default function SettingsPage() {
     if (!newProcedure.trim()) return
     setProcedures((prev) => [
       ...prev,
-      { id: `proc_${Date.now()}`, name: newProcedure.trim(), category: "Geral" },
+      { id: `proc_${Date.now()}`, name: newProcedure.trim(), category: "Geral", duration: 30 },
     ])
     setNewProcedure("")
+  }
+
+  function updateProcedureDuration(id: string, duration: number) {
+    setProcedures((prev) => prev.map((p) => p.id === id ? { ...p, duration } : p))
   }
 
   function removeProcedure(id: string) {
@@ -474,6 +478,18 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium truncate block">{proc.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        min={5}
+                        max={480}
+                        step={5}
+                        value={proc.duration ?? 30}
+                        onChange={(e) => updateProcedureDuration(proc.id, parseInt(e.target.value) || 30)}
+                        className="w-14 h-7 rounded-lg border border-input bg-transparent px-1.5 text-center text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                      />
+                      <span className="text-[10px] text-muted-foreground">min</span>
                     </div>
                     <Badge variant="secondary" className="text-[10px] shrink-0">
                       {proc.category}
