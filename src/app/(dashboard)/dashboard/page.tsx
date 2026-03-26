@@ -66,19 +66,20 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* ─── Hero Greeting ─── */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-vox-primary/[0.06] via-card to-vox-primary/[0.03] p-6">
-        <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-vox-primary/[0.05] blur-3xl" />
-        <div className="relative flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-vox-primary/[0.05] via-card to-vox-primary/[0.02] p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-20 -top-20 size-56 rounded-full bg-vox-primary/[0.06] blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 -bottom-10 size-32 rounded-full bg-vox-primary/[0.03] blur-2xl" />
+        <div className="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{greeting}</p>
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            <p className="text-[13px] text-muted-foreground font-medium">{greeting}</p>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl mt-0.5">
               {data.clinicName}
             </h1>
           </div>
           <Link
             href="/appointments/new"
             aria-label="Nova Consulta"
-            className="mt-3 sm:mt-0 inline-flex items-center gap-2 rounded-xl bg-vox-primary px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-vox-primary/20 transition-all hover:bg-vox-primary/90 hover:shadow-xl hover:shadow-vox-primary/25 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+            className="mt-3 sm:mt-0 inline-flex items-center gap-2 rounded-xl bg-vox-primary px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-vox-primary/25 transition-all hover:bg-vox-primary/90 hover:shadow-xl hover:shadow-vox-primary/30 hover:-translate-y-px active:translate-y-0 active:shadow-md focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
           >
             <Mic className="size-4" />
             Nova Consulta
@@ -88,69 +89,69 @@ export default async function DashboardPage() {
 
       {/* ─── Stat Cards ─── */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Card className="group relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
+        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Pacientes</p>
-                <p className="text-2xl font-bold mt-0.5 tabular-nums">{data.totalPatients}</p>
+                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Pacientes</p>
+                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.totalPatients}</p>
               </div>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-primary/10">
-                <Users className="size-4 text-vox-primary" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] transition-colors group-hover:bg-vox-primary/[0.12]">
+                <Users className="size-[18px] text-vox-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="group relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-success/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
+        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-success/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Este mes</p>
-                <p className="text-2xl font-bold mt-0.5 tabular-nums">{data.monthlyAppointments}</p>
+                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Este mes</p>
+                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.monthlyAppointments}</p>
                 {monthlyTrend !== 0 && (
-                  <div className={`flex items-center gap-1 mt-0.5 text-[11px] font-medium ${monthlyTrend > 0 ? "text-vox-success" : "text-vox-error"}`}>
+                  <div className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${monthlyTrend > 0 ? "text-vox-success bg-vox-success/10" : "text-vox-error bg-vox-error/10"}`}>
                     {monthlyTrend > 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
                     {monthlyTrend > 0 ? "+" : ""}{monthlyTrend}%
                   </div>
                 )}
               </div>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-success/10">
-                <Stethoscope className="size-4 text-vox-success" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-success/[0.08] transition-colors group-hover:bg-vox-success/[0.12]">
+                <Stethoscope className="size-[18px] text-vox-success" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="group relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-warning/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
+        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-warning/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Agendados</p>
-                <p className="text-2xl font-bold mt-0.5 tabular-nums">{data.scheduledAppointments}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">proximas</p>
+                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Agendados</p>
+                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.scheduledAppointments}</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-1">proximas consultas</p>
               </div>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-warning/10">
-                <CalendarCheck className="size-4 text-vox-warning" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-warning/[0.08] transition-colors group-hover:bg-vox-warning/[0.12]">
+                <CalendarCheck className="size-[18px] text-vox-warning" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="group relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
+        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Gravacoes</p>
-                <p className="text-2xl font-bold mt-0.5 tabular-nums">{data.totalRecordings}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">audios</p>
+                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Gravacoes</p>
+                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.totalRecordings}</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-1">audios salvos</p>
               </div>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-primary/10">
-                <AudioLines className="size-4 text-vox-primary" />
+              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] transition-colors group-hover:bg-vox-primary/[0.12]">
+                <AudioLines className="size-[18px] text-vox-primary" />
               </div>
             </div>
           </CardContent>
@@ -166,58 +167,60 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Clock className="size-4 text-vox-primary" />
+                <div className="flex size-6 items-center justify-center rounded-lg bg-vox-primary/10">
+                  <Clock className="size-3.5 text-vox-primary" />
+                </div>
                 Agenda de Hoje
               </CardTitle>
               <Link
                 href="/calendar"
                 aria-label="Ver agenda completa"
-                className="text-xs text-vox-primary hover:underline flex items-center gap-1 rounded focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="text-xs font-medium text-vox-primary hover:text-vox-primary/80 flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-vox-primary/5 transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
                 Ver agenda <ArrowRight className="size-3" />
               </Link>
             </CardHeader>
             <CardContent>
               {data.todayAppointments.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-muted/60">
-                    <CalendarDays className="size-5 text-muted-foreground/50" />
+                <div className="text-center py-8">
+                  <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+                    <CalendarDays className="size-6 text-muted-foreground/40" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Nenhuma consulta para hoje
                   </p>
                   <Link
                     href="/appointments/new"
                     aria-label="Registrar consulta"
-                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-vox-primary hover:underline rounded focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-vox-primary hover:text-vox-primary/80 rounded-lg px-3 py-1.5 hover:bg-vox-primary/5 transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
                   >
                     <Stethoscope className="size-3" />
                     Registrar consulta
                   </Link>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {data.todayAppointments.map((apt) => (
                     <Link
                       key={apt.id}
                       href={`/patients/${apt.patient.id}`}
                       aria-label={`Consulta de ${apt.patient.name} as ${formatTime(apt.date)}`}
-                      className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/50 transition-all focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                      className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-accent transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
                     >
-                      <div className="flex size-9 items-center justify-center rounded-lg bg-vox-primary/10 text-[11px] font-bold text-vox-primary tabular-nums shrink-0">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] text-[11px] font-bold text-vox-primary tabular-nums shrink-0">
                         {formatTime(apt.date)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-vox-primary transition-colors">
+                        <p className="text-[13px] font-semibold truncate group-hover:text-vox-primary transition-colors">
                           {apt.patient.name}
                         </p>
                         {apt.procedures.length > 0 && (
-                          <p className="text-[11px] text-muted-foreground truncate">
+                          <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">
                             {apt.procedures.join(", ")}
                           </p>
                         )}
                       </div>
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColor[apt.status] ?? "bg-muted text-muted-foreground"}`}>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusColor[apt.status] ?? "bg-muted text-muted-foreground"}`}>
                         {statusLabel[apt.status] ?? apt.status}
                       </span>
                     </Link>
@@ -231,20 +234,22 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <CalendarDays className="size-4 text-vox-primary" />
+                <div className="flex size-6 items-center justify-center rounded-lg bg-vox-primary/10">
+                  <CalendarDays className="size-3.5 text-vox-primary" />
+                </div>
                 Atividade Recente
               </CardTitle>
               <Link
                 href="/calendar"
                 aria-label="Ver toda atividade recente"
-                className="text-xs text-vox-primary hover:underline flex items-center gap-1 rounded focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="text-xs font-medium text-vox-primary hover:text-vox-primary/80 flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-vox-primary/5 transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
                 Ver tudo <ArrowRight className="size-3" />
               </Link>
             </CardHeader>
             <CardContent>
               {data.recentAppointments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
+                <p className="text-sm text-muted-foreground text-center py-8">
                   Nenhum atendimento registrado.
                 </p>
               ) : (
@@ -254,16 +259,16 @@ export default async function DashboardPage() {
                       key={apt.id}
                       href={`/patients/${apt.patient.id}`}
                       aria-label={`Atendimento de ${apt.patient.name} em ${formatDateShort(apt.date)}`}
-                      className="group flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-muted/50 transition-all focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                      className="group flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-accent transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
                     >
-                      <span className="text-[11px] text-muted-foreground w-12 shrink-0 tabular-nums">
+                      <span className="text-[11px] text-muted-foreground/70 w-12 shrink-0 tabular-nums font-medium">
                         {formatDateShort(apt.date)}
                       </span>
-                      <div className="flex size-7 items-center justify-center rounded-full bg-muted text-[10px] font-semibold shrink-0">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-vox-primary/[0.08] text-[11px] font-bold text-vox-primary shrink-0">
                         {apt.patient.name.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate block group-hover:text-vox-primary transition-colors">
+                        <span className="text-[13px] font-medium truncate block group-hover:text-vox-primary transition-colors">
                           {apt.patient.name}
                         </span>
                       </div>
@@ -281,7 +286,7 @@ export default async function DashboardPage() {
                           )}
                         </div>
                       )}
-                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColor[apt.status] ?? "bg-muted text-muted-foreground"}`}>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusColor[apt.status] ?? "bg-muted text-muted-foreground"}`}>
                         {statusLabel[apt.status] ?? apt.status}
                       </span>
                     </Link>
@@ -299,44 +304,52 @@ export default async function DashboardPage() {
           <Card className="border-vox-primary/15 bg-gradient-to-br from-vox-primary/[0.04] to-transparent">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Sparkles className="size-4 text-vox-primary" />
+                <div className="flex size-6 items-center justify-center rounded-lg bg-vox-primary/10">
+                  <Sparkles className="size-3.5 text-vox-primary" />
+                </div>
                 Acoes Rapidas
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1.5">
+            <CardContent className="space-y-2">
               <Link
                 href="/appointments/new"
                 aria-label="Nova Consulta"
-                className="group flex items-center gap-3 rounded-xl bg-vox-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-vox-primary/15 transition-all hover:bg-vox-primary/90 hover:shadow-md hover:shadow-vox-primary/20 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="group flex items-center gap-3 rounded-xl bg-vox-primary px-4 py-3 text-sm font-semibold text-white shadow-md shadow-vox-primary/20 transition-all hover:bg-vox-primary/90 hover:shadow-lg hover:shadow-vox-primary/25 hover:-translate-y-px active:translate-y-0 active:shadow-sm focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
                 <Stethoscope className="size-4" />
                 Nova Consulta
-                <ArrowRight className="size-3.5 ml-auto opacity-50 transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight className="size-3.5 ml-auto opacity-60 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/patients/new/voice"
                 aria-label="Cadastro por Voz"
-                className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-2.5 text-sm font-medium transition-all hover:bg-muted/50 hover:border-border active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 text-sm font-medium transition-all hover:bg-accent hover:border-border/70 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
-                <Mic className="size-4 text-vox-primary" />
+                <div className="flex size-7 items-center justify-center rounded-lg bg-vox-primary/[0.08]">
+                  <Mic className="size-3.5 text-vox-primary" />
+                </div>
                 Cadastro por Voz
                 <ArrowRight className="size-3.5 ml-auto opacity-0 transition-all group-hover:opacity-40 group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/patients/new"
                 aria-label="Novo Paciente"
-                className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-2.5 text-sm font-medium transition-all hover:bg-muted/50 hover:border-border active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 text-sm font-medium transition-all hover:bg-accent hover:border-border/70 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
-                <Users className="size-4 text-muted-foreground" />
+                <div className="flex size-7 items-center justify-center rounded-lg bg-muted">
+                  <Users className="size-3.5 text-muted-foreground" />
+                </div>
                 Novo Paciente
                 <ArrowRight className="size-3.5 ml-auto opacity-0 transition-all group-hover:opacity-40 group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/calendar"
                 aria-label="Agendar Consulta"
-                className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-2.5 text-sm font-medium transition-all hover:bg-muted/50 hover:border-border active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 text-sm font-medium transition-all hover:bg-accent hover:border-border/70 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
-                <CalendarDays className="size-4 text-muted-foreground" />
+                <div className="flex size-7 items-center justify-center rounded-lg bg-muted">
+                  <CalendarDays className="size-3.5 text-muted-foreground" />
+                </div>
                 Agendar Consulta
                 <ArrowRight className="size-3.5 ml-auto opacity-0 transition-all group-hover:opacity-40 group-hover:translate-x-0.5" />
               </Link>
@@ -360,21 +373,25 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Users className="size-4 text-vox-primary" />
+                <div className="flex size-6 items-center justify-center rounded-lg bg-vox-primary/10">
+                  <Users className="size-3.5 text-vox-primary" />
+                </div>
                 Pacientes Recentes
               </CardTitle>
               <Link
                 href="/patients"
                 aria-label="Ver todos os pacientes"
-                className="text-xs text-vox-primary hover:underline rounded focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                className="text-xs font-medium text-vox-primary hover:text-vox-primary/80 rounded-lg px-2 py-1 hover:bg-vox-primary/5 transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
               >
                 Ver todos
               </Link>
             </CardHeader>
             <CardContent>
               {data.recentPatients.length === 0 ? (
-                <div className="text-center py-4">
-                  <Users className="size-6 text-muted-foreground/30 mx-auto mb-2" />
+                <div className="text-center py-6">
+                  <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-muted/50">
+                    <Users className="size-5 text-muted-foreground/40" />
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Nenhum paciente cadastrado.
                   </p>
@@ -386,17 +403,19 @@ export default async function DashboardPage() {
                       <Link
                         href={`/patients/${patient.id}`}
                         aria-label={`Ver paciente ${patient.name}`}
-                        className="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-muted/50 transition-all focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm hover:bg-accent transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
                       >
-                        <div className="flex size-7 items-center justify-center rounded-full bg-vox-primary/10 text-[10px] font-bold text-vox-primary shrink-0">
+                        <div className="flex size-8 items-center justify-center rounded-full bg-vox-primary/[0.08] text-[11px] font-bold text-vox-primary shrink-0">
                           {patient.name.charAt(0)}
                         </div>
-                        <span className="font-medium truncate flex-1 group-hover:text-vox-primary transition-colors">
-                          {patient.name}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {formatDate(patient.lastAppointment)}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium truncate block group-hover:text-vox-primary transition-colors text-[13px]">
+                            {patient.name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/60">
+                            {formatDate(patient.lastAppointment)}
+                          </span>
+                        </div>
                       </Link>
                     </li>
                   ))}

@@ -3,11 +3,12 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, FileText, ChevronLeft, Phone, Mail, Calendar } from "lucide-react"
+import { AlertTriangle, FileText, ChevronLeft, Phone, Mail, Calendar, Shield, Tag } from "lucide-react"
 import Link from "next/link"
 import { PatientTabs } from "./patient-tabs"
 import { ExportButton } from "./export-button"
 import { DeactivateButton } from "./deactivate-button"
+import { MergeDialog } from "./merge-dialog"
 
 export default async function PatientPage({
   params,
@@ -90,7 +91,23 @@ export default async function PatientPage({
                     {formatDate(patient.birthDate)}
                   </span>
                 )}
+                {patient.insurance && (
+                  <span className="flex items-center gap-1">
+                    <Shield className="size-3" />
+                    {patient.insurance}
+                  </span>
+                )}
               </div>
+              {patient.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {patient.tags.map((tag: string, i: number) => (
+                    <Badge key={i} variant="secondary" className="text-[10px]">
+                      <Tag className="size-2.5 mr-0.5" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               {patient.alerts.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {patient.alerts.map((alert: string, i: number) => (
@@ -105,7 +122,7 @@ export default async function PatientPage({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <ExportButton patientId={patient.id} patientName={patient.name} />
             <Link href={`/patients/${patient.id}/report`} target="_blank">
               <Button variant="outline" size="sm" className="gap-1.5">
@@ -113,6 +130,7 @@ export default async function PatientPage({
                 Relatorio
               </Button>
             </Link>
+            <MergeDialog patientId={patient.id} patientName={patient.name} />
             <DeactivateButton patientId={patient.id} />
           </div>
         </div>

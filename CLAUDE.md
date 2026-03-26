@@ -84,7 +84,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `workspace.ts` — generateWorkspace (accepts edited preview, NOT re-generated), getWorkspacePreview, getWorkspace, updateWorkspace
 - `voice.ts` — processVoiceRegistration, confirmPatientRegistration (in $transaction), checkDuplicatePatient
 - `consultation.ts` — processConsultation, getRecordingForReview (server-side data fetch), confirmConsultation (in $transaction with double-confirm guard)
-- `patient.ts` — getPatients (paginated, filters isActive), getPatient, updatePatient, createPatient, searchPatients, getRecentPatients, getAudioPlaybackUrl, deactivatePatient (soft delete)
+- `patient.ts` — getPatients (paginated, filters isActive, supports tag/insurance filters), getPatient, updatePatient, createPatient, searchPatients (name/CPF/phone/email/insurance), getRecentPatients, getAudioPlaybackUrl, deactivatePatient (soft delete), mergePatients (atomic merge with $transaction), getAllPatientTags
 - `appointment.ts` — getAppointmentsByDateRange, scheduleAppointment, updateAppointmentStatus, deleteAppointment
 - `receipt.ts` — generateReceiptData
 - `reports.ts` — getReportsData (analytics: monthly revenue, patient trends, procedure ranking, hour heatmap, return rate, no-show rate)
@@ -127,6 +127,7 @@ All multi-step mutations are wrapped in `db.$transaction()`:
 - `confirmPatientRegistration`: Patient.create → Appointment.create → Recording.update (atomic)
 - `confirmConsultation`: Recording.findUnique (double-confirm guard) → Appointment.create → Recording.update
 - `generateWorkspace`: User.upsert → Workspace.upsert → User.update (onboardingComplete)
+- `mergePatients`: Move appointments/recordings/documents/treatmentPlans → Merge tags/alerts/medicalHistory → Fill missing fields → Soft-delete merged patient
 
 ### Audio Recording
 `src/components/record-button.tsx` — Client component using MediaRecorder API. Props:
@@ -166,7 +167,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 
 - **User**: clerkId, profession, clinicName, onboardingComplete → has one Workspace
 - **Workspace**: professionType, customFields, procedures, anamnesisTemplate, categories → has many Patients, Appointments, Recordings
-- **Patient**: belongs to Workspace. name, document (CPF, unique per workspace), customData, alerts, isActive (soft delete). Has many Appointments, Recordings, TreatmentPlans
+- **Patient**: belongs to Workspace. name, document (CPF, unique per workspace), rg, gender, address (JSON: street/number/complement/neighborhood/city/state/zipCode), insurance (convenio), guardian (responsavel), tags (String[]), medicalHistory (JSON: allergies/chronicDiseases/medications/bloodType/notes), customData, alerts, isActive (soft delete). Has many Appointments, Recordings, TreatmentPlans
 - **Appointment**: links Patient + Workspace. date, procedures, notes, aiSummary, audioUrl, transcript, status (scheduled/completed/cancelled/no_show)
 - **TreatmentPlan**: links Patient + Workspace. name, procedures, totalSessions, completedSessions, status (active/completed/cancelled/paused), notes, startDate, estimatedEndDate, completedAt
 - **Notification**: workspaceId, userId, type (appointment_soon/appointment_missed/treatment_complete/system), title, body, entityType, entityId, read. Polling-based (60s)
@@ -191,7 +192,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 1. **Confirmation-before-save**: AI-extracted data is NEVER saved automatically. Professional must review and confirm.
 2. **Atomic transactions**: All multi-step DB operations use `db.$transaction()`.
 3. **Double-confirm guard**: `confirmConsultation` checks `recording.appointmentId == null` inside transaction to prevent duplicate appointments from double-clicks.
-4. **Duplicate patient detection**: By CPF (normalized, both formatted/unformatted) and by name (case-insensitive contains). `@@unique([workspaceId, document])` enforces at DB level.
+4. **Duplicate patient detection & merge**: By CPF (normalized, both formatted/unformatted) and by name (case-insensitive contains). `@@unique([workspaceId, document])` enforces at DB level. `mergePatients()` allows merging two records: keeps target, transfers all related records (appointments, recordings, documents, treatment plans), merges tags/alerts/medicalHistory (union), fills missing fields from source, then soft-deletes source. UI via MergeDialog on patient detail page.
 5. **Soft delete for patients**: `isActive` flag. `getPatients` filters `isActive: true`. Records retained for CFM 20-year requirement.
 6. **Appointment conflict detection**: `checkAppointmentConflicts()` checks ±30min window. `scheduleAppointment()` rejects with `CONFLICT:` prefix error. UI shows confirm dialog, `forceSchedule: true` bypasses.
 

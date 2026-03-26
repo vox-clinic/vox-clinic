@@ -33,6 +33,11 @@ import {
   FileIcon,
   Download,
   Eye,
+  Heart,
+  MapPin,
+  Shield,
+  Tag,
+  Merge,
 } from "lucide-react"
 import { Progress, ProgressTrack, ProgressIndicator } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
@@ -58,9 +63,16 @@ type PatientData = {
   id: string
   name: string
   document: string | null
+  rg: string | null
   phone: string | null
   email: string | null
   birthDate: Date | null
+  gender: string | null
+  address: Record<string, string> | null
+  insurance: string | null
+  guardian: string | null
+  tags: string[]
+  medicalHistory: Record<string, unknown>
   customData: Record<string, unknown>
   alerts: string[]
   createdAt: Date
@@ -154,15 +166,31 @@ export function PatientTabs({ patient, customFields, anamnesisTemplate }: { pati
   )
 }
 
+const genderLabels: Record<string, string> = {
+  masculino: "Masculino",
+  feminino: "Feminino",
+  outro: "Outro",
+  nao_informado: "Nao informado",
+}
+
 function ResumoTab({ patient, customFields }: { patient: PatientData; customFields?: CustomFieldDef[] }) {
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState(patient.name)
   const [phone, setPhone] = useState(patient.phone ?? "")
   const [email, setEmail] = useState(patient.email ?? "")
   const [document, setDocument] = useState(patient.document ?? "")
+  const [rg, setRg] = useState(patient.rg ?? "")
   const [birthDate, setBirthDate] = useState(
     patient.birthDate ? new Date(patient.birthDate).toISOString().split("T")[0] : ""
   )
+  const [gender, setGender] = useState(patient.gender ?? "")
+  const [insurance, setInsurance] = useState(patient.insurance ?? "")
+  const [guardian, setGuardian] = useState(patient.guardian ?? "")
+  const [address, setAddress] = useState<Record<string, string>>(patient.address ?? {})
+  const [tags, setTags] = useState<string[]>(patient.tags ?? [])
+  const [newTag, setNewTag] = useState("")
+  const [medicalHistory, setMedicalHistory] = useState<Record<string, unknown>>(patient.medicalHistory ?? {})
+  const [newMHItem, setNewMHItem] = useState({ allergies: "", chronicDiseases: "", medications: "" })
   const [customData, setCustomData] = useState<Record<string, unknown>>(
     patient.customData ?? {}
   )
@@ -178,17 +206,51 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
         phone: phone || null,
         email: email || null,
         document: document || null,
+        rg: rg || null,
         birthDate: birthDate ? new Date(birthDate) : null,
+        gender: gender || null,
+        insurance: insurance || null,
+        guardian: guardian || null,
+        address: Object.values(address).some(v => v) ? address : null,
+        tags,
+        medicalHistory,
         customData,
         alerts,
       })
       setIsEditing(false)
       toast.success("Paciente atualizado com sucesso")
     } catch {
-      toast.error("Erro ao salvar alterações")
+      toast.error("Erro ao salvar alteracoes")
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleAddTag = () => {
+    const trimmed = newTag.trim()
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed])
+      setNewTag("")
+    }
+  }
+
+  const handleRemoveTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index))
+  }
+
+  const addMHItem = (field: "allergies" | "chronicDiseases" | "medications") => {
+    const val = newMHItem[field].trim()
+    if (!val) return
+    const current = (medicalHistory[field] as string[]) ?? []
+    if (!current.includes(val)) {
+      setMedicalHistory({ ...medicalHistory, [field]: [...current, val] })
+    }
+    setNewMHItem({ ...newMHItem, [field]: "" })
+  }
+
+  const removeMHItem = (field: string, index: number) => {
+    const current = (medicalHistory[field] as string[]) ?? []
+    setMedicalHistory({ ...medicalHistory, [field]: current.filter((_, i) => i !== index) })
   }
 
   const handleAddAlert = () => {
@@ -246,6 +308,27 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
             )}
           </div>
           <div className="space-y-1.5">
+            <Label>RG</Label>
+            {isEditing ? (
+              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="00.000.000-0" />
+            ) : (
+              <p className="text-sm">{patient.rg || "-"}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Sexo</Label>
+            {isEditing ? (
+              <select value={gender} onChange={(e) => setGender(e.target.value)} className="h-10 w-full rounded-xl border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+                <option value="">Nao informado</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="outro">Outro</option>
+              </select>
+            ) : (
+              <p className="text-sm">{gender ? genderLabels[gender] || gender : "-"}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <Phone className="size-3.5" /> Telefone
             </Label>
@@ -260,11 +343,7 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
               <Mail className="size-3.5" /> Email
             </Label>
             {isEditing ? (
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             ) : (
               <p className="text-sm">{patient.email || "-"}</p>
             )}
@@ -272,13 +351,27 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
           <div className="space-y-1.5">
             <Label>Data de Nascimento</Label>
             {isEditing ? (
-              <Input
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-              />
+              <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
             ) : (
               <p className="text-sm">{formatDate(patient.birthDate)}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Shield className="size-3.5" /> Convenio
+            </Label>
+            {isEditing ? (
+              <Input value={insurance} onChange={(e) => setInsurance(e.target.value)} placeholder="Ex: Unimed, Amil..." />
+            ) : (
+              <p className="text-sm">{patient.insurance || "-"}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Responsavel</Label>
+            {isEditing ? (
+              <Input value={guardian} onChange={(e) => setGuardian(e.target.value)} placeholder="Nome do responsavel" />
+            ) : (
+              <p className="text-sm">{patient.guardian || "-"}</p>
             )}
           </div>
           <div className="space-y-1.5">
@@ -287,6 +380,103 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
           </div>
         </div>
 
+        {/* Address */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium flex items-center gap-1.5"><MapPin className="size-3.5" /> Endereco</p>
+          {isEditing ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input value={address.street ?? ""} onChange={(e) => setAddress(a => ({ ...a, street: e.target.value }))} placeholder="Rua" className="sm:col-span-2" />
+              <Input value={address.number ?? ""} onChange={(e) => setAddress(a => ({ ...a, number: e.target.value }))} placeholder="Numero" />
+              <Input value={address.complement ?? ""} onChange={(e) => setAddress(a => ({ ...a, complement: e.target.value }))} placeholder="Complemento" />
+              <Input value={address.neighborhood ?? ""} onChange={(e) => setAddress(a => ({ ...a, neighborhood: e.target.value }))} placeholder="Bairro" />
+              <Input value={address.city ?? ""} onChange={(e) => setAddress(a => ({ ...a, city: e.target.value }))} placeholder="Cidade" />
+              <Input value={address.state ?? ""} onChange={(e) => setAddress(a => ({ ...a, state: e.target.value }))} placeholder="UF" />
+              <Input value={address.zipCode ?? ""} onChange={(e) => setAddress(a => ({ ...a, zipCode: e.target.value }))} placeholder="CEP" />
+            </div>
+          ) : (
+            <p className="text-sm">
+              {patient.address && Object.values(patient.address).some(v => v)
+                ? [patient.address.street, patient.address.number, patient.address.complement, patient.address.neighborhood, patient.address.city, patient.address.state, patient.address.zipCode].filter(Boolean).join(", ")
+                : "-"}
+            </p>
+          )}
+        </div>
+
+        {/* Tags */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium flex items-center gap-1.5"><Tag className="size-3.5" /> Tags</p>
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((tag, i) => (
+              <Badge key={i} variant="secondary" className="flex items-center gap-1">
+                {tag}
+                {isEditing && (
+                  <button type="button" onClick={() => handleRemoveTag(i)} className="ml-0.5 hover:opacity-70">
+                    <X className="size-3" />
+                  </button>
+                )}
+              </Badge>
+            ))}
+            {tags.length === 0 && !isEditing && <span className="text-xs text-muted-foreground">Nenhuma tag</span>}
+          </div>
+          {isEditing && (
+            <div className="flex gap-2">
+              <Input value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Nova tag..." className="flex-1" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddTag() } }} />
+              <Button type="button" size="sm" variant="outline" onClick={handleAddTag}><Plus className="size-3.5" /></Button>
+            </div>
+          )}
+        </div>
+
+        {/* Medical History */}
+        <div className="rounded-lg border border-vox-primary/30 bg-vox-primary/5 p-3 space-y-3">
+          <p className="text-sm font-medium text-vox-primary flex items-center gap-1.5"><Heart className="size-3.5" /> Historico Medico</p>
+          {(["allergies", "chronicDiseases", "medications"] as const).map((field) => {
+            const labels: Record<string, string> = { allergies: "Alergias", chronicDiseases: "Doencas Cronicas", medications: "Medicacoes em Uso" }
+            const items = (medicalHistory[field] as string[]) ?? []
+            return (
+              <div key={field} className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">{labels[field]}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {items.map((item, i) => (
+                    <Badge key={i} variant={field === "allergies" ? "destructive" : "secondary"} className="flex items-center gap-1">
+                      {item}
+                      {isEditing && (
+                        <button type="button" onClick={() => removeMHItem(field, i)} className="ml-0.5 hover:opacity-70"><X className="size-3" /></button>
+                      )}
+                    </Badge>
+                  ))}
+                  {items.length === 0 && !isEditing && <span className="text-xs text-muted-foreground">-</span>}
+                </div>
+                {isEditing && (
+                  <div className="flex gap-2">
+                    <Input value={newMHItem[field]} onChange={(e) => setNewMHItem(s => ({ ...s, [field]: e.target.value }))} placeholder={`Adicionar ${labels[field].toLowerCase()}...`} className="flex-1 h-8 text-xs" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addMHItem(field) } }} />
+                    <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => addMHItem(field)}><Plus className="size-3" /></Button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Tipo Sanguineo</p>
+            {isEditing ? (
+              <select value={(medicalHistory.bloodType as string) ?? ""} onChange={(e) => setMedicalHistory({ ...medicalHistory, bloodType: e.target.value || null })} className="h-8 rounded-xl border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+                <option value="">Nao informado</option>
+                {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            ) : (
+              <p className="text-sm">{(medicalHistory.bloodType as string) || "-"}</p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Observacoes Medicas</p>
+            {isEditing ? (
+              <Textarea value={(medicalHistory.notes as string) ?? ""} onChange={(e) => setMedicalHistory({ ...medicalHistory, notes: e.target.value || null })} placeholder="Observacoes gerais..." className="text-xs" rows={2} />
+            ) : (
+              <p className="text-sm">{(medicalHistory.notes as string) || "-"}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Alerts */}
         <div className="rounded-lg border border-vox-error/30 bg-vox-error/5 p-3 space-y-1.5">
           <p className="text-sm font-medium text-vox-error">Alertas</p>
           {isEditing ? (

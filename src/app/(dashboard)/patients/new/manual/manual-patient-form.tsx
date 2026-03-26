@@ -79,6 +79,7 @@ export function ManualPatientForm({
   const [customData, setCustomData] = useState<Record<string, unknown>>({})
   const [birthDateDisplay, setBirthDateDisplay] = useState("")
   const [birthDateError, setBirthDateError] = useState("")
+  const [address, setAddress] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zipCode: "" })
 
   const handleCPFChange = (value: string) => {
     const formatted = formatCPF(value)
@@ -224,7 +225,85 @@ export function ManualPatientForm({
               )}
               <input type="hidden" name="birthDate" value={birthDateISO} />
             </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="gender">Sexo</Label>
+              <select
+                id="gender"
+                name="gender"
+                className="h-10 w-full rounded-xl border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="">Nao informado</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="rg">RG</Label>
+              <Input id="rg" name="rg" placeholder="00.000.000-0" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="insurance">Convenio</Label>
+              <Input id="insurance" name="insurance" placeholder="Ex: Unimed, Amil..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="guardian">Responsavel</Label>
+              <Input id="guardian" name="guardian" placeholder="Nome do responsavel (menores)" />
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Endereco</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="street">Rua</Label>
+              <Input id="street" value={address.street} onChange={(e) => setAddress(a => ({ ...a, street: e.target.value }))} placeholder="Rua, Av, Travessa..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="number">Numero</Label>
+              <Input id="number" value={address.number} onChange={(e) => setAddress(a => ({ ...a, number: e.target.value }))} placeholder="123" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="complement">Complemento</Label>
+              <Input id="complement" value={address.complement} onChange={(e) => setAddress(a => ({ ...a, complement: e.target.value }))} placeholder="Apto, Sala..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="neighborhood">Bairro</Label>
+              <Input id="neighborhood" value={address.neighborhood} onChange={(e) => setAddress(a => ({ ...a, neighborhood: e.target.value }))} placeholder="Bairro" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="city">Cidade</Label>
+              <Input id="city" value={address.city} onChange={(e) => setAddress(a => ({ ...a, city: e.target.value }))} placeholder="Cidade" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="state">Estado</Label>
+              <select
+                id="state"
+                value={address.state}
+                onChange={(e) => setAddress(a => ({ ...a, state: e.target.value }))}
+                className="h-10 w-full rounded-xl border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="">Selecione...</option>
+                {["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map(uf => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="zipCode">CEP</Label>
+              <Input id="zipCode" value={address.zipCode} onChange={(e) => setAddress(a => ({ ...a, zipCode: e.target.value }))} placeholder="00000-000" />
+            </div>
+          </div>
+          <input type="hidden" name="address" value={JSON.stringify(address)} />
         </CardContent>
       </Card>
 

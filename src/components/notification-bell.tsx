@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Bell, Check, CalendarClock, AlertTriangle, Info } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import {
   getNotifications,
   getUnreadCount,
@@ -103,12 +102,12 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+        className="relative flex size-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vox-primary/50"
         aria-label="Notificacoes"
       >
         <Bell className="size-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-vox-error text-[9px] font-bold text-white">
+          <span className="absolute -top-1 -right-1 flex size-[18px] items-center justify-center rounded-full bg-vox-primary text-[9px] font-bold text-white ring-2 ring-background">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -122,9 +121,9 @@ export function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-[11px] text-vox-primary hover:underline"
+                className="text-xs font-medium text-vox-primary hover:text-vox-primary/80 transition-colors"
               >
-                Marcar todas como lidas
+                Marcar tudo como lido
               </button>
             )}
           </div>
@@ -132,8 +131,10 @@ export function NotificationBell() {
           {/* List */}
           <div className="max-h-[320px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-center">
-                <Bell className="size-6 text-muted-foreground/30" />
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-muted/50">
+                  <Bell className="size-5 text-muted-foreground/40" />
+                </div>
                 <p className="text-xs text-muted-foreground">Nenhuma notificacao</p>
               </div>
             ) : (
@@ -145,22 +146,22 @@ export function NotificationBell() {
                     key={n.id}
                     onClick={() => !n.read && handleMarkAsRead(n.id)}
                     className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors border-b border-border/20 last:border-0 ${
-                      n.read ? "opacity-60" : "bg-vox-primary/[0.02] hover:bg-muted/50"
+                      n.read ? "opacity-60" : "bg-vox-primary/[0.02] hover:bg-accent"
                     }`}
                   >
-                    <div className={`flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/60 mt-0.5 ${color}`}>
-                      <Icon className="size-3.5" />
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted/50 mt-0.5 ${color}`}>
+                      <Icon className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-medium truncate">{n.title}</p>
-                        {!n.read && <div className="size-1.5 rounded-full bg-vox-primary shrink-0" />}
+                        {!n.read && <div className="size-2 rounded-full bg-vox-primary shrink-0" />}
                       </div>
                       {n.body && (
                         <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{n.body}</p>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                    <span className="text-[11px] text-muted-foreground/60 shrink-0 mt-0.5">
                       {formatTime(n.createdAt)}
                     </span>
                   </button>

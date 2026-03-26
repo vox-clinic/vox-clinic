@@ -145,7 +145,7 @@ export function CommandPalette() {
       {/* Trigger button in header */}
       <button
         onClick={() => setOpen(true)}
-        className="hidden sm:flex items-center gap-2 rounded-xl border border-border/50 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+        className="hidden sm:flex items-center gap-2 rounded-xl border border-border/50 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vox-primary/50"
       >
         <Search className="size-3.5" />
         <span>Buscar...</span>
@@ -157,7 +157,7 @@ export function CommandPalette() {
       {/* Mobile trigger */}
       <button
         onClick={() => setOpen(true)}
-        className="flex sm:hidden items-center justify-center size-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+        className="flex sm:hidden items-center justify-center size-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vox-primary/50"
         aria-label="Buscar"
       >
         <Search className="size-4" />
@@ -183,7 +183,7 @@ export function CommandPalette() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Buscar pacientes, paginas, acoes..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+              className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/60"
               autoComplete="off"
               spellCheck={false}
             />
@@ -203,7 +203,7 @@ export function CommandPalette() {
             {/* Patients */}
             {showPatients && (
               <div className="mb-1">
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
                   Pacientes
                 </p>
                 {patients.map((patient) => {
@@ -214,16 +214,16 @@ export function CommandPalette() {
                       key={patient.id}
                       onClick={() => navigate(`/patients/${patient.id}`)}
                       onMouseEnter={() => setSelectedIndex(idx)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13px] transition-colors ${
                         selectedIndex === idx
                           ? "bg-vox-primary/10 text-vox-primary"
-                          : "text-foreground hover:bg-muted/50"
+                          : "text-foreground hover:bg-accent"
                       }`}
                     >
                       <div className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                         selectedIndex === idx
                           ? "bg-vox-primary text-white"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-vox-primary/[0.08] text-vox-primary"
                       }`}>
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
@@ -235,7 +235,7 @@ export function CommandPalette() {
                           </p>
                         )}
                       </div>
-                      <ArrowRight className="size-3.5 shrink-0 opacity-40" />
+                      <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
                     </button>
                   )
                 })}
@@ -245,7 +245,7 @@ export function CommandPalette() {
             {/* Pages */}
             {showPages && (
               <div className="mb-1">
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
                   Paginas
                 </p>
                 {filteredPages.map((page) => {
@@ -257,15 +257,15 @@ export function CommandPalette() {
                       key={page.id}
                       onClick={() => navigate(page.href)}
                       onMouseEnter={() => setSelectedIndex(idx)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13px] transition-colors ${
                         selectedIndex === idx
                           ? "bg-vox-primary/10 text-vox-primary"
-                          : "text-foreground hover:bg-muted/50"
+                          : "text-foreground hover:bg-accent"
                       }`}
                     >
-                      <Icon className={`size-4 shrink-0 ${selectedIndex === idx ? "text-vox-primary" : "text-muted-foreground"}`} />
+                      <Icon className={`size-4 shrink-0 ${selectedIndex === idx ? "text-vox-primary" : "text-muted-foreground/50"}`} />
                       <span className="flex-1">{page.label}</span>
-                      <ArrowRight className="size-3.5 shrink-0 opacity-40" />
+                      <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
                     </button>
                   )
                 })}
@@ -275,7 +275,7 @@ export function CommandPalette() {
             {/* Actions */}
             {showActions && (
               <div>
-                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
                   Acoes
                 </p>
                 {filteredActions.map((action) => {
@@ -287,15 +287,15 @@ export function CommandPalette() {
                       key={action.id}
                       onClick={() => navigate(action.href)}
                       onMouseEnter={() => setSelectedIndex(idx)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13px] transition-colors ${
                         selectedIndex === idx
                           ? "bg-vox-primary/10 text-vox-primary"
-                          : "text-foreground hover:bg-muted/50"
+                          : "text-foreground hover:bg-accent"
                       }`}
                     >
-                      <Icon className={`size-4 shrink-0 ${selectedIndex === idx ? "text-vox-primary" : "text-muted-foreground"}`} />
+                      <Icon className={`size-4 shrink-0 ${selectedIndex === idx ? "text-vox-primary" : "text-muted-foreground/50"}`} />
                       <span className="flex-1">{action.label}</span>
-                      <ArrowRight className="size-3.5 shrink-0 opacity-40" />
+                      <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
                     </button>
                   )
                 })}

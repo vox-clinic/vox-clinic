@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, AlertTriangle, ChevronLeft, ChevronRight, Users } from "lucide-react"
+import { Search, AlertTriangle, ChevronLeft, ChevronRight, Users, Tag, Filter, X } from "lucide-react"
 import Link from "next/link"
 import { getPatients } from "@/server/actions/patient"
 
@@ -15,6 +15,8 @@ type PatientItem = {
   phone: string | null
   document: string | null
   email: string | null
+  insurance: string | null
+  tags: string[]
   alerts: string[]
   lastAppointment: Date | null
 }
@@ -22,9 +24,11 @@ type PatientItem = {
 export function PatientListSearch({
   initialPatients,
   totalPages: initialTotalPages,
+  availableTags = [],
 }: {
   initialPatients: PatientItem[]
   totalPages: number
+  availableTags?: string[]
 }) {
   const [query, setQuery] = useState("")
   const [patients, setPatients] = useState(initialPatients)
@@ -32,13 +36,16 @@ export function PatientListSearch({
   const [totalPages, setTotalPages] = useState(initialTotalPages)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const doSearch = useCallback((value: string, p: number = 1) => {
+  const doSearch = useCallback((value: string, p: number = 1, tag?: string | null) => {
     setError(null)
     startTransition(async () => {
       try {
-        const data = await getPatients(value || undefined, p)
+        const filters = tag ? { tag } : undefined
+        const data = await getPatients(value || undefined, p, 20, filters)
         setPatients(data.patients)
         setTotalPages(data.totalPages)
         setPage(data.page)
@@ -51,8 +58,13 @@ export function PatientListSearch({
   const handleSearch = useCallback((value: string) => {
     setQuery(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => doSearch(value, 1), 300)
-  }, [doSearch])
+    debounceRef.current = setTimeout(() => doSearch(value, 1, activeTag), 300)
+  }, [doSearch, activeTag])
+
+  const handleTagFilter = (tag: string | null) => {
+    setActiveTag(tag)
+    doSearch(query, 1, tag)
+  }
 
   const handlePageChange = (newPage: number) => {
     doSearch(query, newPage)
@@ -74,15 +86,44 @@ export function PatientListSearch({
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar paciente por nome..."
-          aria-label="Buscar paciente"
-          value={query}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="pl-9 h-10"
-        />
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CPF, telefone, email, convenio..."
+              aria-label="Buscar paciente"
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+          {availableTags.length > 0 && (
+            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setShowFilters(!showFilters)} aria-label="Filtros">
+              <Filter className="size-4" />
+            </Button>
+          )}
+        </div>
+        {showFilters && availableTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {activeTag && (
+              <Button variant="ghost" size="sm" className="h-6 text-[11px] gap-1 text-muted-foreground" onClick={() => handleTagFilter(null)}>
+                <X className="size-3" /> Limpar filtro
+              </Button>
+            )}
+            {availableTags.map(tag => (
+              <Badge
+                key={tag}
+                variant={activeTag === tag ? "default" : "secondary"}
+                className="cursor-pointer text-[11px] hover:opacity-80 transition-opacity"
+                onClick={() => handleTagFilter(activeTag === tag ? null : tag)}
+              >
+                <Tag className="size-2.5 mr-0.5" />
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -136,7 +177,16 @@ export function PatientListSearch({
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {patient.phone || patient.email || "Sem contato"}
+                      {patient.insurance && <span className="ml-2 text-vox-primary">{patient.insurance}</span>}
                     </p>
+                    {patient.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-0.5 mt-0.5">
+                        {patient.tags.slice(0, 3).map((tag, i) => (
+                          <span key={i} className="inline-block rounded bg-muted px-1.5 py-0 text-[9px] text-muted-foreground">{tag}</span>
+                        ))}
+                        {patient.tags.length > 3 && <span className="text-[9px] text-muted-foreground">+{patient.tags.length - 3}</span>}
+                      </div>
+                    )}
                   </div>
 
                   <div className="text-right shrink-0">

@@ -40,19 +40,26 @@ model Workspace {
 }
 
 model Patient {
-  id           String        @id @default(cuid())
-  workspaceId  String
-  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name         String
-  document     String?
-  phone        String?
-  email        String?
-  birthDate    DateTime?
-  customData   Json          @default("{}")
-  alerts       Json          @default("[]")
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name           String
+  document       String?
+  rg             String?
+  phone          String?
+  email          String?
+  birthDate      DateTime?
+  gender         String?       // masculino, feminino, outro, nao_informado
+  address        Json?         // { street, number, complement, neighborhood, city, state, zipCode }
+  insurance      String?       // convenio / plano de saude
+  guardian       String?       // responsavel (para menores)
+  tags           String[]      @default([])
+  medicalHistory Json          @default("{}") // { allergies: [], chronicDiseases: [], medications: [], bloodType, notes }
+  customData     Json          @default("{}")
+  alerts         Json          @default("[]")
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   appointments    Appointment[]
   recordings      Recording[]
   treatmentPlans  TreatmentPlan[]
