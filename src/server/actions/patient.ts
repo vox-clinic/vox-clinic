@@ -305,7 +305,16 @@ export async function deactivatePatient(patientId: string) {
 }
 
 export async function getAudioPlaybackUrl(audioPath: string) {
-  const { userId } = await auth()
-  if (!userId) throw new Error("Unauthorized")
+  const { workspaceId } = await getWorkspaceContext()
+
+  // Validate the audio belongs to a recording in the user's workspace
+  const recording = await db.recording.findFirst({
+    where: {
+      audioUrl: audioPath,
+      OR: [{ workspaceId }, { patient: { workspaceId } }],
+    },
+  })
+  if (!recording) throw new Error("Audio nao encontrado")
+
   return getSignedAudioUrl(audioPath)
 }

@@ -100,8 +100,8 @@ export async function getRecordingForReview(recordingId: string) {
   })
   if (!user?.workspace) throw new Error("Workspace not configured")
 
-  const recording = await db.recording.findUnique({
-    where: { id: recordingId },
+  const recording = await db.recording.findFirst({
+    where: { id: recordingId, workspaceId: user.workspace.id },
   })
   if (!recording) throw new Error("Recording not found")
 

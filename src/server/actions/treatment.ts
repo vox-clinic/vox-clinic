@@ -90,23 +90,25 @@ export async function createTreatmentPlan(data: {
 export async function addSessionToTreatment(planId: string) {
   const { userId, workspaceId } = await getAuthContext()
 
-  const plan = await db.treatmentPlan.findFirst({
-    where: { id: planId, workspaceId },
-  })
-  if (!plan) throw new Error("Plano de tratamento nao encontrado")
-  if (plan.status !== "active") throw new Error("Plano nao esta ativo")
-  if (plan.completedSessions >= plan.totalSessions) throw new Error("Todas as sessoes ja foram concluidas")
+  // Atomic increment inside transaction to prevent lost updates
+  const updated = await db.$transaction(async (tx) => {
+    const plan = await tx.treatmentPlan.findFirst({
+      where: { id: planId, workspaceId },
+    })
+    if (!plan) throw new Error("Plano de tratamento nao encontrado")
+    if (plan.status !== "active") throw new Error("Plano nao esta ativo")
+    if (plan.completedSessions >= plan.totalSessions) throw new Error("Todas as sessoes ja foram concluidas")
 
-  const newCompleted = plan.completedSessions + 1
-  const isComplete = newCompleted >= plan.totalSessions
+    const isComplete = plan.completedSessions + 1 >= plan.totalSessions
 
-  const updated = await db.treatmentPlan.update({
-    where: { id: planId },
-    data: {
-      completedSessions: newCompleted,
-      status: isComplete ? "completed" : "active",
-      completedAt: isComplete ? new Date() : null,
-    },
+    return tx.treatmentPlan.update({
+      where: { id: planId },
+      data: {
+        completedSessions: { increment: 1 },
+        status: isComplete ? "completed" : "active",
+        completedAt: isComplete ? new Date() : null,
+      },
+    })
   })
 
   await logAudit({
@@ -115,7 +117,7 @@ export async function addSessionToTreatment(planId: string) {
     action: "treatmentPlan.sessionAdded",
     entityType: "TreatmentPlan",
     entityId: planId,
-    details: { completedSessions: newCompleted, totalSessions: plan.totalSessions },
+    details: { completedSessions: updated.completedSessions, totalSessions: updated.totalSessions },
   })
 
   return {

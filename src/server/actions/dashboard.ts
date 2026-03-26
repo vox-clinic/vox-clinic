@@ -32,9 +32,9 @@ export async function getDashboardData() {
     totalRecordings,
     recentAppointments,
   ] = await Promise.all([
-    // Recent patients
+    // Recent patients (active only)
     db.patient.findMany({
-      where: { workspaceId },
+      where: { workspaceId, isActive: true },
       orderBy: { updatedAt: "desc" },
       take: 5,
       include: {
@@ -45,8 +45,8 @@ export async function getDashboardData() {
         },
       },
     }),
-    // Total patients
-    db.patient.count({ where: { workspaceId } }),
+    // Total patients (active only)
+    db.patient.count({ where: { workspaceId, isActive: true } }),
     // This month appointments
     db.appointment.count({
       where: { workspaceId, date: { gte: startOfMonth } },

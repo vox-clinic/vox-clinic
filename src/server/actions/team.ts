@@ -220,26 +220,34 @@ export async function acceptInvite(token: string) {
   const user = await db.user.findUnique({ where: { clerkId: userId } })
   if (!user) throw new Error("Unauthorized")
 
-  const invite = await db.workspaceInvite.findUnique({ where: { token } })
-  if (!invite) throw new Error("Convite nao encontrado")
-  if (invite.status !== "pending") throw new Error("Este convite ja foi utilizado")
-  if (invite.expiresAt < new Date()) throw new Error("Este convite expirou")
-  if (invite.email !== user.email) throw new Error("Este convite foi enviado para outro email")
+  const result = await db.$transaction(async (tx) => {
+    const invite = await tx.workspaceInvite.findUnique({ where: { token } })
+    if (!invite) throw new Error("Convite nao encontrado")
+    if (invite.status !== "pending") throw new Error("Este convite ja foi utilizado")
+    if (invite.expiresAt < new Date()) throw new Error("Este convite expirou")
+    if (invite.email !== user.email) throw new Error("Este convite foi enviado para outro email")
 
-  // Create membership
-  await db.workspaceMember.create({
-    data: {
-      workspaceId: invite.workspaceId,
-      userId: user.id,
-      role: invite.role,
-    },
+    // Check if already a member (handle race condition)
+    const existing = await tx.workspaceMember.findFirst({
+      where: { workspaceId: invite.workspaceId, userId: user.id },
+    })
+    if (existing) throw new Error("Voce ja faz parte deste workspace")
+
+    await tx.workspaceMember.create({
+      data: {
+        workspaceId: invite.workspaceId,
+        userId: user.id,
+        role: invite.role,
+      },
+    })
+
+    await tx.workspaceInvite.update({
+      where: { id: invite.id },
+      data: { status: "accepted" },
+    })
+
+    return { workspaceId: invite.workspaceId }
   })
 
-  // Mark invite as accepted
-  await db.workspaceInvite.update({
-    where: { id: invite.id },
-    data: { status: "accepted" },
-  })
-
-  return { workspaceId: invite.workspaceId }
+  return result
 }

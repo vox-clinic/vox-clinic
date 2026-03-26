@@ -114,9 +114,12 @@ export async function fetchMessages(
   conversationId: string,
   before?: string
 ) {
+  const workspaceId = await getWorkspaceId()
+
   return db.whatsAppMessage.findMany({
     where: {
       conversationId,
+      workspaceId,
       ...(before && { createdAt: { lt: new Date(before) } }),
     },
     orderBy: { createdAt: "desc" },

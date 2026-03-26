@@ -116,8 +116,14 @@ export async function uploadPatientDocument(formData: FormData, patientId: strin
 
 export async function getDocumentSignedUrl(documentUrl: string) {
   const { workspaceId } = await getAuthContext()
-  const supabase = getSupabase()
 
+  // Validate the document belongs to this workspace
+  const doc = await db.patientDocument.findFirst({
+    where: { url: documentUrl, workspaceId },
+  })
+  if (!doc) throw new Error("Documento nao encontrado")
+
+  const supabase = getSupabase()
   const { data, error } = await supabase.storage
     .from("audio")
     .createSignedUrl(documentUrl, 300) // 5 min
