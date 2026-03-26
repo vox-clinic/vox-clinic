@@ -19,14 +19,11 @@ const mainNav = [
   { href: "/calendar", label: "Agenda", icon: CalendarDays },
   { href: "/financial", label: "Financeiro", icon: DollarSign },
   { href: "/reports", label: "Relatorios", icon: BarChart3 },
+  { href: "/settings", label: "Configuracoes", icon: Settings },
 ]
 
 const actionNav = [
   { href: "/appointments/new", label: "Nova Consulta", icon: Mic, accent: true },
-]
-
-const systemNav = [
-  { href: "/settings", label: "Configuracoes", icon: Settings },
 ]
 
 export function NavSidebar({ clinicName }: { clinicName?: string | null }) {
@@ -73,11 +70,6 @@ export function NavSidebar({ clinicName }: { clinicName?: string | null }) {
         {actionNav.map(renderLink)}
       </nav>
 
-      <div className="mt-auto px-3 pb-4 pt-4">
-        <div className="border-t border-border/40 pt-3">
-          {systemNav.map(renderLink)}
-        </div>
-      </div>
     </aside>
   )
 }
