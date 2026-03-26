@@ -93,6 +93,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `document.ts` — getPatientDocuments, uploadPatientDocument, getDocumentSignedUrl, deletePatientDocument
 - `import.ts` — importPatients (bulk CSV import with validation)
 - `team.ts` — getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite
+- `messaging.ts` — getMessagingConfig, updateMessagingConfig, sendAppointmentMessage (email/WhatsApp/SMS)
 
 All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
 

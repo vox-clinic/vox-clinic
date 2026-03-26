@@ -136,14 +136,14 @@ export async function updateProcedurePrice(procedureId: string, price: number) {
   })
   if (!user?.workspace) throw new Error("Workspace not configured")
 
-  const procedures = (user.workspace.procedures as Procedure[]) ?? []
+  const procedures = (user.workspace.procedures as unknown as Procedure[]) ?? []
   const updatedProcedures = procedures.map((p) =>
     p.id === procedureId ? { ...p, price } : p
   )
 
   await db.workspace.update({
     where: { id: user.workspace.id },
-    data: { procedures: updatedProcedures },
+    data: { procedures: updatedProcedures as unknown as any },
   })
 
   return { success: true }
@@ -159,5 +159,5 @@ export async function getWorkspaceProcedures() {
   })
   if (!user?.workspace) throw new Error("Workspace not configured")
 
-  return (user.workspace.procedures as Procedure[]) ?? []
+  return (user.workspace.procedures as unknown as Procedure[]) ?? []
 }
