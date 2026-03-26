@@ -222,6 +222,7 @@ describe("consultation actions", () => {
         procedures: ["Limpeza"],
         observations: "Sem queixas",
         recommendations: "",
+        nextAppointment: null,
         medications: [],
       },
       audioPath: "audio/test.webm",

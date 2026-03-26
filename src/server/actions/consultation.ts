@@ -191,6 +191,76 @@ export async function confirmConsultation(data: {
       data: { appointmentId: appointment.id },
     })
 
+    // Apply patient info updates if present
+    const updates = data.summary.patientInfoUpdates
+    if (updates && Object.keys(updates).length > 0) {
+      const patient = await tx.patient.findUnique({
+        where: { id: data.patientId },
+        select: { medicalHistory: true, phone: true, insurance: true, address: true },
+      })
+
+      if (patient) {
+        const patientUpdate: Record<string, any> = {}
+
+        // Update phone if provided and patient has none
+        if (updates.phone && !patient.phone) {
+          patientUpdate.phone = updates.phone
+        }
+
+        // Update insurance if provided and patient has none
+        if (updates.insurance && !patient.insurance) {
+          patientUpdate.insurance = updates.insurance
+        }
+
+        // Update address if provided and patient has none
+        if (updates.address && !patient.address) {
+          patientUpdate.address = updates.address
+        }
+
+        // Merge medical history (allergies, medications, chronicDiseases)
+        const existingHistory = (patient.medicalHistory as Record<string, any>) ?? {}
+        let historyChanged = false
+
+        if (updates.allergies && updates.allergies.length > 0) {
+          const existing = Array.isArray(existingHistory.allergies) ? existingHistory.allergies : []
+          const merged = [...new Set([...existing, ...updates.allergies])]
+          if (merged.length > existing.length) {
+            existingHistory.allergies = merged
+            historyChanged = true
+          }
+        }
+
+        if (updates.medications && updates.medications.length > 0) {
+          const existing = Array.isArray(existingHistory.medications) ? existingHistory.medications : []
+          const merged = [...new Set([...existing, ...updates.medications])]
+          if (merged.length > existing.length) {
+            existingHistory.medications = merged
+            historyChanged = true
+          }
+        }
+
+        if (updates.chronicDiseases && updates.chronicDiseases.length > 0) {
+          const existing = Array.isArray(existingHistory.chronicDiseases) ? existingHistory.chronicDiseases : []
+          const merged = [...new Set([...existing, ...updates.chronicDiseases])]
+          if (merged.length > existing.length) {
+            existingHistory.chronicDiseases = merged
+            historyChanged = true
+          }
+        }
+
+        if (historyChanged) {
+          patientUpdate.medicalHistory = existingHistory
+        }
+
+        if (Object.keys(patientUpdate).length > 0) {
+          await tx.patient.update({
+            where: { id: data.patientId },
+            data: patientUpdate,
+          })
+        }
+      }
+    }
+
     return { appointment }
   })
 

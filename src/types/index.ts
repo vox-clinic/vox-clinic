@@ -47,9 +47,28 @@ export interface Category {
   name: string
 }
 
+export interface ConsultationMedication {
+  name: string
+  dosage?: string
+  frequency?: string
+  notes?: string
+}
+
+export interface PatientInfoUpdates {
+  address?: string | null
+  phone?: string | null
+  insurance?: string | null
+  allergies?: string[]
+  medications?: string[]
+  chronicDiseases?: string[]
+}
+
 export interface AppointmentSummary {
   procedures: string[]
   observations: string | null
   recommendations: string | null
   nextAppointment: string | null
+  diagnosis?: string | null
+  medications?: ConsultationMedication[]
+  patientInfoUpdates?: PatientInfoUpdates
 }

@@ -117,14 +117,41 @@ const EXTRACT_PATIENT_DATA_TOOL: Anthropic.Tool = {
 
 const GENERATE_CONSULTATION_SUMMARY_TOOL: Anthropic.Tool = {
   name: 'generate_consultation_summary',
-  description: 'Gerar resumo estruturado da consulta',
+  description: 'Gerar resumo estruturado da consulta com separacao de dados clinicos e pessoais',
   input_schema: {
     type: 'object' as const,
     properties: {
       procedures: { type: 'array', items: { type: 'string' }, description: 'Procedimentos realizados' },
-      observations: { type: ['string', 'null'], description: 'Observações clínicas' },
-      recommendations: { type: ['string', 'null'], description: 'Recomendações ao paciente' },
-      nextAppointment: { type: ['string', 'null'], description: 'Sugestão para próxima consulta' },
+      observations: { type: ['string', 'null'], description: 'Observacoes clinicas relevantes (sinais, sintomas, evolucao, exame fisico)' },
+      recommendations: { type: ['string', 'null'], description: 'Recomendacoes ao paciente' },
+      nextAppointment: { type: ['string', 'null'], description: 'Sugestao para proxima consulta' },
+      diagnosis: { type: ['string', 'null'], description: 'Diagnostico ou hipotese diagnostica mencionada' },
+      medications: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Nome do medicamento' },
+            dosage: { type: 'string', description: 'Dosagem (ex: 500mg)' },
+            frequency: { type: 'string', description: 'Frequencia (ex: 8/8h, 1x ao dia)' },
+            notes: { type: 'string', description: 'Observacoes sobre o medicamento' },
+          },
+          required: ['name'],
+        },
+        description: 'Medicamentos prescritos ou mencionados na consulta',
+      },
+      patientInfoUpdates: {
+        type: 'object',
+        properties: {
+          address: { type: ['string', 'null'], description: 'Endereco mencionado pelo paciente' },
+          phone: { type: ['string', 'null'], description: 'Telefone mencionado pelo paciente' },
+          insurance: { type: ['string', 'null'], description: 'Convenio/plano de saude mencionado' },
+          allergies: { type: 'array', items: { type: 'string' }, description: 'Alergias mencionadas' },
+          medications: { type: 'array', items: { type: 'string' }, description: 'Medicacoes de uso continuo mencionadas' },
+          chronicDiseases: { type: 'array', items: { type: 'string' }, description: 'Doencas cronicas mencionadas' },
+        },
+        description: 'Dados pessoais do paciente mencionados na consulta que devem atualizar o cadastro (endereco, telefone, convenio, alergias, medicacoes cronicas, doencas)',
+      },
     },
     required: ['procedures'],
   },
@@ -272,7 +299,13 @@ export async function generateConsultationSummary(
     tool_choice: { type: 'tool', name: 'generate_consultation_summary' },
     system: `Voce e um assistente especializado em resumir consultas medicas/clinicas.
 
-Identifique os procedimentos realizados comparando com a lista disponivel. Se um procedimento mencionado nao estiver na lista, inclua-o mesmo assim. Seja conciso e objetivo nas observacoes e recomendacoes. Use portugues brasileiro.`,
+Regras de extracao:
+1. Identifique os procedimentos realizados comparando com a lista disponivel. Se um procedimento mencionado nao estiver na lista, inclua-o mesmo assim.
+2. Separe observacoes clinicas (sinais, sintomas, evolucao, exame fisico) de dados pessoais do paciente.
+3. Se houver diagnostico ou hipotese diagnostica, extraia no campo "diagnosis".
+4. Se houver medicamentos prescritos ou mencionados, extraia cada um com dosagem e frequencia quando disponiveis.
+5. Se o paciente mencionar dados pessoais (endereco, telefone, convenio, alergias, medicacoes de uso continuo, doencas cronicas), extraia em "patientInfoUpdates". NAO coloque esses dados em "observations".
+6. Seja conciso e objetivo. Use portugues brasileiro.`,
     messages: [{
       role: 'user',
       content: `Procedimentos disponiveis no workspace: ${JSON.stringify(workspaceProcedures)}

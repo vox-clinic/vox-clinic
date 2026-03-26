@@ -731,14 +731,71 @@ function HistoricoTab({
                   </button>
                   {isExpanded && (
                     <CardContent className="pt-0 space-y-3">
-                      {apt.aiSummary && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Resumo IA
-                          </p>
-                          <p className="text-sm">{apt.aiSummary}</p>
-                        </div>
-                      )}
+                      {apt.aiSummary && (() => {
+                        // Try parsing structured summary; fall back to raw text
+                        let parsed: any = null
+                        try {
+                          parsed = JSON.parse(apt.aiSummary)
+                        } catch {
+                          // Not JSON — legacy plain text summary
+                        }
+
+                        if (parsed && typeof parsed === "object" && Array.isArray(parsed.procedures)) {
+                          return (
+                            <div className="space-y-2">
+                              {/* Procedures (if different from header badges) */}
+                              {parsed.procedures.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-muted-foreground">Procedimentos</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {parsed.procedures.map((p: string, idx: number) => (
+                                      <Badge key={idx} variant="secondary" className="text-xs">{p}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {parsed.diagnosis && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-muted-foreground">Diagnostico</p>
+                                  <p className="text-sm">{parsed.diagnosis}</p>
+                                </div>
+                              )}
+                              {parsed.observations && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-muted-foreground">Observacoes</p>
+                                  <p className="text-sm whitespace-pre-wrap">{parsed.observations}</p>
+                                </div>
+                              )}
+                              {parsed.medications && parsed.medications.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-muted-foreground">Medicamentos</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {parsed.medications.map((med: any, idx: number) => (
+                                      <Badge key={idx} variant="outline" className="text-xs">
+                                        {med.name}{med.dosage ? ` ${med.dosage}` : ""}{med.frequency ? ` - ${med.frequency}` : ""}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {parsed.recommendations && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-muted-foreground">Recomendacoes</p>
+                                  <p className="text-sm whitespace-pre-wrap">{parsed.recommendations}</p>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+
+                        // Fallback: plain text
+                        return (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Resumo IA</p>
+                            <p className="text-sm">{apt.aiSummary}</p>
+                          </div>
+                        )
+                      })()}
                       {apt.notes && (
                         <div className="space-y-1">
                           <p className="text-xs font-medium text-muted-foreground">

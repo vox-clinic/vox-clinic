@@ -15,6 +15,10 @@ import {
   CalendarClock,
   DollarSign,
   Sparkles,
+  Pill,
+  ClipboardList,
+  Info,
+  UserCog,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,7 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { getRecordingForReview, confirmConsultation } from "@/server/actions/consultation"
 import { Breadcrumb } from "@/components/breadcrumb"
-import type { AppointmentSummary } from "@/types"
+import type { AppointmentSummary, ConsultationMedication, PatientInfoUpdates } from "@/types"
 
 export default function AppointmentReviewPage() {
   const router = useRouter()
@@ -49,6 +53,14 @@ export default function AppointmentReviewPage() {
   const [recommendations, setRecommendations] = useState("")
   const [nextAppointment, setNextAppointment] = useState("")
   const [price, setPrice] = useState("")
+  const [diagnosis, setDiagnosis] = useState("")
+  const [medications, setMedications] = useState<ConsultationMedication[]>([])
+  const [patientInfoUpdates, setPatientInfoUpdates] = useState<PatientInfoUpdates>({})
+  const [applyPatientUpdates, setApplyPatientUpdates] = useState(true)
+
+  const hasPatientUpdates = patientInfoUpdates && Object.entries(patientInfoUpdates).some(
+    ([, v]) => v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : true)
+  )
 
   useEffect(() => {
     if (!recordingId) {
@@ -68,6 +80,9 @@ export default function AppointmentReviewPage() {
           setObservations(summary.observations ?? "")
           setRecommendations(summary.recommendations ?? "")
           setNextAppointment(summary.nextAppointment ?? "")
+          setDiagnosis(summary.diagnosis ?? "")
+          setMedications(summary.medications ?? [])
+          setPatientInfoUpdates(summary.patientInfoUpdates ?? {})
         }
       })
       .catch((err) => {
@@ -85,6 +100,9 @@ export default function AppointmentReviewPage() {
         observations,
         recommendations,
         nextAppointment: nextAppointment || null,
+        diagnosis: diagnosis || null,
+        medications,
+        patientInfoUpdates: applyPatientUpdates ? patientInfoUpdates : {},
       }
       const parsedPrice = parseFloat(price)
       const result = await confirmConsultation({
@@ -104,6 +122,10 @@ export default function AppointmentReviewPage() {
 
   function removeProcedure(index: number) {
     setProcedures((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function removeMedication(index: number) {
+    setMedications((prev) => prev.filter((_, i) => i !== index))
   }
 
   function handleDiscard() {
@@ -149,9 +171,18 @@ export default function AppointmentReviewPage() {
     )
   }
 
+  const patientUpdateLabels: Record<string, string> = {
+    address: "Endereco",
+    phone: "Telefone",
+    insurance: "Convenio",
+    allergies: "Alergias",
+    medications: "Medicacoes de uso continuo",
+    chronicDiseases: "Doencas cronicas",
+  }
+
   return (
     <div className="space-y-5">
-      <Breadcrumb items={[{ label: "Agenda", href: "/calendar" }, { label: "Revisão" }]} />
+      <Breadcrumb items={[{ label: "Agenda", href: "/calendar" }, { label: "Revisao" }]} />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -227,6 +258,31 @@ export default function AppointmentReviewPage() {
             </CardContent>
           </Card>
 
+          {/* Diagnosis */}
+          {(diagnosis || editing) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <ClipboardList className="size-4 text-vox-primary" />
+                  Diagnostico
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {editing ? (
+                  <Input
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                    placeholder="Diagnostico ou hipotese diagnostica..."
+                  />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {diagnosis}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Observations */}
           <Card>
             <CardHeader className="pb-3">
@@ -251,6 +307,58 @@ export default function AppointmentReviewPage() {
             </CardContent>
           </Card>
 
+          {/* Medications */}
+          {(medications.length > 0 || editing) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Pill className="size-4 text-vox-primary" />
+                  Medicamentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {medications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum medicamento identificado</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left">
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground">Medicamento</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground">Dosagem</th>
+                          <th className="pb-2 pr-4 font-medium text-muted-foreground">Frequencia</th>
+                          <th className="pb-2 font-medium text-muted-foreground">Obs.</th>
+                          {editing && <th className="pb-2 w-8" />}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {medications.map((med, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="py-2 pr-4">{med.name}</td>
+                            <td className="py-2 pr-4 text-muted-foreground">{med.dosage || "-"}</td>
+                            <td className="py-2 pr-4 text-muted-foreground">{med.frequency || "-"}</td>
+                            <td className="py-2 text-muted-foreground">{med.notes || "-"}</td>
+                            {editing && (
+                              <td className="py-2">
+                                <button
+                                  onClick={() => removeMedication(i)}
+                                  className="text-vox-error hover:text-vox-error/80 text-xs"
+                                  aria-label={`Remover ${med.name}`}
+                                >
+                                  &times;
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Recommendations */}
           <Card>
             <CardHeader className="pb-3">
@@ -274,6 +382,52 @@ export default function AppointmentReviewPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Patient Info Updates */}
+          {hasPatientUpdates && (
+            <Card className="border-vox-primary/30 bg-vox-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <UserCog className="size-4 text-vox-primary" />
+                  Atualizacoes do Paciente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-2 rounded-lg bg-vox-primary/10 px-3 py-2">
+                  <Info className="size-4 text-vox-primary shrink-0 mt-0.5" />
+                  <p className="text-xs text-vox-primary">
+                    A IA identificou dados pessoais mencionados na consulta. Deseja atualizar o cadastro?
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {Object.entries(patientInfoUpdates).map(([key, value]) => {
+                    if (value === null || value === undefined) return null
+                    if (Array.isArray(value) && value.length === 0) return null
+                    return (
+                      <div key={key} className="flex items-start justify-between gap-2 text-sm">
+                        <span className="font-medium text-muted-foreground">
+                          {patientUpdateLabels[key] || key}:
+                        </span>
+                        <span className="text-right">
+                          {Array.isArray(value) ? value.join(", ") : String(value)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <Button
+                  variant={applyPatientUpdates ? "default" : "outline"}
+                  size="sm"
+                  className={applyPatientUpdates ? "bg-vox-primary hover:bg-vox-primary/90 text-white" : ""}
+                  onClick={() => setApplyPatientUpdates(!applyPatientUpdates)}
+                >
+                  {applyPatientUpdates ? "Atualizar Cadastro" : "Nao Atualizar"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Transcript */}
           {transcript && (

@@ -45,12 +45,33 @@ export const WorkspaceConfigSchema = z.object({
 
 export type WorkspaceConfigParsed = z.infer<typeof WorkspaceConfigSchema>
 
+// Schema para medicamento prescrito/mencionado na consulta
+export const ConsultationMedicationSchema = z.object({
+  name: z.string(),
+  dosage: z.string().optional(),
+  frequency: z.string().optional(),
+  notes: z.string().optional(),
+})
+
+// Schema para atualizacoes de dados pessoais do paciente identificadas pela IA
+export const PatientInfoUpdatesSchema = z.object({
+  address: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  insurance: z.string().nullable().optional(),
+  allergies: z.array(z.string()).optional(),
+  medications: z.array(z.string()).optional(),
+  chronicDiseases: z.array(z.string()).optional(),
+})
+
 // Schema para resumo de consulta
 export const AppointmentSummarySchema = z.object({
   procedures: z.array(z.string()).default([]),
   observations: z.string().nullable().optional().default(null),
   recommendations: z.string().nullable().optional().default(null),
   nextAppointment: z.string().nullable().optional().default(null),
+  diagnosis: z.string().nullable().optional().default(null),
+  medications: z.array(ConsultationMedicationSchema).optional().default([]),
+  patientInfoUpdates: PatientInfoUpdatesSchema.optional().default({}),
 })
 
 export type AppointmentSummaryParsed = z.infer<typeof AppointmentSummarySchema>
