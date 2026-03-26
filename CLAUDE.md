@@ -59,9 +59,11 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/appointments/review` — Review AI summary before confirming
   - `/settings` — Workspace config (procedures, custom fields, clinic name)
   - `/settings/import` — CSV patient import with column mapping
+  - `/settings/whatsapp` — WhatsApp Business API setup wizard (5-step: intro, connect, verify, templates, done)
 - `src/app/onboarding/` — 4-step wizard (profession → questions → clinic → AI preview)
 - `src/app/api/webhooks/clerk/` — User sync webhook
 - `src/app/api/reminders/` — Cron-triggered appointment reminders
+- `src/app/api/whatsapp/webhook/` — WhatsApp webhook (GET for Meta verification, POST for incoming messages/status updates)
 
 ### Command Palette (Cmd+K)
 - `src/components/command-palette.tsx` — Global search accessible from any page
@@ -94,6 +96,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `import.ts` — importPatients (bulk CSV import with validation)
 - `team.ts` — getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite
 - `messaging.ts` — getMessagingConfig, updateMessagingConfig, sendAppointmentMessage (email/WhatsApp/SMS)
+- `whatsapp.ts` — getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth
 
 All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
 
@@ -138,6 +141,15 @@ All multi-step mutations are wrapped in `db.$transaction()`:
 - `src/lib/email-templates.ts` — `appointmentReminder()`, `appointmentConfirmation()` (HTML, pt-BR)
 - `src/app/api/reminders/route.ts` — POST endpoint for cron (auth via CRON_SECRET header)
 
+### WhatsApp Business API Integration
+- `src/lib/whatsapp/types.ts` — TypeScript types for Meta Cloud API (webhook payloads, outgoing messages, templates, embedded signup)
+- `src/lib/whatsapp/client.ts` — `WhatsAppClient` class using native `fetch` (no axios). Factory: `createWhatsAppClient(workspaceId)` reads credentials from `WhatsAppConfig` table via Prisma.
+- `src/app/api/whatsapp/webhook/route.ts` — GET (Meta webhook verification via `WHATSAPP_WEBHOOK_VERIFY_TOKEN`), POST (async processing of incoming messages and status updates)
+- `src/app/(dashboard)/settings/whatsapp/page.tsx` — 5-step setup wizard (intro, connect via Facebook Embedded Signup, verify/manual config, templates info, done)
+- Prisma models: `WhatsAppConfig` (per-workspace credentials), `WhatsAppConversation` (contact threads), `WhatsAppMessage` (individual messages with status tracking)
+- Config lookup in webhook: identifies workspace by `phoneNumberId` (not by auth, since webhooks are unauthenticated)
+- Conversations are upserted on incoming messages (unique by `[workspaceId, contactPhone, configId]`)
+
 ### Multi-tenant via Prisma
 Every query must be scoped to the user's workspace. Pattern:
 ```typescript
@@ -160,6 +172,9 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - **Notification**: workspaceId, userId, type (appointment_soon/appointment_missed/treatment_complete/system), title, body, entityType, entityId, read. Polling-based (60s)
 - **PatientDocument**: links Patient + Workspace. name, url (Supabase Storage), type (image/pdf/other), mimeType, fileSize. 10MB limit, signed URLs
 - **WorkspaceInvite**: workspaceId, email, role, token (unique), invitedBy, status (pending/accepted/expired), expiresAt (7 days)
+- **WhatsAppConfig**: workspaceId, phoneNumberId, wabaId, displayPhoneNumber, businessName, accessToken, webhookSecret, isActive. `@@unique([workspaceId, phoneNumberId])`
+- **WhatsAppConversation**: workspaceId, configId, contactPhone, contactName, lastMessageAt, lastMessagePreview, status (open/closed/pending/bot), assignedTo, tags, unreadCount. `@@unique([workspaceId, contactPhone, configId])`
+- **WhatsAppMessage**: conversationId, workspaceId, waMessageId (unique), direction (inbound/outbound), type, content, mediaUrl, status (pending/sent/delivered/read/failed)
 - **Recording**: audioUrl, transcript, aiExtractedData, status (pending/processed), workspaceId, errorMessage, fileSize, duration
 - **AuditLog**: workspaceId, userId, action, entityType, entityId, details (Json)
 - **ConsentRecord**: workspaceId, patientId?, recordingId?, consentType, givenBy, givenAt
@@ -230,6 +245,9 @@ Optional:
 - `CLERK_WEBHOOK_SECRET` — For webhook signature verification (not needed in local dev)
 - `RESEND_API_KEY` — For email reminders (graceful fallback if missing)
 - `CRON_SECRET` — For authenticating cron-triggered reminder endpoint
+- `WHATSAPP_WEBHOOK_VERIFY_TOKEN` — For Meta webhook verification handshake
+- `NEXT_PUBLIC_META_APP_ID` — Meta App ID for Facebook Embedded Signup
+- `NEXT_PUBLIC_META_CONFIG_ID` — Meta config ID for Embedded Signup flow
 
 Implicit (Clerk SDK):
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`

@@ -1055,7 +1055,7 @@ function MessagingTab() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Configure sua API key do WhatsApp Business para enviar lembretes automaticos aos pacientes.
+            Configure a integracao com o WhatsApp Business para enviar lembretes e atender pacientes.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -1075,6 +1075,22 @@ function MessagingTab() {
                 placeholder="+55 11 99999-9999"
               />
             </div>
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium">Configuracao Avancada</p>
+              <p className="text-[11px] text-muted-foreground">
+                Assistente completo de integracao com WhatsApp Business API, templates e webhook.
+              </p>
+            </div>
+            <Link href="/settings/whatsapp">
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl">
+                <MessageSquare className="size-3.5" />
+                Configurar WhatsApp
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
