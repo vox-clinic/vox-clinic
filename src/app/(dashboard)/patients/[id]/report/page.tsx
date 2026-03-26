@@ -66,9 +66,9 @@ export default async function PatientReportPage({
         <PrintButton />
       </div>
 
-      {/* Report content */}
-      <div className="mx-auto max-w-3xl bg-white print:bg-white print:max-w-none print:mx-0">
-        <div className="rounded-xl border border-border print:border-0 print:shadow-none p-8 print:p-0 space-y-8">
+      {/* Report content — forced light background for readability */}
+      <div className="mx-auto max-w-3xl bg-white text-slate-900 print:bg-white print:max-w-none print:mx-0">
+        <div className="rounded-xl border border-slate-200 print:border-0 print:shadow-none p-8 print:p-0 space-y-8">
 
           {/* Header */}
           <header className="border-b border-border pb-6 print:border-b-gray-300">
@@ -85,7 +85,7 @@ export default async function PatientReportPage({
                 {today}
               </p>
             </div>
-            <h1 className="text-2xl font-semibold mt-4 tracking-tight print:text-3xl">
+            <h1 className="text-2xl font-semibold mt-4 tracking-tight print:text-3xl text-slate-900 print:text-black">
               Relatorio do Paciente
             </h1>
           </header>
@@ -258,17 +258,17 @@ export default async function PatientReportPage({
                 Nenhuma consulta registrada.
               </p>
             ) : (
-              <div className="border border-border rounded-xl overflow-hidden print:border-gray-300 overflow-x-auto print:overflow-visible">
-                <table className="w-full text-sm min-w-[500px] print:min-w-0">
+              <div className="border border-slate-200 rounded-xl overflow-hidden print:border-gray-300 overflow-x-auto print:overflow-visible">
+                <table className="w-full text-sm min-w-[500px] print:min-w-0 text-slate-800 print:text-black">
                   <thead>
-                    <tr className="bg-muted/50 print:bg-gray-100">
-                      <th className="text-left px-4 py-2.5 font-medium text-slate-500 print:text-gray-600">
+                    <tr className="bg-slate-100 print:bg-gray-100">
+                      <th className="text-left px-4 py-2.5 font-semibold text-slate-600 print:text-gray-700">
                         Data
                       </th>
-                      <th className="text-left px-4 py-2.5 font-medium text-slate-500 print:text-gray-600">
+                      <th className="text-left px-4 py-2.5 font-semibold text-slate-600 print:text-gray-700">
                         Procedimentos
                       </th>
-                      <th className="text-left px-4 py-2.5 font-medium text-slate-500 print:text-gray-600">
+                      <th className="text-left px-4 py-2.5 font-semibold text-slate-600 print:text-gray-700">
                         Observacoes
                       </th>
                     </tr>
@@ -280,7 +280,7 @@ export default async function PatientReportPage({
                         className={
                           index % 2 === 0
                             ? "bg-white print:bg-white"
-                            : "bg-muted/30 print:bg-gray-50"
+                            : "bg-slate-50 print:bg-gray-50"
                         }
                       >
                         <td className="px-4 py-3 align-top whitespace-nowrap font-medium">
@@ -289,11 +289,11 @@ export default async function PatientReportPage({
                         <td className="px-4 py-3 align-top">
                           {apt.procedures.length > 0
                             ? apt.procedures.join(", ")
-                            : <span className="text-muted-foreground">-</span>}
+                            : <span className="text-slate-400">-</span>}
                         </td>
                         <td className="px-4 py-3 align-top">
                           {apt.notes || (
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
                       </tr>
