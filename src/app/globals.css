@@ -46,84 +46,84 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  /* VoxClinic brand — modern indigo-blue palette */
-  --color-vox-primary: #6366F1;
+  /* VoxClinic brand — teal/verde-agua palette */
+  --color-vox-primary: #14B8A6;
   --color-vox-success: #10B981;
   --color-vox-warning: #F59E0B;
   --color-vox-error: #EF4444;
 }
 
 :root {
-  /* Subtle cool-tinted background instead of pure white */
-  --background: oklch(0.988 0.004 270);
-  --foreground: oklch(0.18 0.02 270);
+  /* Subtle teal-tinted background */
+  --background: oklch(0.988 0.004 175);
+  --foreground: oklch(0.18 0.02 175);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 270);
+  --card-foreground: oklch(0.18 0.02 175);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 270);
-  --primary: oklch(0.22 0.02 270);
+  --popover-foreground: oklch(0.18 0.02 175);
+  --primary: oklch(0.22 0.02 175);
   --primary-foreground: oklch(0.985 0 0);
-  /* Softer muted tones with slight blue tint */
-  --secondary: oklch(0.965 0.004 270);
-  --secondary-foreground: oklch(0.22 0.02 270);
-  --muted: oklch(0.96 0.005 270);
-  --muted-foreground: oklch(0.50 0.01 270);
-  --accent: oklch(0.96 0.005 270);
-  --accent-foreground: oklch(0.22 0.02 270);
+  /* Softer muted tones with subtle teal tint */
+  --secondary: oklch(0.965 0.004 175);
+  --secondary-foreground: oklch(0.22 0.02 175);
+  --muted: oklch(0.96 0.005 175);
+  --muted-foreground: oklch(0.50 0.01 175);
+  --accent: oklch(0.96 0.005 175);
+  --accent-foreground: oklch(0.22 0.02 175);
   --destructive: oklch(0.577 0.245 27.325);
   /* Softer, more transparent borders */
-  --border: oklch(0.91 0.005 270);
-  --input: oklch(0.91 0.005 270);
-  --ring: oklch(0.55 0.15 275);
-  --chart-1: oklch(0.60 0.15 275);
+  --border: oklch(0.91 0.005 175);
+  --input: oklch(0.91 0.005 175);
+  --ring: oklch(0.55 0.12 175);
+  --chart-1: oklch(0.60 0.12 175);
   --chart-2: oklch(0.65 0.12 165);
   --chart-3: oklch(0.55 0.12 40);
   --chart-4: oklch(0.70 0.10 310);
   --chart-5: oklch(0.60 0.10 200);
   /* Larger radius for modern rounded feel */
   --radius: 0.75rem;
-  --sidebar: oklch(0.98 0.004 270);
-  --sidebar-foreground: oklch(0.18 0.02 270);
-  --sidebar-primary: oklch(0.22 0.02 270);
+  --sidebar: oklch(0.98 0.004 175);
+  --sidebar-foreground: oklch(0.18 0.02 175);
+  --sidebar-primary: oklch(0.22 0.02 175);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.955 0.008 270);
-  --sidebar-accent-foreground: oklch(0.22 0.02 270);
-  --sidebar-border: oklch(0.93 0.004 270);
-  --sidebar-ring: oklch(0.55 0.15 275);
+  --sidebar-accent: oklch(0.955 0.008 175);
+  --sidebar-accent-foreground: oklch(0.22 0.02 175);
+  --sidebar-border: oklch(0.93 0.004 175);
+  --sidebar-ring: oklch(0.55 0.12 175);
 }
 
 .dark {
-  --background: oklch(0.13 0.015 270);
-  --foreground: oklch(0.96 0.005 270);
-  --card: oklch(0.17 0.015 270);
-  --card-foreground: oklch(0.96 0.005 270);
-  --popover: oklch(0.17 0.015 270);
-  --popover-foreground: oklch(0.96 0.005 270);
-  --primary: oklch(0.92 0.005 270);
-  --primary-foreground: oklch(0.17 0.015 270);
-  --secondary: oklch(0.22 0.015 270);
-  --secondary-foreground: oklch(0.96 0.005 270);
-  --muted: oklch(0.22 0.015 270);
-  --muted-foreground: oklch(0.65 0.01 270);
-  --accent: oklch(0.22 0.015 270);
-  --accent-foreground: oklch(0.96 0.005 270);
+  --background: oklch(0.13 0.015 175);
+  --foreground: oklch(0.96 0.005 175);
+  --card: oklch(0.17 0.015 175);
+  --card-foreground: oklch(0.96 0.005 175);
+  --popover: oklch(0.17 0.015 175);
+  --popover-foreground: oklch(0.96 0.005 175);
+  --primary: oklch(0.92 0.005 175);
+  --primary-foreground: oklch(0.17 0.015 175);
+  --secondary: oklch(0.22 0.015 175);
+  --secondary-foreground: oklch(0.96 0.005 175);
+  --muted: oklch(0.22 0.015 175);
+  --muted-foreground: oklch(0.65 0.01 175);
+  --accent: oklch(0.22 0.015 175);
+  --accent-foreground: oklch(0.96 0.005 175);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.55 0.15 275);
-  --chart-1: oklch(0.60 0.15 275);
+  --ring: oklch(0.55 0.12 175);
+  --chart-1: oklch(0.60 0.12 175);
   --chart-2: oklch(0.65 0.12 165);
   --chart-3: oklch(0.55 0.12 40);
   --chart-4: oklch(0.70 0.10 310);
   --chart-5: oklch(0.60 0.10 200);
-  --sidebar: oklch(0.15 0.015 270);
-  --sidebar-foreground: oklch(0.96 0.005 270);
-  --sidebar-primary: oklch(0.62 0.20 275);
+  --sidebar: oklch(0.15 0.015 175);
+  --sidebar-foreground: oklch(0.96 0.005 175);
+  --sidebar-primary: oklch(0.62 0.15 175);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.015 270);
-  --sidebar-accent-foreground: oklch(0.96 0.005 270);
+  --sidebar-accent: oklch(0.22 0.015 175);
+  --sidebar-accent-foreground: oklch(0.96 0.005 175);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0.15 275);
+  --sidebar-ring: oklch(0.55 0.12 175);
 }
 
 @layer base {
@@ -146,6 +146,61 @@
     @apply text-2xl font-semibold;
   }
 }
+
+/* Settings page animations */
+@keyframes shimmer-slide {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer-slide {
+  background-size: 200% 100%;
+  animation: shimmer-slide 3s linear infinite;
+}
+
+/* Staggered animation delays */
+.delay-75 { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
 
 /* Print styles for patient report */
 @media print {

@@ -36,7 +36,7 @@ npx shadcn@latest add [component] -y  # Add shadcn/ui component
 
 ### Design System — Tailwind v4
 This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.css`. There is NO `tailwind.config.ts`. Custom colors are CSS variables:
-- `--color-vox-primary: #6366F1` (indigo) → `bg-vox-primary`, `text-vox-primary`
+- `--color-vox-primary: #14B8A6` (teal/verde-agua) → `bg-vox-primary`, `text-vox-primary`
 - `--color-vox-success: #10B981` (emerald), `--color-vox-warning: #F59E0B`, `--color-vox-error: #EF4444`
 - Background has subtle cool tint (`oklch(0.988 0.004 270)`)
 - Cards: `rounded-2xl`, `border-border/40`, subtle shadow
@@ -181,7 +181,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 ## UI/UX
 
 - Mobile-first, minimal interface. RecordButton is the primary UI element.
-- Palette: indigo primary (#6366F1), Geist Sans font, 12px base radius, Lucide icons.
+- Palette: teal/verde-agua primary (#14B8A6), Geist Sans font, 12px base radius, Lucide icons.
 - Subtle cool-tinted background, cards with border/shadow instead of hard rings.
 - Fields with AI confidence < 0.8 highlighted in amber (border-vox-warning).
 - All UI in Brazilian Portuguese (pt-BR). Dates DD/MM/AAAA, phone +55 DDD, CPF validation.

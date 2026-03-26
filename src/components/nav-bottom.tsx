@@ -2,14 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, CalendarDays, Mic, DollarSign } from "lucide-react"
+import { LayoutDashboard, Users, CalendarDays, Mic, Settings } from "lucide-react"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/patients", label: "Pacientes", icon: Users },
+  { href: "/appointments/new", label: "Consulta", icon: Mic, accent: true },
   { href: "/calendar", label: "Agenda", icon: CalendarDays },
-  { href: "/appointments/new", label: "Consulta", icon: Mic },
-  { href: "/financial", label: "Financeiro", icon: DollarSign },
+  { href: "/settings", label: "Config", icon: Settings },
 ]
 
 export function NavBottom() {
@@ -28,7 +28,13 @@ export function NavBottom() {
                 isActive ? "text-vox-primary" : "text-muted-foreground"
               }`}
             >
-              <item.icon className={`size-5 ${isActive ? "scale-110" : ""} transition-transform duration-200`} />
+              {item.accent && !isActive ? (
+                <div className="flex size-8 items-center justify-center rounded-full bg-vox-primary/10">
+                  <item.icon className="size-4 text-vox-primary" />
+                </div>
+              ) : (
+                <item.icon className={`size-5 ${isActive ? "scale-110" : ""} transition-transform duration-200`} />
+              )}
               <span className={`text-[10px] font-medium ${isActive ? "text-vox-primary" : ""}`}>{item.label}</span>
             </Link>
           )

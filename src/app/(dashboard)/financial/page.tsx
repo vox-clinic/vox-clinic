@@ -99,32 +99,32 @@ export default function FinancialPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Financeiro</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visao geral de receitas e procedimentos
+          <h1 className="text-xl font-semibold tracking-tight">Financeiro</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Receitas e procedimentos
           </p>
         </div>
-        <div className="flex rounded-xl border border-border/60 overflow-hidden">
+        <div className="flex rounded-xl bg-muted/50 p-0.5">
           <button
             onClick={() => setPeriod("month")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
               period === "month"
-                ? "bg-vox-primary text-white"
-                : "hover:bg-muted/60 text-muted-foreground"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Este Mes
           </button>
           <button
             onClick={() => setPeriod("year")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
               period === "year"
-                ? "bg-vox-primary text-white"
-                : "hover:bg-muted/60 text-muted-foreground"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Este Ano
@@ -133,56 +133,59 @@ export default function FinancialPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card className="rounded-2xl">
-          <CardContent className="pt-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+        <Card className="group relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-success/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   Receita Total
                 </p>
-                <p className="text-3xl font-bold mt-1 text-vox-success">
+                <p className="text-2xl font-bold mt-0.5 text-vox-success tabular-nums">
                   {formatBRL(data?.totalRevenue ?? 0)}
                 </p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-success/10">
-                <DollarSign className="size-5 text-vox-success" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-success/10">
+                <DollarSign className="size-4 text-vox-success" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl">
-          <CardContent className="pt-4">
+        <Card className="group relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   Atendimentos
                 </p>
-                <p className="text-3xl font-bold mt-1">
+                <p className="text-2xl font-bold mt-0.5 tabular-nums">
                   {data?.appointmentCount ?? 0}
                 </p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/10">
-                <CalendarDays className="size-5 text-vox-primary" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-primary/10">
+                <CalendarDays className="size-4 text-vox-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl">
-          <CardContent className="pt-4">
+        <Card className="group relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                   Ticket Medio
                 </p>
-                <p className="text-3xl font-bold mt-1">
+                <p className="text-2xl font-bold mt-0.5 tabular-nums">
                   {formatBRL(data?.averageTicket ?? 0)}
                 </p>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-500/10">
-                <TrendingUp className="size-5 text-indigo-500" />
+              <div className="flex size-9 items-center justify-center rounded-xl bg-vox-primary/10">
+                <TrendingUp className="size-4 text-vox-primary" />
               </div>
             </div>
           </CardContent>
@@ -190,7 +193,7 @@ export default function FinancialPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {/* Revenue Breakdown */}
         <Card className="rounded-2xl">
           <CardHeader>
@@ -289,20 +292,20 @@ export default function FinancialPage() {
                 const maxRevenue = Math.max(...data.monthlyBreakdown.map((mb) => mb.revenue), 1)
                 const barWidth = (m.revenue / maxRevenue) * 100
                 return (
-                  <div key={m.month} className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-20 shrink-0">
+                  <div key={m.month} className="group flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-muted/30 transition-colors">
+                    <span className="text-[11px] text-muted-foreground w-16 shrink-0">
                       {monthNames[m.month]}
                     </span>
-                    <div className="flex-1 h-6 rounded-lg bg-muted/40 overflow-hidden">
+                    <div className="flex-1 h-5 rounded-md bg-muted/30 overflow-hidden">
                       <div
-                        className="h-full rounded-lg bg-vox-success/70 transition-all duration-300"
+                        className="h-full rounded-md bg-gradient-to-r from-vox-success/60 to-vox-success/80 transition-all duration-500"
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
-                    <span className="text-xs font-medium w-24 text-right tabular-nums shrink-0">
+                    <span className="text-[11px] font-medium w-20 text-right tabular-nums shrink-0">
                       {formatBRL(m.revenue)}
                     </span>
-                    <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
+                    <span className="text-[10px] text-muted-foreground w-6 text-right shrink-0 tabular-nums">
                       {m.count}
                     </span>
                   </div>

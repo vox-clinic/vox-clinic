@@ -249,30 +249,33 @@ export default function CalendarPage() {
   const sortedDateKeys = Object.keys(groupedByDate).sort()
 
   return (
-    <div className="flex flex-col gap-6 pb-24 md:pb-6">
+    <div className="flex flex-col gap-5 pb-24 md:pb-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
           <button
             onClick={prevMonth}
-            className="p-2 rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
+            className="flex size-8 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
           >
-            <ChevronLeft className="size-5" />
+            <ChevronLeft className="size-4" />
           </button>
-          <h1 className="text-xl font-semibold tracking-tight min-w-[180px] text-center">
+          <h1 className="text-lg font-semibold tracking-tight min-w-[160px] text-center">
             {MONTH_NAMES[month]} {year}
           </h1>
           <button
             onClick={nextMonth}
-            className="p-2 rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
+            className="flex size-8 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
           >
-            <ChevronRight className="size-5" />
+            <ChevronRight className="size-4" />
           </button>
+          <Badge variant="secondary" className="ml-1 text-[10px] tabular-nums">
+            {appointments.length} consultas
+          </Badge>
         </div>
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex rounded-xl bg-muted/60 p-0.5">
+          <div className="flex rounded-xl bg-muted/50 p-0.5">
             <button
               onClick={() => setView("month")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -299,10 +302,10 @@ export default function CalendarPage() {
 
           <Button
             onClick={() => setShowScheduleForm(true)}
-            className="bg-vox-primary hover:bg-vox-primary/90 text-white rounded-xl text-xs gap-1.5"
+            className="bg-vox-primary hover:bg-vox-primary/90 text-white rounded-xl text-xs gap-1.5 shadow-sm shadow-vox-primary/15 active:scale-[0.98]"
           >
             <Plus className="size-3.5" />
-            Agendar Consulta
+            Agendar
           </Button>
         </div>
       </div>
@@ -429,8 +432,9 @@ export default function CalendarPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Loader2 className="size-5 animate-spin text-vox-primary" />
+          <p className="text-xs text-muted-foreground">Carregando agenda...</p>
         </div>
       )}
 
@@ -623,7 +627,7 @@ function AppointmentCard({
 
   return (
     <Card
-      className="rounded-2xl border border-border/40 shadow-[0_1px_3px_0_rgb(0_0_0/0.04)] overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      className="group rounded-2xl border border-border/40 shadow-[0_1px_3px_0_rgb(0_0_0/0.04)] overflow-hidden cursor-pointer transition-all hover:border-border hover:shadow-[0_4px_12px_0_rgb(0_0_0/0.06)]"
       onClick={() => setExpanded(!expanded)}
     >
       <div className="p-4">

@@ -394,7 +394,7 @@ function HistoricoTab({
   }
 
   const statusColors: Record<string, string> = {
-    scheduled: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    scheduled: "bg-teal-100 text-teal-700 border-teal-200",
     completed: "bg-green-100 text-green-700 border-green-200",
     cancelled: "bg-red-100 text-red-700 border-red-200",
     no_show: "bg-amber-100 text-amber-700 border-amber-200",

@@ -77,8 +77,15 @@ export async function getDashboardData() {
         date: { gte: now },
       },
     }),
-    // Total recordings
-    db.recording.count({ where: { workspaceId } }),
+    // Total recordings (include orphaned recordings linked to workspace patients)
+    db.recording.count({
+      where: {
+        OR: [
+          { workspaceId },
+          { patient: { workspaceId } },
+        ],
+      },
+    }),
     // Recent appointments (last 7 with patient info)
     db.appointment.findMany({
       where: { workspaceId },
