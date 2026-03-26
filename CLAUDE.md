@@ -62,6 +62,10 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/settings` — Workspace config (procedures with duration, custom fields, clinic name)
   - `/settings/import` — CSV patient import with column mapping
   - `/settings/whatsapp` — WhatsApp Business API setup wizard (5-step: intro, connect, verify, templates, done)
+- `src/app/(admin)/` — Superadmin panel (own layout, no sidebar/nav)
+  - `/admin` — Executive dashboard (KPIs: workspaces, users, patients, plan distribution)
+  - `/admin/workspaces` — All workspaces table with search, plan/status badges
+  - `/admin/workspaces/[id]` — Per-workspace drill-down (stats, recent activity, toggle status)
 - `src/app/onboarding/` — 4-step wizard (profession → questions → clinic → AI preview)
 - `src/app/api/webhooks/clerk/` — User sync webhook
 - `src/app/api/reminders/` — Cron-triggered appointment reminders (email + WhatsApp with interactive confirm/cancel buttons)
@@ -108,6 +112,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `team.ts` — getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite
 - `messaging.ts` — getMessagingConfig, updateMessagingConfig, sendAppointmentMessage (email/WhatsApp/SMS)
 - `whatsapp.ts` — getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth
+- `admin.ts` — requireSuperAdmin guard, getAdminDashboard (cross-workspace aggregates), getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus
 
 All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
 
@@ -281,6 +286,7 @@ Optional:
 - `RESEND_API_KEY` — For email reminders (graceful fallback if missing)
 - `CRON_SECRET` — For authenticating cron-triggered endpoints (reminders, birthdays, NPS)
 - `NEXT_PUBLIC_APP_URL` — Base URL for public links (NPS survey URLs). Defaults to `https://app.voxclinic.com`
+- `SUPERADMIN_EMAILS` — Comma-separated emails auto-assigned superadmin role on Clerk webhook
 - `WHATSAPP_WEBHOOK_VERIFY_TOKEN` — For Meta webhook verification handshake
 - `NEXT_PUBLIC_META_APP_ID` — Meta App ID for Facebook Embedded Signup
 - `NEXT_PUBLIC_META_CONFIG_ID` — Meta config ID for Embedded Signup flow

@@ -93,8 +93,8 @@ describe("POST /api/webhooks/clerk", () => {
     expect(response.status).toBe(200)
     expect(mockDb.user.upsert).toHaveBeenCalledWith({
       where: { clerkId: "user_abc123" },
-      update: { email: "joao@example.com", name: "Joao Silva" },
-      create: { clerkId: "user_abc123", email: "joao@example.com", name: "Joao Silva" },
+      update: { email: "joao@example.com", name: "Joao Silva", role: "user" },
+      create: { clerkId: "user_abc123", email: "joao@example.com", name: "Joao Silva", role: "user" },
     })
   })
 

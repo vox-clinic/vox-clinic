@@ -37,29 +37,36 @@ export async function POST(req: Request) {
   }
 
   if (evt.type === 'user.created') {
-    const { id, email_addresses, first_name, last_name } = evt.data
-    const email = email_addresses[0]?.email_address
+    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
+    const email = email_addresses[0]?.email_address ?? ''
     const name = [first_name, last_name].filter(Boolean).join(' ') || 'Usuario'
+
+    // Determine role: from Clerk metadata or from SUPERADMIN_EMAILS env
+    const superadminEmails = (process.env.SUPERADMIN_EMAILS ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+    const clerkRole = (public_metadata as Record<string, string>)?.role
+    const role = clerkRole === 'superadmin' || superadminEmails.includes(email.toLowerCase())
+      ? 'superadmin'
+      : 'user'
 
     await db.user.upsert({
       where: { clerkId: id },
-      update: { email: email ?? '', name },
-      create: {
-        clerkId: id,
-        email: email ?? '',
-        name,
-      },
+      update: { email, name, role },
+      create: { clerkId: id, email, name, role },
     })
   }
 
   if (evt.type === 'user.updated') {
-    const { id, email_addresses, first_name, last_name } = evt.data
-    const email = email_addresses[0]?.email_address
+    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
+    const email = email_addresses[0]?.email_address ?? ''
     const name = [first_name, last_name].filter(Boolean).join(' ') || 'Usuario'
+
+    const clerkRole = (public_metadata as Record<string, string>)?.role
+    const updateData: Record<string, string> = { email, name }
+    if (clerkRole === 'superadmin') updateData.role = 'superadmin'
 
     await db.user.updateMany({
       where: { clerkId: id },
-      data: { email: email ?? '', name },
+      data: updateData,
     })
   }
 

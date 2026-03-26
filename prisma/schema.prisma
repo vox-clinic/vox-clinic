@@ -16,6 +16,7 @@ model User {
   profession         String?
   clinicName         String?
   onboardingComplete Boolean   @default(false)
+  role               String    @default("user") // "user" | "superadmin"
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   workspace          Workspace?
@@ -31,6 +32,11 @@ model Workspace {
   procedures        Json     @default("[]")
   anamnesisTemplate Json     @default("[]")
   categories        Json     @default("[]")
+  plan              String   @default("free")     // "free" | "pro" | "enterprise"
+  planStatus        String   @default("active")   // "active" | "suspended" | "cancelled"
+  stripeCustomerId  String?
+  stripeSubId       String?
+  trialEndsAt       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   patients          Patient[]
@@ -38,6 +44,7 @@ model Workspace {
   recordings        Recording[]
   members           WorkspaceMember[]
   blockedSlots      BlockedSlot[]
+  usageRecords      UsageRecord[]
 }
 
 model Patient {
@@ -355,4 +362,18 @@ model MedicalCertificate {
 
   @@index([patientId])
   @@index([workspaceId])
+}
+
+model UsageRecord {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  period      String   // "2026-03" (YYYY-MM)
+  metric      String   // "patients" | "appointments" | "recordings" | "storage_mb" | "whatsapp_messages"
+  value       Float    @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([workspaceId, period, metric])
+  @@index([workspaceId])
+  @@index([period])
 }
