@@ -413,20 +413,20 @@ export default function SettingsPage() {
                       <Upload className="size-4 text-vox-primary" />
                     </div>
                     <div className="space-y-0.5">
-                      <p className="text-sm font-medium">Importar Pacientes</p>
+                      <p className="text-sm font-medium">Migrar Dados</p>
                       <p className="text-xs text-muted-foreground">
-                        Importe pacientes a partir de um arquivo CSV
+                        Importe pacientes de CSV, Excel ou outro sistema
                       </p>
                     </div>
                   </div>
-                  <Link href="/settings/import">
+                  <Link href="/settings/migration">
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
                     >
                       <Upload className="size-3.5" />
-                      Importar
+                      Migrar
                     </Button>
                   </Link>
                 </div>
