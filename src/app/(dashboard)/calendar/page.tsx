@@ -693,22 +693,22 @@ export default function CalendarPage() {
       {/* ─── Week View ─── */}
       {!loading && view === "week" && (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <Card className="rounded-2xl border border-border/40 overflow-hidden">
+          <Card className="rounded-2xl border border-border/40 overflow-hidden shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]">
            <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
             {/* Day headers */}
-            <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border/40 min-w-[600px]">
-              <div className="py-2" />
+            <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 min-w-[700px] bg-muted/20">
+              <div className="py-3" />
               {weekDays.map((d) => {
                 const today = isToday(d)
                 return (
                   <button
                     key={d.toISOString()}
                     onClick={() => { setCurrentDate(d); setView("day") }}
-                    className={`flex flex-col items-center gap-0.5 py-2 transition-colors hover:bg-muted/40 ${today ? "bg-vox-primary/5" : ""}`}
+                    className={`flex flex-col items-center gap-1 py-3 transition-colors hover:bg-muted/40 border-l border-border/10 ${today ? "bg-vox-primary/5" : ""}`}
                   >
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase">{DAY_NAMES[d.getDay()]}</span>
-                    <span className={`flex size-7 items-center justify-center rounded-full text-xs font-semibold ${
-                      today ? "bg-vox-primary text-white" : "text-foreground"
+                    <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{DAY_NAMES[d.getDay()]}</span>
+                    <span className={`flex size-8 items-center justify-center rounded-full text-sm font-bold transition-all ${
+                      today ? "bg-vox-primary text-white shadow-sm shadow-vox-primary/30" : "text-foreground"
                     }`}>
                       {d.getDate()}
                     </span>
@@ -718,7 +718,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Time grid */}
-            <div ref={weekGridRef} className="relative grid grid-cols-[60px_repeat(7,1fr)] max-h-[calc(100vh-280px)] overflow-y-auto min-w-[600px]">
+            <div ref={weekGridRef} className="relative grid grid-cols-[56px_repeat(7,1fr)] max-h-[calc(100vh-260px)] overflow-y-auto min-w-[700px]">
               {/* "Now" indicator line */}
               {nowLineTop !== null && (() => {
                 const todayIndex = weekDays.findIndex((d) => isToday(d))
@@ -745,7 +745,7 @@ export default function CalendarPage() {
               {HOURS.map((hour) => (
                 <div key={hour} className="contents">
                   {/* Hour label */}
-                  <div className="flex items-start justify-end pr-2 pt-1 text-[10px] text-muted-foreground h-16 border-b border-border/10">
+                  <div className="flex items-start justify-end pr-3 pt-2 text-[10px] font-medium text-muted-foreground/60 h-[72px] border-b border-border/[0.06] tabular-nums">
                     {String(hour).padStart(2, "0")}:00
                   </div>
                   {/* Day columns */}
@@ -760,10 +760,11 @@ export default function CalendarPage() {
                       <DroppableCell
                         key={cellId}
                         id={cellId}
-                        className={`h-16 border-b border-l border-border/10 px-0.5 py-0.5 transition-colors ${isToday(d) ? "bg-vox-primary/[0.02]" : ""} ${hourBlocked.length > 0 ? "bg-muted/60" : ""}`}
+                        className={`h-[72px] border-b border-l border-border/[0.06] px-1 py-1 transition-colors hover:bg-muted/20 ${isToday(d) ? "bg-vox-primary/[0.015]" : ""} ${hourBlocked.length > 0 ? "bg-muted/30" : ""}`}
                       >
                         {hourBlocked.length > 0 && dayAppts.length === 0 && (
-                          <div className="block truncate rounded-md px-1.5 py-1 text-[10px] font-medium leading-tight mb-0.5 bg-muted/60 border-l-4 border-muted-foreground/30 text-muted-foreground">
+                          <div className="flex items-center gap-1 truncate rounded-lg px-2 py-1.5 text-[10px] font-medium leading-tight bg-muted/40 border-l-[3px] border-muted-foreground/20 text-muted-foreground/70">
+                            <Ban className="size-2.5 shrink-0 opacity-50" />
                             {hourBlocked[0].title}
                           </div>
                         )}
@@ -771,13 +772,18 @@ export default function CalendarPage() {
                           <DraggableAppointment key={a.id} appointment={a}>
                             <div
                               onClick={() => router.push(`/patients/${a.patient.id}`)}
-                              className={`block truncate rounded-md px-1.5 py-1 text-[10px] font-medium leading-tight mb-0.5 cursor-grab active:cursor-grabbing transition-opacity hover:opacity-80 border-l-[3px] ${
-                                STATUS_CONFIG[a.status]?.className ?? "bg-muted text-muted-foreground"
-                              }`}
+                              className="block rounded-lg px-2 py-1.5 text-[11px] font-medium leading-tight mb-0.5 cursor-grab active:cursor-grabbing transition-all hover:shadow-md hover:scale-[1.02] border-l-[3px] bg-vox-primary/10 text-vox-primary backdrop-blur-sm"
                               style={{ borderLeftColor: a.agenda?.color || "#14B8A6" }}
                             >
-                              <span className="font-semibold">{formatTime(a.date)}</span>{" "}
-                              {a.patient.name.split(" ")[0]}
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold tabular-nums text-[10px] opacity-70">{formatTime(a.date)}</span>
+                                <span className="truncate">{a.patient.name}</span>
+                              </div>
+                              {a.procedures.length > 0 && (
+                                <div className="text-[9px] opacity-60 truncate mt-0.5">
+                                  {(a.procedures as any[]).map((p) => typeof p === "string" ? p : p?.name).join(", ")}
+                                </div>
+                              )}
                             </div>
                           </DraggableAppointment>
                         ))}
@@ -1056,7 +1062,28 @@ function ScheduleForm(props: {
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Horario</Label>
-          <Input type="time" value={props.scheduleTime} onChange={(e) => props.setScheduleTime(e.target.value)} className="rounded-xl text-sm" />
+          <div className="grid grid-cols-5 gap-1 max-h-[120px] overflow-y-auto rounded-xl border border-input p-2">
+            {Array.from({ length: 27 }, (_, i) => {
+              const h = Math.floor(i / 2) + 7
+              const m = i % 2 === 0 ? "00" : "30"
+              if (h > 20) return null
+              const val = `${String(h).padStart(2, "0")}:${m}`
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => props.setScheduleTime(val)}
+                  className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    props.scheduleTime === val
+                      ? "bg-vox-primary text-white shadow-sm"
+                      : "hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {val}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <div className="space-y-2 sm:col-span-2">
           <Label className="text-xs">Observacoes (opcional)</Label>

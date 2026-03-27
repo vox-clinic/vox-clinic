@@ -33,7 +33,7 @@ export function MoreActionsDropdown({ children }: { children: React.ReactNode })
       </Button>
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 rounded-xl border bg-popover shadow-lg z-50 p-1 min-w-[180px]"
+          className="absolute right-0 top-full mt-1.5 rounded-xl border border-border/60 bg-background shadow-xl shadow-black/10 z-50 p-1.5 min-w-[180px] animate-in fade-in-0 zoom-in-95 duration-100"
           onClick={() => setOpen(false)}
         >
           {children}
