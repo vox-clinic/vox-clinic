@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < hourKey.length; i++) {
         hash = ((hash << 5) - hash + hourKey.charCodeAt(i)) | 0
       }
-      await tx.$queryRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, hash)
+      await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, hash)
 
       // Re-check conflicts inside lock
       const windowMs = duration * 60 * 1000
