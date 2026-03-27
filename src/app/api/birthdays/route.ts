@@ -6,6 +6,9 @@ import { WhatsAppClient } from "@/lib/whatsapp/client"
 import { decrypt } from "@/lib/crypto"
 import { apiLimiter } from "@/lib/rate-limit"
 
+// Vercel Cron invokes via GET; re-export POST handler as GET for compatibility
+export { POST as GET }
+
 export async function POST(req: Request) {
   const token = req.headers.get("authorization") || req.headers.get("x-forwarded-for") || "anonymous"
   const { success } = apiLimiter.check(10, `birthdays:${token}`)
