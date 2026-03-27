@@ -60,6 +60,9 @@ export async function getMigrationHistoryAction(page?: number, limit?: number) {
   return getMigrationHistoryService(workspaceId, page, limit)
 }
 
-export async function getAutoColumnMapping(headers: string[]): Promise<Record<string, string>> {
+export async function getAutoColumnMapping(headers: string[]): Promise<{
+  mapping: Record<string, string>
+  dataType: "patients" | "appointments" | "mixed"
+}> {
   return autoMapColumnsService(headers)
 }

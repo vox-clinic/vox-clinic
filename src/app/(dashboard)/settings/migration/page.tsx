@@ -72,9 +72,9 @@ interface FieldGroup {
 
 const FIELD_GROUPS: FieldGroup[] = [
   {
-    label: "Dados Basicos",
+    label: "Dados do Paciente",
     fields: [
-      { value: "name", label: "Nome *" },
+      { value: "name", label: "Nome do Paciente *" },
       { value: "document", label: "CPF" },
       { value: "rg", label: "RG" },
       { value: "phone", label: "Telefone" },
@@ -93,6 +93,25 @@ const FIELD_GROUPS: FieldGroup[] = [
       { value: "address.city", label: "Cidade" },
       { value: "address.state", label: "Estado" },
       { value: "address.zipCode", label: "CEP" },
+    ],
+  },
+  {
+    label: "Consultas / Agendamentos",
+    fields: [
+      { value: "appt.patientName", label: "Nome do Paciente (consulta)" },
+      { value: "appt.patientDocument", label: "CPF do Paciente (consulta)" },
+      { value: "appt.patientPhone", label: "Telefone do Paciente (consulta)" },
+      { value: "appt.patientEmail", label: "Email do Paciente (consulta)" },
+      { value: "appt.date", label: "Data da Consulta" },
+      { value: "appt.endDate", label: "Data/Hora Fim" },
+      { value: "appt.procedures", label: "Procedimento" },
+      { value: "appt.notes", label: "Observacoes da Consulta" },
+      { value: "appt.status", label: "Status da Consulta" },
+      { value: "appt.price", label: "Valor" },
+      { value: "appt.cancelled", label: "Cancelado (Sim/Nao)" },
+      { value: "appt.cancelReason", label: "Motivo Cancelamento" },
+      { value: "appt.provider", label: "Profissional" },
+      { value: "appt.duration", label: "Duracao (minutos)" },
     ],
   },
   {
@@ -262,7 +281,8 @@ export default function MigrationPage() {
   }, [migrationPreview])
 
   const nameIsMapped = useMemo(() => {
-    return Object.values(columnMapping).includes("name")
+    const values = Object.values(columnMapping)
+    return values.includes("name") || values.includes("appt.patientName")
   }, [columnMapping])
 
   const mappedCount = useMemo(() => {
@@ -409,10 +429,16 @@ export default function MigrationPage() {
     if (headers.length === 0) return
     setIsAutoMapping(true)
     try {
-      const result = await getAutoColumnMapping(headers)
-      // result is csvHeader -> fieldName
-      setColumnMapping(result)
-      toast.success("Colunas mapeadas automaticamente")
+      const { mapping, dataType } = await getAutoColumnMapping(headers)
+      setColumnMapping(mapping)
+      const mappedCount = Object.keys(mapping).length
+      if (dataType === "appointments") {
+        toast.success(`${mappedCount} colunas detectadas (arquivo de agendamentos)`)
+      } else if (dataType === "mixed") {
+        toast.success(`${mappedCount} colunas detectadas (dados mistos)`)
+      } else {
+        toast.success(`${mappedCount} colunas mapeadas automaticamente`)
+      }
     } catch {
       toast.error("Erro ao detectar colunas automaticamente")
     } finally {
@@ -664,24 +690,33 @@ export default function MigrationPage() {
               )}
             </button>
             {showExportTutorial && (
-              <CardContent className="border-t pt-4 space-y-3">
+              <CardContent className="border-t pt-4 space-y-4">
                 <div className="flex gap-3 items-start">
                   <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-vox-primary/10 text-vox-primary text-xs font-bold">1</div>
                   <p className="text-sm text-muted-foreground">
-                    A maioria dos sistemas permite exportar dados como CSV ou Excel
+                    A maioria dos sistemas permite exportar dados como CSV ou Excel. Procure em <strong>Configuracoes &gt; Exportar</strong> ou <strong>Relatorios &gt; Exportar</strong>
                   </p>
                 </div>
                 <div className="flex gap-3 items-start">
                   <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-vox-primary/10 text-vox-primary text-xs font-bold">2</div>
                   <p className="text-sm text-muted-foreground">
-                    Procure em <strong>Configuracoes &gt; Exportar</strong> ou <strong>Relatorios &gt; Exportar Pacientes</strong>
+                    Exporte cada tipo de dado separadamente (pacientes, agendamentos, etc.) — <strong>voce pode importar cada arquivo individualmente</strong>
                   </p>
                 </div>
                 <div className="flex gap-3 items-start">
                   <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-vox-primary/10 text-vox-primary text-xs font-bold">3</div>
                   <p className="text-sm text-muted-foreground">
-                    Se nao encontrar, entre em contato com o suporte do seu sistema atual
+                    O sistema detecta automaticamente se o arquivo contem pacientes ou agendamentos e sugere o mapeamento correto
                   </p>
+                </div>
+                <div className="rounded-xl bg-muted/30 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Guia por sistema:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1.5">
+                    <li><strong>Clinicorp:</strong> Exporte cada secao (Pacientes - Cadastro, Agendamentos) como arquivo separado e importe um por vez</li>
+                    <li><strong>iClinic:</strong> Va em Configuracoes &gt; Exportar Dados, selecione Pacientes ou Consultas</li>
+                    <li><strong>Feegow:</strong> Va em Relatorios &gt; Exportar, escolha o tipo de dado</li>
+                    <li><strong>Excel/Planilha:</strong> Qualquer planilha com cabecalho na primeira linha funciona</li>
+                  </ul>
                 </div>
               </CardContent>
             )}
