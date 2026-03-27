@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
 import { getSignedAudioUrl } from "@/lib/storage"
 import { logAudit } from "@/lib/audit"
-import { unstable_cache } from "next/cache"
+import { unstable_cache, revalidateTag } from "next/cache"
 
 async function getWorkspaceContext() {
   const { userId } = await auth()
@@ -262,6 +262,8 @@ export async function updatePatient(
     entityId: patientId,
   })
 
+  revalidateTag("patient-search", "max")
+
   return updated
 }
 
@@ -320,6 +322,9 @@ export async function createPatient(formData: FormData) {
     entityId: patient.id,
   })
 
+  revalidateTag("patient-search", "max")
+  revalidateTag("dashboard", "max")
+
   redirect(`/patients/${patient.id}`)
 }
 
@@ -344,6 +349,9 @@ export async function deactivatePatient(patientId: string) {
     entityId: patientId,
   })
 
+  revalidateTag("patient-search", "max")
+  revalidateTag("dashboard", "max")
+
   return { success: true }
 }
 
@@ -365,14 +373,21 @@ export async function getAudioPlaybackUrl(audioPath: string) {
 export async function mergePatients(keepId: string, mergeId: string) {
   const { workspaceId, clerkId } = await getWorkspaceContext()
 
-  const [keep, merge] = await Promise.all([
-    db.patient.findFirst({ where: { id: keepId, workspaceId } }),
-    db.patient.findFirst({ where: { id: mergeId, workspaceId } }),
-  ])
-  if (!keep || !merge) throw new Error("Pacientes nao encontrados")
   if (keepId === mergeId) throw new Error("Nao pode mesclar paciente consigo mesmo")
 
-  await db.$transaction(async (tx) => {
+  const mergeResult = await db.$transaction(async (tx) => {
+    // Lock both patients with FOR UPDATE to prevent concurrent modification
+    const keepRows = await tx.$queryRawUnsafe<any[]>(
+      `SELECT * FROM "Patient" WHERE id = $1 AND "workspaceId" = $2 FOR UPDATE`,
+      keepId, workspaceId
+    )
+    const mergeRows = await tx.$queryRawUnsafe<any[]>(
+      `SELECT * FROM "Patient" WHERE id = $1 AND "workspaceId" = $2 FOR UPDATE`,
+      mergeId, workspaceId
+    )
+    const keep = keepRows[0]
+    const mergePatient = mergeRows[0]
+    if (!keep || !mergePatient) throw new Error("Pacientes nao encontrados")
     // Move appointments from merge → keep
     await tx.appointment.updateMany({
       where: { patientId: mergeId, workspaceId },
@@ -394,21 +409,24 @@ export async function mergePatients(keepId: string, mergeId: string) {
       data: { patientId: keepId },
     })
 
-    // Merge tags (union)
-    const mergedTags = [...new Set([...keep.tags, ...merge.tags])]
+    // Merge tags (union) — defensive: ensure arrays
+    const keepTags = Array.isArray(keep.tags) ? keep.tags : []
+    const mergeTags = Array.isArray(mergePatient.tags) ? mergePatient.tags : []
+    const mergedTags = [...new Set([...keepTags, ...mergeTags])]
 
-    // Merge alerts (union)
-    const keepAlerts = keep.alerts as string[]
-    const mergeAlerts = merge.alerts as string[]
+    // Merge alerts (union) — defensive: ensure arrays
+    const keepAlerts = Array.isArray(keep.alerts) ? keep.alerts : []
+    const mergeAlerts = Array.isArray(mergePatient.alerts) ? mergePatient.alerts : []
     const mergedAlerts = [...new Set([...keepAlerts, ...mergeAlerts])]
 
-    // Merge medical history
-    const keepMH = keep.medicalHistory as Record<string, unknown> ?? {}
-    const mergeMH = merge.medicalHistory as Record<string, unknown> ?? {}
+    // Merge medical history — defensive: ensure objects
+    const keepMH = (keep.medicalHistory && typeof keep.medicalHistory === "object" && !Array.isArray(keep.medicalHistory)) ? keep.medicalHistory as Record<string, unknown> : {}
+    const mergeMH = (mergePatient.medicalHistory && typeof mergePatient.medicalHistory === "object" && !Array.isArray(mergePatient.medicalHistory)) ? mergePatient.medicalHistory as Record<string, unknown> : {}
+    const safeArray = (val: unknown): string[] => Array.isArray(val) ? val.filter((v): v is string => typeof v === "string") : []
     const mergedMH: Record<string, unknown> = {
-      allergies: [...new Set([...(keepMH.allergies as string[] ?? []), ...(mergeMH.allergies as string[] ?? [])])],
-      chronicDiseases: [...new Set([...(keepMH.chronicDiseases as string[] ?? []), ...(mergeMH.chronicDiseases as string[] ?? [])])],
-      medications: [...new Set([...(keepMH.medications as string[] ?? []), ...(mergeMH.medications as string[] ?? [])])],
+      allergies: [...new Set([...safeArray(keepMH.allergies), ...safeArray(mergeMH.allergies)])],
+      chronicDiseases: [...new Set([...safeArray(keepMH.chronicDiseases), ...safeArray(mergeMH.chronicDiseases)])],
+      medications: [...new Set([...safeArray(keepMH.medications), ...safeArray(mergeMH.medications)])],
       bloodType: keepMH.bloodType || mergeMH.bloodType || null,
       notes: [keepMH.notes, mergeMH.notes].filter(Boolean).join("\n") || null,
     }
@@ -417,15 +435,15 @@ export async function mergePatients(keepId: string, mergeId: string) {
     await tx.patient.update({
       where: { id: keepId },
       data: {
-        document: keep.document || merge.document,
-        rg: keep.rg || merge.rg,
-        phone: keep.phone || merge.phone,
-        email: keep.email || merge.email,
-        birthDate: keep.birthDate || merge.birthDate,
-        gender: keep.gender || merge.gender,
-        address: (keep.address || merge.address) as any,
-        insurance: keep.insurance || merge.insurance,
-        guardian: keep.guardian || merge.guardian,
+        document: keep.document || mergePatient.document,
+        rg: keep.rg || mergePatient.rg,
+        phone: keep.phone || mergePatient.phone,
+        email: keep.email || mergePatient.email,
+        birthDate: keep.birthDate || mergePatient.birthDate,
+        gender: keep.gender || mergePatient.gender,
+        address: (keep.address || mergePatient.address) as any,
+        insurance: keep.insurance || mergePatient.insurance,
+        guardian: keep.guardian || mergePatient.guardian,
         tags: mergedTags,
         alerts: mergedAlerts as any,
         medicalHistory: mergedMH as any,
@@ -437,6 +455,8 @@ export async function mergePatients(keepId: string, mergeId: string) {
       where: { id: mergeId },
       data: { isActive: false },
     })
+
+    return { mergedPatientName: mergePatient.name }
   })
 
   await logAudit({
@@ -445,8 +465,11 @@ export async function mergePatients(keepId: string, mergeId: string) {
     action: "patient.merged",
     entityType: "Patient",
     entityId: keepId,
-    details: { mergedFrom: mergeId, mergedPatientName: merge.name },
+    details: { mergedFrom: mergeId, mergedPatientName: mergeResult.mergedPatientName },
   })
+
+  revalidateTag("patient-search", "max")
+  revalidateTag("dashboard", "max")
 
   return { success: true }
 }

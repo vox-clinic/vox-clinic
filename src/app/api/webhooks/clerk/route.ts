@@ -2,9 +2,10 @@ import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { Webhook } from 'svix'
 import { db } from '@/lib/db'
+import { env } from '@/lib/env'
 
 export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
+  const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET
 
   if (!WEBHOOK_SECRET) {
     throw new Error('Please add CLERK_WEBHOOK_SECRET to .env.local')
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
     const name = [first_name, last_name].filter(Boolean).join(' ') || 'Usuario'
 
     // Determine role: from Clerk metadata or from SUPERADMIN_EMAILS env
-    const superadminEmails = (process.env.SUPERADMIN_EMAILS ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+    const superadminEmails = (env.SUPERADMIN_EMAILS).split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
     const clerkRole = (public_metadata as Record<string, string>)?.role
     const role = clerkRole === 'superadmin' || superadminEmails.includes(email.toLowerCase())
       ? 'superadmin'

@@ -36,6 +36,18 @@ const envSchema = z.object({
     .regex(/^([0-9a-f]{64})?$/, 'ENCRYPTION_KEY must be 64 hex chars (32 bytes) or empty')
     .optional()
     .default(''),
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z
+    .string()
+    .optional()
+    .default(''),
+  SUPERADMIN_EMAILS: z
+    .string()
+    .optional()
+    .default(''),
+  NEXT_PUBLIC_APP_URL: z
+    .string()
+    .optional()
+    .default('https://app.voxclinic.com'),
 })
 
 function validateEnv() {

@@ -26,27 +26,34 @@ export async function POST(req: Request) {
     const todayMonth = now.getMonth() + 1 // 1-12
     const todayDay = now.getDate()
 
-    // Find all patients born today (any year)
-    // Prisma doesn't support EXTRACT(month/day), so we fetch patients with birthDate set
-    // and filter in JS — acceptable since birthday check runs once/day
-    const patients = await db.patient.findMany({
-      where: {
-        isActive: true,
-        birthDate: { not: null },
-      },
-      include: {
-        workspace: { include: { user: true } },
-      },
-    })
+    // Use raw SQL to filter by month/day at the database level
+    // Avoids loading ALL patients into memory
+    const birthdayPatients = await db.$queryRawUnsafe<Array<{
+      id: string
+      name: string
+      phone: string | null
+      email: string | null
+      workspaceId: string
+    }>>(
+      `SELECT p.id, p.name, p.phone, p.email, p."workspaceId"
+       FROM "Patient" p
+       WHERE p."isActive" = true
+         AND p."birthDate" IS NOT NULL
+         AND EXTRACT(MONTH FROM p."birthDate") = $1
+         AND EXTRACT(DAY FROM p."birthDate") = $2`,
+      todayMonth,
+      todayDay
+    )
 
-    const birthdayPatients = patients.filter((p) => {
-      if (!p.birthDate) return false
-      const bd = new Date(p.birthDate)
-      return bd.getMonth() + 1 === todayMonth && bd.getDate() === todayDay
-    })
+    // Load workspace info for birthday patients
+    const workspaceIds = [...new Set(birthdayPatients.map(p => p.workspaceId))]
+    const workspaces = workspaceIds.length > 0 ? await db.workspace.findMany({
+      where: { id: { in: workspaceIds } },
+      include: { user: { select: { clinicName: true } } },
+    }) : []
+    const workspaceMap = new Map(workspaces.map(w => [w.id, w]))
 
     // Pre-load WhatsApp configs
-    const workspaceIds = [...new Set(birthdayPatients.map(p => p.workspaceId))]
     const waConfigs = await db.whatsAppConfig.findMany({
       where: { workspaceId: { in: workspaceIds }, isActive: true },
     })
@@ -58,7 +65,8 @@ export async function POST(req: Request) {
     const errors: string[] = []
 
     for (const patient of birthdayPatients) {
-      const clinicName = patient.workspace.user.clinicName || "Clinica"
+      const workspace = workspaceMap.get(patient.workspaceId)
+      const clinicName = workspace?.user?.clinicName || "Clinica"
       const message = `Feliz aniversario, ${patient.name}! A equipe da ${clinicName} deseja a voce um dia maravilhoso! 🎂`
 
       const waConfig = configByWorkspace.get(patient.workspaceId)

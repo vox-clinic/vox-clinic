@@ -23,6 +23,13 @@ const { mockDb, mockHeadersMap, mockVerifyState } = vi.hoisted(() => {
 
 vi.mock("@/lib/db", () => ({ db: mockDb }))
 
+vi.mock("@/lib/env", () => ({
+  env: {
+    CLERK_WEBHOOK_SECRET: "whsec_test_secret",
+    SUPERADMIN_EMAILS: "",
+  },
+}))
+
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => ({
     get: (key: string) => mockHeadersMap.get(key) ?? null,

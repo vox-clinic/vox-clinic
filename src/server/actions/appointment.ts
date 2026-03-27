@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
+import { revalidateTag } from "next/cache"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -49,7 +50,7 @@ export async function getAppointments(page: number = 1, status?: string) {
       id: a.id,
       date: a.date.toISOString(),
       patient: a.patient,
-      procedures: a.procedures as string[],
+      procedures: (Array.isArray(a.procedures) ? a.procedures : []).map((p: unknown) => typeof p === "string" ? p : (p as any)?.name ?? String(p)),
       notes: a.notes,
       aiSummary: a.aiSummary,
       status: a.status,
@@ -98,7 +99,7 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
     id: a.id,
     date: a.date.toISOString(),
     patient: a.patient,
-    procedures: a.procedures as string[],
+    procedures: (Array.isArray(a.procedures) ? a.procedures : []).map((p: unknown) => typeof p === "string" ? p : (p as any)?.name ?? String(p)),
     notes: a.notes,
     status: a.status,
     agendaId: a.agendaId,
@@ -237,8 +238,9 @@ export async function scheduleAppointment(data: {
 
   // Atomic conflict check + create to prevent double-booking
   const appointment = await db.$transaction(async (tx) => {
-    // Advisory lock on agendaId + hour window to serialize scheduling
-    const hourKey = `${data.agendaId}-${targetDate.toISOString().slice(0, 13)}`
+    // Advisory lock on agendaId + 30-min bucket to serialize scheduling
+    const thirtyMinBucket = Math.floor(targetDate.getTime() / (30 * 60 * 1000))
+    const hourKey = `${data.agendaId}-${thirtyMinBucket}`
     const lockId = hashStringToInt(hourKey)
     await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
 
@@ -293,6 +295,8 @@ export async function scheduleAppointment(data: {
     entityId: appointment.id,
   })
 
+  revalidateTag("dashboard", "max")
+
   return {
     id: appointment.id,
     date: appointment.date.toISOString(),
@@ -343,6 +347,8 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
     entityId: appointmentId,
   })
 
+  revalidateTag("dashboard", "max")
+
   return { id: updated.id, status: updated.status }
 }
 
@@ -362,7 +368,8 @@ export async function rescheduleAppointment(appointmentId: string, newDate: stri
 
   // Conflict check with advisory lock (same pattern as scheduleAppointment)
   const updated = await db.$transaction(async (tx) => {
-    const hourKey = `${existing.agendaId}-${targetDate.toISOString().slice(0, 13)}`
+    const thirtyMinBucket = Math.floor(targetDate.getTime() / (30 * 60 * 1000))
+    const hourKey = `${existing.agendaId}-${thirtyMinBucket}`
     const lockId = hashStringToInt(hourKey)
     await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
 
@@ -431,6 +438,8 @@ export async function deleteAppointment(appointmentId: string) {
     entityId: appointmentId,
   })
 
+  revalidateTag("dashboard", "max")
+
   return { success: true }
 }
 
@@ -468,8 +477,9 @@ export async function scheduleRecurringAppointments(data: {
   const appointments = await db.$transaction(async (tx) => {
     const results = []
     for (const date of dates) {
-      // Advisory lock per agenda+hour (same pattern as scheduleAppointment)
-      const hourKey = `${data.agendaId}-${date.toISOString().slice(0, 13)}`
+      // Advisory lock per agenda+30min bucket (same pattern as scheduleAppointment)
+      const thirtyMinBucket = Math.floor(date.getTime() / (30 * 60 * 1000))
+      const hourKey = `${data.agendaId}-${thirtyMinBucket}`
       const lockId = hashStringToInt(hourKey)
       await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
 
@@ -508,7 +518,7 @@ export async function scheduleRecurringAppointments(data: {
     id: a.id,
     date: a.date.toISOString(),
     patient: a.patient,
-    procedures: a.procedures as string[],
+    procedures: (Array.isArray(a.procedures) ? a.procedures : []).map((p: unknown) => typeof p === "string" ? p : (p as any)?.name ?? String(p)),
     notes: a.notes,
     status: a.status,
     agendaId: a.agendaId,

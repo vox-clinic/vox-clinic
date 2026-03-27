@@ -1,10 +1,11 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
+import { env } from "@/lib/env"
 
 const ALGORITHM = "aes-256-gcm"
 const IV_LENGTH = 12
 
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY
+  const key = env.ENCRYPTION_KEY
   if (!key) {
     throw new Error(
       "ENCRYPTION_KEY environment variable is required for token encryption"

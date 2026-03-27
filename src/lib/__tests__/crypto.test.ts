@@ -1,17 +1,28 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { encrypt, decrypt } from "../crypto"
 
 // Valid 32-byte key in hex (64 hex chars)
-const TEST_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+const { mockEnv, TEST_KEY } = vi.hoisted(() => {
+  const TEST_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  const mockEnv = {
+    ENCRYPTION_KEY: TEST_KEY,
+  }
+  return { mockEnv, TEST_KEY }
+})
+
+vi.mock("@/lib/env", () => ({
+  env: mockEnv,
+}))
+
+import { encrypt, decrypt } from "../crypto"
 
 describe("crypto", () => {
   beforeEach(() => {
-    vi.stubEnv("ENCRYPTION_KEY", TEST_KEY)
+    vi.clearAllMocks()
+    mockEnv.ENCRYPTION_KEY = TEST_KEY
   })
 
   afterEach(() => {
-    vi.unstubAllEnvs()
   })
 
   it("encrypt then decrypt returns original text", () => {
@@ -66,13 +77,13 @@ describe("crypto", () => {
   })
 
   it("missing ENCRYPTION_KEY throws error on encrypt", () => {
-    vi.stubEnv("ENCRYPTION_KEY", "")
+    mockEnv.ENCRYPTION_KEY = ""
     expect(() => encrypt("test")).toThrow("ENCRYPTION_KEY")
   })
 
   it("missing ENCRYPTION_KEY throws error on decrypt of encrypted text", () => {
     const encrypted = encrypt("test")
-    vi.stubEnv("ENCRYPTION_KEY", "")
+    mockEnv.ENCRYPTION_KEY = ""
     expect(() => decrypt(encrypted)).toThrow("ENCRYPTION_KEY")
   })
 })

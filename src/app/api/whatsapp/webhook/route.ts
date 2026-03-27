@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createHmac, timingSafeEqual } from "crypto"
 import { db } from "@/lib/db"
+import { env } from "@/lib/env"
 import type {
   WebhookPayload,
   IncomingMessage,
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token")
   const challenge = searchParams.get("hub.challenge")
 
-  if (mode === "subscribe" && token === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
+  if (mode === "subscribe" && token === env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
     console.log("[WhatsApp Webhook] Verificacao bem-sucedida")
     return new NextResponse(challenge, { status: 200 })
   }
@@ -74,29 +75,34 @@ export async function POST(request: NextRequest) {
         select: { webhookSecret: true },
       })
 
-      // Se alguma config tem webhookSecret, exigir assinatura valida
+      // Exigir assinatura valida
       const configsWithSecret = configs.filter((c) => c.webhookSecret)
-      if (configsWithSecret.length > 0) {
-        if (!signature) {
-          console.warn("[WhatsApp Webhook] Assinatura ausente — rejeitando")
-          return NextResponse.json(
-            { error: "Assinatura ausente" },
-            { status: 401 }
-          )
-        }
-
-        const isValid = configsWithSecret.some((c) =>
-          validateWebhookSignature(rawBody, signature, c.webhookSecret!)
+      if (configsWithSecret.length === 0) {
+        console.warn("[WhatsApp Webhook] Nenhuma config com webhookSecret encontrada — rejeitando payload nao assinado")
+        return NextResponse.json(
+          { error: "Webhook secret nao configurado" },
+          { status: 401 }
         )
-        if (!isValid) {
-          console.warn("[WhatsApp Webhook] Assinatura invalida — rejeitando")
-          return NextResponse.json(
-            { error: "Assinatura invalida" },
-            { status: 401 }
-          )
-        }
       }
-      // Se nenhuma config tem webhookSecret, processar normalmente (backwards compat)
+
+      if (!signature) {
+        console.warn("[WhatsApp Webhook] Assinatura ausente — rejeitando")
+        return NextResponse.json(
+          { error: "Assinatura ausente" },
+          { status: 401 }
+        )
+      }
+
+      const isValid = configsWithSecret.some((c) =>
+        validateWebhookSignature(rawBody, signature, c.webhookSecret!)
+      )
+      if (!isValid) {
+        console.warn("[WhatsApp Webhook] Assinatura invalida — rejeitando")
+        return NextResponse.json(
+          { error: "Assinatura invalida" },
+          { status: 401 }
+        )
+      }
     }
 
     // Processa sincronamente antes de retornar 200 (Meta permite 20s timeout)
@@ -111,6 +117,15 @@ export async function POST(request: NextRequest) {
     console.error("[WhatsApp Webhook] Erro ao parsear payload:", error)
     return NextResponse.json({ status: "ok" }, { status: 200 }) // sempre 200 pra Meta
   }
+}
+
+// ============================================
+// Helpers — Mascarar telefone em logs
+// ============================================
+
+function maskPhone(phone: string): string {
+  if (phone.length <= 8) return "****"
+  return phone.slice(0, 4) + "****" + phone.slice(-4)
 }
 
 // ============================================
@@ -196,7 +211,7 @@ async function handleIncomingMessage(
   contactName: string
 ) {
   console.log(
-    `[WhatsApp] Mensagem recebida de ${message.from}: ${message.type}`
+    `[WhatsApp] Mensagem recebida de ${maskPhone(message.from)}: ${message.type}`
   )
 
   const content = extractContent(message)
@@ -325,7 +340,7 @@ async function updateNextAppointmentByPhone(
     data: { status: newStatus },
   })
   console.log(
-    `[WhatsApp] Appointment ${nextAppointment.id} ${newStatus} via text reply from ${phone}`
+    `[WhatsApp] Appointment ${nextAppointment.id} ${newStatus} via text reply from ${maskPhone(phone)}`
   )
 }
 

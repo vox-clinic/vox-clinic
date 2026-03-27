@@ -97,6 +97,27 @@ export async function POST(request: NextRequest) {
     const workspaceId = config.workspace.id
     const targetDate = new Date(date)
 
+    // Validate date is not in the past
+    const now = new Date()
+    now.setSeconds(0, 0)
+    if (targetDate < now) {
+      return NextResponse.json(
+        { error: "Nao e possivel agendar em uma data no passado" },
+        { status: 400 }
+      )
+    }
+
+    // Validate date is not beyond maxDaysAhead
+    const maxDate = new Date()
+    maxDate.setDate(maxDate.getDate() + config.maxDaysAhead)
+    maxDate.setHours(23, 59, 59, 999)
+    if (targetDate > maxDate) {
+      return NextResponse.json(
+        { error: `Agendamento permitido apenas para os proximos ${config.maxDaysAhead} dias` },
+        { status: 400 }
+      )
+    }
+
     // Validate agenda belongs to workspace
     const agenda = await db.agenda.findFirst({
       where: { id: agendaId, workspaceId, isActive: true },

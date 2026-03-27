@@ -77,9 +77,9 @@ export async function getReportsData(period: "3m" | "6m" | "12m") {
     // Status counts
     statusCounts[apt.status] = (statusCounts[apt.status] ?? 0) + 1
 
-    // Procedure counts
-    const procs = apt.procedures as string[]
-    for (const proc of procs) {
+    // Procedure counts — handle both string[] and {name}[] formats
+    const rawProcs = Array.isArray(apt.procedures) ? apt.procedures : []
+    for (const proc of rawProcs) {
       const name = typeof proc === "string" ? proc : (proc as any)?.name ?? String(proc)
       procedureCounts[name] = (procedureCounts[name] ?? 0) + 1
     }

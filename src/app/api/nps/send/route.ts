@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       })
 
       const clinicName = apt.workspace.user.clinicName || "Clinica"
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.voxclinic.com"
+      const baseUrl = env.NEXT_PUBLIC_APP_URL
       const surveyUrl = `${baseUrl}/nps/${survey.token}`
       const message = `Ola ${apt.patient.name}! Como foi seu atendimento na ${clinicName} hoje? Avalie em 30 segundos: ${surveyUrl}`
 

@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
+import { revalidateTag } from "next/cache"
 import { uploadAudio } from "@/lib/storage"
 import { transcribeAudio } from "@/lib/openai"
 import { preprocessAudio } from "@/lib/audio-preprocessing"
@@ -228,6 +229,9 @@ export async function confirmPatientRegistration(data: ConfirmPatientData) {
     entityType: "Appointment",
     entityId: result.appointment.id,
   })
+
+  revalidateTag("patient-search", "max")
+  revalidateTag("dashboard", "max")
 
   return {
     patientId: result.patient.id,

@@ -14,6 +14,12 @@ const { mockDb } = vi.hoisted(() => {
 
 vi.mock("@/lib/db", () => ({ db: mockDb }))
 
+vi.mock("@/lib/env", () => ({
+  env: {
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: "my-verify-token",
+  },
+}))
+
 import { GET, POST, validateWebhookSignature } from "@/app/api/whatsapp/webhook/route"
 
 function signPayload(body: string, secret: string): string {
@@ -21,6 +27,7 @@ function signPayload(body: string, secret: string): string {
 }
 
 const VERIFY_TOKEN = "my-verify-token"
+const DEFAULT_SECRET = "default_test_secret"
 
 describe("GET /api/whatsapp/webhook", () => {
   beforeEach(() => {
@@ -95,8 +102,10 @@ describe("POST /api/whatsapp/webhook", () => {
       ],
     }
 
-    // No webhookSecret configured — backwards compat
-    mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([])
+    const body = JSON.stringify(payload)
+    const sig = signPayload(body, DEFAULT_SECRET)
+
+    mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([{ webhookSecret: DEFAULT_SECRET }])
     mockDb.whatsAppConfig.findFirst.mockResolvedValueOnce({
       id: "config_1",
       workspaceId: "ws_1",
@@ -108,52 +117,46 @@ describe("POST /api/whatsapp/webhook", () => {
 
     const request = new NextRequest("https://example.com/api/whatsapp/webhook", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body,
+      headers: { "x-hub-signature-256": sig },
     })
 
     const response = await POST(request)
     expect(response.status).toBe(200)
 
-    // Wait for async processing
-    await vi.waitFor(() => {
-      expect(mockDb.whatsAppConfig.findFirst).toHaveBeenCalledWith({
-        where: { phoneNumberId: "phone_123", isActive: true },
-      })
+    expect(mockDb.whatsAppConfig.findFirst).toHaveBeenCalledWith({
+      where: { phoneNumberId: "phone_123", isActive: true },
     })
 
-    await vi.waitFor(() => {
-      expect(mockDb.whatsAppConversation.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            workspaceId_contactPhone_configId: {
-              workspaceId: "ws_1",
-              contactPhone: "5511999998888",
-              configId: "config_1",
-            },
-          },
-          create: expect.objectContaining({
+    expect(mockDb.whatsAppConversation.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          workspaceId_contactPhone_configId: {
             workspaceId: "ws_1",
             contactPhone: "5511999998888",
-            contactName: "Maria",
-            status: "open",
-          }),
-        })
-      )
-    })
+            configId: "config_1",
+          },
+        },
+        create: expect.objectContaining({
+          workspaceId: "ws_1",
+          contactPhone: "5511999998888",
+          contactName: "Maria",
+          status: "open",
+        }),
+      })
+    )
 
-    await vi.waitFor(() => {
-      expect(mockDb.whatsAppMessage.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { waMessageId: "wamid_abc" },
-          create: expect.objectContaining({
-            direction: "inbound",
-            type: "text",
-            content: "Ola, gostaria de agendar",
-            status: "delivered",
-          }),
-        })
-      )
-    })
+    expect(mockDb.whatsAppMessage.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { waMessageId: "wamid_abc" },
+        create: expect.objectContaining({
+          direction: "inbound",
+          type: "text",
+          content: "Ola, gostaria de agendar",
+          status: "delivered",
+        }),
+      })
+    )
   })
 
   it("should return 200 for status update payload", async () => {
@@ -181,7 +184,10 @@ describe("POST /api/whatsapp/webhook", () => {
       ],
     }
 
-    mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([])
+    const body = JSON.stringify(payload)
+    const sig = signPayload(body, DEFAULT_SECRET)
+
+    mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([{ webhookSecret: DEFAULT_SECRET }])
     mockDb.whatsAppConfig.findFirst.mockResolvedValueOnce({
       id: "config_1",
       workspaceId: "ws_1",
@@ -192,17 +198,16 @@ describe("POST /api/whatsapp/webhook", () => {
 
     const request = new NextRequest("https://example.com/api/whatsapp/webhook", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body,
+      headers: { "x-hub-signature-256": sig },
     })
 
     const response = await POST(request)
     expect(response.status).toBe(200)
 
-    await vi.waitFor(() => {
-      expect(mockDb.whatsAppMessage.updateMany).toHaveBeenCalledWith({
-        where: { waMessageId: "wamid_xyz" },
-        data: { status: "delivered" },
-      })
+    expect(mockDb.whatsAppMessage.updateMany).toHaveBeenCalledWith({
+      where: { waMessageId: "wamid_xyz" },
+      data: { status: "delivered" },
     })
   })
 
@@ -269,23 +274,22 @@ describe("POST /api/whatsapp/webhook", () => {
       ],
     }
 
-    mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([])
+    const body = JSON.stringify(payload)
+    const sig = signPayload(body, DEFAULT_SECRET)
+
+    mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([{ webhookSecret: DEFAULT_SECRET }])
     mockDb.whatsAppConfig.findFirst.mockResolvedValueOnce(null)
 
     const request = new NextRequest("https://example.com/api/whatsapp/webhook", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body,
+      headers: { "x-hub-signature-256": sig },
     })
 
     const response = await POST(request)
     expect(response.status).toBe(200)
 
-    await vi.waitFor(() => {
-      expect(mockDb.whatsAppConfig.findFirst).toHaveBeenCalled()
-    })
-
-    // Give extra time for any async processing
-    await new Promise((r) => setTimeout(r, 50))
+    expect(mockDb.whatsAppConfig.findFirst).toHaveBeenCalled()
 
     // Should not attempt to create conversation or message
     expect(mockDb.whatsAppConversation.upsert).not.toHaveBeenCalled()
@@ -377,19 +381,11 @@ describe("POST /api/whatsapp/webhook", () => {
       expect(response.status).toBe(401)
     })
 
-    it("should process without signature when no webhookSecret is configured (backwards compat)", async () => {
+    it("should reject unsigned payload when no webhookSecret is configured (no backwards compat)", async () => {
       const body = JSON.stringify(payload)
 
       // No webhookSecret on any config
       mockDb.whatsAppConfig.findMany.mockResolvedValueOnce([{ webhookSecret: null }])
-      mockDb.whatsAppConfig.findFirst.mockResolvedValueOnce({
-        id: "config_1",
-        workspaceId: "ws_1",
-        phoneNumberId: "phone_123",
-        isActive: true,
-      })
-      mockDb.whatsAppConversation.upsert.mockResolvedValueOnce({ id: "conv_1" })
-      mockDb.whatsAppMessage.upsert.mockResolvedValueOnce({})
 
       const request = new NextRequest("https://example.com/api/whatsapp/webhook", {
         method: "POST",
@@ -398,11 +394,11 @@ describe("POST /api/whatsapp/webhook", () => {
       })
 
       const response = await POST(request)
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(401)
 
-      await vi.waitFor(() => {
-        expect(mockDb.whatsAppConversation.upsert).toHaveBeenCalled()
-      })
+      // Should not attempt to process the payload
+      expect(mockDb.whatsAppConfig.findFirst).not.toHaveBeenCalled()
+      expect(mockDb.whatsAppConversation.upsert).not.toHaveBeenCalled()
     })
   })
 
