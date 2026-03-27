@@ -434,6 +434,8 @@ export default function CalendarPage() {
           appointments={appointments}
           blockedSlots={blockedSlots}
           onReschedule={handleReschedule}
+          onStatusChange={handleStatusChange}
+          onDelete={(id) => setDeleteTarget(id)}
         />
       )}
 
