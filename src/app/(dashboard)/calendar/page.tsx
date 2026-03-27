@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useTransition, useRef } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   ChevronLeft,
   ChevronRight,
@@ -67,7 +67,6 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [showScheduleForm, setShowScheduleForm] = useState(false)
   const [scheduleDefaultDate, setScheduleDefaultDate] = useState("")
-  const [isPending, startTransition] = useTransition()
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [showBlockForm, setShowBlockForm] = useState(false)
@@ -100,8 +99,7 @@ export default function CalendarPage() {
     return [new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59, 59, 999)]
   }, [view, currentDate, year, month])
 
-  const loadData = useCallback((skipCache = false) => {
-    setLoading(true)
+  const loadData = useCallback(async (skipCache = false) => {
     const [start, end] = getDateRange()
     const filterIds = selectedAgendaIds.length > 0 ? selectedAgendaIds : undefined
     const cacheKey = `${start.toISOString()}-${end.toISOString()}-${(filterIds || []).join(",")}`
@@ -117,26 +115,25 @@ export default function CalendarPage() {
       }
     }
 
-    startTransition(async () => {
-      try {
-        const data = await getCalendarData(start.toISOString(), end.toISOString(), filterIds)
-        setAppointments(data.appointments)
-        setBlockedSlots(data.blockedSlots)
-        setAgendas(data.agendas)
+    setLoading(true)
+    try {
+      const data = await getCalendarData(start.toISOString(), end.toISOString(), filterIds)
+      setAppointments(data.appointments)
+      setBlockedSlots(data.blockedSlots)
+      setAgendas(data.agendas)
 
-        // Update cache
-        dataCache.set(cacheKey, {
-          appointments: data.appointments,
-          blockedSlots: data.blockedSlots,
-          timestamp: Date.now(),
-        })
-      } catch {
-        setAppointments([])
-        setBlockedSlots([])
-      } finally {
-        setLoading(false)
-      }
-    })
+      // Update cache
+      dataCache.set(cacheKey, {
+        appointments: data.appointments,
+        blockedSlots: data.blockedSlots,
+        timestamp: Date.now(),
+      })
+    } catch {
+      setAppointments([])
+      setBlockedSlots([])
+    } finally {
+      setLoading(false)
+    }
   }, [getDateRange, selectedAgendaIds])
 
   useEffect(() => {
