@@ -40,6 +40,7 @@ describe("consultation actions", () => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue({ userId: CLERK_ID })
     mockDb.user.findUnique.mockResolvedValue(mockUser)
+    mockDb.agenda.findFirst.mockResolvedValue({ id: "agenda_default", workspaceId: WORKSPACE_ID, isDefault: true })
   })
 
   // ─── processConsultation ─────────────────────────────────────

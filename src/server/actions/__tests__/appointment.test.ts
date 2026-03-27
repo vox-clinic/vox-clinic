@@ -21,11 +21,14 @@ const mockUser = {
   workspace: { id: WORKSPACE_ID },
 }
 
+const AGENDA_ID = "agenda_test_123"
+
 describe("appointment actions", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuth.mockResolvedValue({ userId: CLERK_ID })
     mockDb.user.findUnique.mockResolvedValue(mockUser)
+    mockDb.agenda.findFirst.mockResolvedValue({ id: AGENDA_ID, workspaceId: WORKSPACE_ID })
   })
 
   // ─── getAppointmentsByDateRange ──────────────────────────────
@@ -93,6 +96,7 @@ describe("appointment actions", () => {
       const result = await scheduleAppointment({
         patientId: "p1",
         date: "2024-06-15T10:00:00Z",
+        agendaId: AGENDA_ID,
         procedures: ["Limpeza"],
       })
 
@@ -109,7 +113,7 @@ describe("appointment actions", () => {
       ])
 
       await expect(
-        scheduleAppointment({ patientId: "p1", date: "2024-06-15T10:00:00Z" })
+        scheduleAppointment({ patientId: "p1", date: "2024-06-15T10:00:00Z", agendaId: AGENDA_ID })
       ).rejects.toThrow(/^CONFLICT:/)
     })
 
@@ -126,6 +130,7 @@ describe("appointment actions", () => {
       const result = await scheduleAppointment({
         patientId: "p1",
         date: "2024-06-15T10:00:00Z",
+        agendaId: AGENDA_ID,
         forceSchedule: true,
       })
 
@@ -138,7 +143,7 @@ describe("appointment actions", () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
 
       await expect(
-        scheduleAppointment({ patientId: "p_other", date: "2024-06-15T10:00:00Z" })
+        scheduleAppointment({ patientId: "p_other", date: "2024-06-15T10:00:00Z", agendaId: AGENDA_ID })
       ).rejects.toThrow("Paciente nao encontrado")
     })
   })
