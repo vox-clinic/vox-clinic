@@ -695,9 +695,9 @@ export default function CalendarPage() {
       {!loading && view === "week" && (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <Card className="rounded-2xl border border-border/40 overflow-hidden shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]">
-           <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-            {/* Day headers */}
-            <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 min-w-[700px] bg-muted/20">
+           <div ref={weekGridRef} className="overflow-y-auto overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 max-h-[calc(100vh-220px)]" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(128,128,128,0.2) transparent" }}>
+            {/* Day headers — sticky so they stay visible while scrolling */}
+            <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 min-w-[700px] bg-muted/20 sticky top-0 z-20 backdrop-blur-sm">
               <div className="py-3" />
               {weekDays.map((d) => {
                 const today = isToday(d)
@@ -719,7 +719,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Time grid */}
-            <div ref={weekGridRef} className="relative grid grid-cols-[56px_repeat(7,1fr)] max-h-[calc(100vh-260px)] overflow-y-auto min-w-[700px]" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(128,128,128,0.2) transparent" }}>
+            <div className="relative grid grid-cols-[56px_repeat(7,1fr)] min-w-[700px]">
               {/* "Now" indicator line */}
               {nowLineTop !== null && (() => {
                 const todayIndex = weekDays.findIndex((d) => isToday(d))
