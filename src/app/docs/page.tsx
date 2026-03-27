@@ -162,9 +162,9 @@ export default function DocsPage() {
         <CategorySection icon="📅" title="Agendamento e Agenda" description="Calendario completo com multiplas visoes, bloqueio de horarios, agendamentos recorrentes, multiplas agendas e agendamento online." count={10}>
           <FeatureCard title="Agendamento Online (Paciente)" description="Link publico para pacientes agendarem sozinhos. Multi-step: procedimento, data/hora com slots disponiveis, dados do paciente. Sem login. Configura em Settings > Online. Advisory lock anti-double-booking." />
           <FeatureCard title="Multiplas Agendas" description="Suporte a varias agendas por workspace (por profissional ou sala). Pills coloridos para filtrar. Conflitos e bloqueios por agenda. CRUD completo em Configuracoes > Agendas." />
-          <FeatureCard title="Calendario Multi-visao" description="Visualizacao diaria, semanal, mensal e em lista. Navegacao por data, responsivo. Acoes rapidas de status por consulta." />
-          <FeatureCard title="Drag and Drop" description="Arraste consultas na visao semanal para reagendar. Integrado com @dnd-kit/core. Atualiza data automaticamente." />
-          <FeatureCard title="Deteccao de Conflitos" description="Verifica janela de +/-30 minutos. Alerta visual com opcao de forcar agendamento. Tambem verifica bloqueios de horario." />
+          <FeatureCard title="Calendario Multi-visao" description="Visualizacao diaria, semanal, mensal e em lista. Arquitetura modular com 12 sub-componentes otimizados (React.memo). Cache client-side com TTL de 60s para navegacao rapida. Busca O(1) via indexes Map." />
+          <FeatureCard title="Drag and Drop" description="Arraste consultas na visao semanal para reagendar. Integrado com @dnd-kit/core. Suporte a forceSchedule no reagendamento." />
+          <FeatureCard title="Deteccao de Conflitos" description="Verifica janela de +/-30 minutos. AlertDialog dedicado (substitui confirm() nativo) com opcao de forcar agendamento. Tambem verifica bloqueios de horario." />
           <FeatureCard title="Bloqueio de Horarios" description="Bloqueie almoco, ferias, feriados ou reunioes. Suporte a bloqueios unicos e recorrentes semanais. Barras cinza no calendario." />
           <FeatureCard title="Agenda Recorrente" description="Agende series de consultas: semanal ou quinzenal, de 2 a 52 ocorrencias. Criacao atomica em transacao. Ideal para fisioterapia e estetica." />
           <FeatureCard title="Duracao por Procedimento" description="Cada procedimento pode ter duracao em minutos configuravel em Configuracoes. Padrao: 30 minutos." />
@@ -254,7 +254,7 @@ export default function DocsPage() {
           <FeatureCard title="Impressao em PDF" description="Paginas de recibo, prescricao e atestado otimizadas para impressao (Ctrl+P). Estilos @media print dedicados." />
           <FeatureCard title="Health Check" description="Endpoint /api/health para monitoramento de disponibilidade e integracao com ferramentas de uptime." />
           <FeatureCard title="Validacao de Ambiente" description="Todas as variaveis de ambiente validadas via Zod no startup. App falha rapido se configuracao incorreta." />
-          <FeatureCard title="Indicador de Horario Atual" description="Linha vermelha no calendario semanal mostrando a hora atual, com auto-scroll para o horario do dia." />
+          <FeatureCard title="Indicador de Horario Atual" description="Linha vermelha nas visoes semanal e diaria mostrando a hora atual (useRef, sem re-renders no pai), com auto-scroll para o horario do dia." />
         </CategorySection>
 
         {/* Footer */}

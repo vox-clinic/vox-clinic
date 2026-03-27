@@ -54,7 +54,7 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/appointments/[id]/receipt` — Print-friendly receipt (Ctrl+P → PDF)
   - `/patients/new/voice` — Voice registration flow
   - `/patients/new/manual` — Manual registration form
-  - `/calendar` — Week/day/month/list views with scheduling, conflict detection, drag & drop rescheduling (week view, via @dnd-kit/core), time blocking (BlockedSlot), recurring appointments (weekly/biweekly), multiple agendas with color-coded filter pills
+  - `/calendar` — Modular calendar (decomposed into sub-components under `calendar/components/`). Week/day/month/list views with scheduling, conflict detection, drag & drop rescheduling (week view, via @dnd-kit/core), time blocking (BlockedSlot), recurring appointments (weekly/biweekly), multiple agendas with color-coded filter pills. Client-side cache (Map, 60s TTL) for prev/next navigation. Shared types in `calendar/types.ts`, helpers in `calendar/helpers.ts`
   - `/appointments/new` — Record consultation for existing patient
   - `/appointments/review` — Review AI summary before confirming
   - `/prescriptions/[id]` — Print-friendly prescription page (medications table, Ctrl+P → PDF)
@@ -102,11 +102,11 @@ All data mutations use Server Actions with `"use server"` directive:
 - `voice.ts` — processVoiceRegistration, confirmPatientRegistration (in $transaction), checkDuplicatePatient
 - `consultation.ts` — processConsultation, getRecordingForReview (server-side data fetch), confirmConsultation (in $transaction with double-confirm guard)
 - `patient.ts` — getPatients (paginated, filters isActive, supports tag/insurance filters), getPatient, updatePatient, createPatient, searchPatients (name/CPF/phone/email/insurance), getRecentPatients, getAudioPlaybackUrl, deactivatePatient (soft delete), mergePatients (atomic merge with $transaction), getAllPatientTags
-- `appointment.ts` — getAppointmentsByDateRange, scheduleAppointment, scheduleRecurringAppointments (weekly/biweekly, 2-52 occurrences, atomic $transaction), checkAppointmentConflicts (returns { appointments, blockedSlots }), updateAppointmentStatus, rescheduleAppointment, deleteAppointment
+- `appointment.ts` — getAppointmentsByDateRange, scheduleAppointment, scheduleRecurringAppointments (weekly/biweekly, 2-52 occurrences, atomic $transaction), checkAppointmentConflicts (returns { appointments, blockedSlots }), updateAppointmentStatus, rescheduleAppointment (accepts `forceSchedule` param), deleteAppointment. Advisory locks use `$executeRawUnsafe` (Prisma 6 compat)
 - `receipt.ts` — generateReceiptData
 - `prescription.ts` — createPrescription, getPrescription, getPatientPrescriptions, deletePrescription
 - `certificate.ts` — createCertificate (auto-generates content for atestado/declaracao), getCertificate, getPatientCertificates, deleteCertificate
-- `blocked-slot.ts` — getBlockedSlots (expands weekly recurring, optional agendaIds filter), createBlockedSlot (requires agendaId), deleteBlockedSlot
+- `blocked-slot.ts` — getBlockedSlots (expands weekly recurring, optional agendaIds filter), createBlockedSlot (requires agendaId), updateBlockedSlot, deleteBlockedSlot
 - `agenda.ts` — getAgendas, getDefaultAgendaId, getDefaultAgendaIdForWorkspace, createAgenda, updateAgenda, deleteAgenda
 - `booking-config.ts` — getBookingConfig, toggleBooking, updateBookingConfig, regenerateBookingToken
 - `reports.ts` — getReportsData (analytics: monthly revenue, patient trends, procedure ranking, hour heatmap, return rate, no-show rate, patient ranking by frequency/revenue, NPS score)
@@ -120,6 +120,8 @@ All data mutations use Server Actions with `"use server"` directive:
 - `messaging.ts` — getMessagingConfig, updateMessagingConfig, sendAppointmentMessage (email/WhatsApp/SMS)
 - `whatsapp.ts` — getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth
 - `admin.ts` — requireSuperAdmin guard, getAdminDashboard, getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus, getAdminUsers
+- `_helpers.ts` — Shared helper with `getWorkspaceId()` and `getAuthContext()` (not used by server actions due to Vercel bundler issue, kept for future use)
+- `calendar.ts` — Unified `getCalendarData()` server action (not used currently due to same bundler issue, kept for future use)
 
 All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope queries to the user's workspace.
 
@@ -131,6 +133,21 @@ All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope quer
 - `src/components/notification-bell.tsx` — In-app notification dropdown
 - `src/app/(dashboard)/patients/[id]/merge-dialog.tsx` — Patient merge search + confirm
 - `src/app/(dashboard)/patients/[id]/more-actions-dropdown.tsx` — Dropdown for secondary patient actions (Export, Merge, Deactivate)
+
+### Calendar Components (`src/app/(dashboard)/calendar/`)
+Decomposed from a monolithic page into modular sub-components:
+- `types.ts` — Shared types (AgendaItem, AppointmentItem, PatientOption, ViewMode)
+- `helpers.ts` — Shared helpers (constants, formatTime, isSameDay, buildAppointmentIndex, buildDayIndex, getBlockedSlotsForHour, getBlockedSlotsForDate)
+- `components/week-view.tsx` — Week view with DnD, memo'd, O(1) appointment lookup via Map index
+- `components/day-view.tsx` — Day view with now-line indicator, memo'd
+- `components/month-view.tsx` — Month view, memo'd, O(1) day lookup via Map index
+- `components/list-view.tsx` — List view, memo'd
+- `components/schedule-form.tsx` — Self-contained schedule form with patient search
+- `components/block-time-form.tsx` — Block time form, memo'd
+- `components/appointment-card.tsx` — Appointment card with status actions, memo'd
+- `components/conflict-dialog.tsx` — AlertDialog for scheduling conflicts (replaces native confirm())
+- `components/now-line.tsx` — Week view "now" indicator using useRef (no re-renders)
+- `components/now-line-day.tsx` — Day view "now" indicator
 
 ### AI Pipeline
 - `src/lib/openai.ts` — `transcribeAudio(buffer, filename, vocabularyHints?)` via Whisper API
@@ -229,6 +246,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - `@@unique([workspaceId, document])` on Patient — CPF unique per workspace (nulls allowed)
 - `@@index([workspaceId, name])` on Patient — composite for search
 - `@@index([workspaceId, date])` on Appointment — for calendar queries
+- `@@index([agendaId, status, date])` on Appointment — for calendar filtering by agenda
 - Recording.workspaceId — multi-tenant isolation on recordings
 
 ## Business Rules
@@ -274,7 +292,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - All UI in Brazilian Portuguese (pt-BR). Dates DD/MM/AAAA, phone +55 DDD, CPF validation.
 - Navigation: sidebar on desktop (w-56, 5 items), bottom nav on mobile (grid-cols-5).
 - Dashboard: stat cards (4), today's agenda, recent activity, quick actions in compact horizontal row. Agenda/activity full-width layout.
-- Calendar: month/week/day/list views, scheduling, quick status actions. Week view supports drag & drop rescheduling (@dnd-kit/core). Time blocking (gray bars for lunch/holidays/etc). Recurring appointments (weekly/biweekly). Red "now" indicator line in week view, auto-scrolls to current hour on mount. Multiple agendas with color-coded filter pills, agenda selector in schedule/block forms, colored left-border on appointments.
+- Calendar: Modular architecture (12 sub-components). Month/week/day/list views, scheduling, quick status actions. Week view supports drag & drop rescheduling (@dnd-kit/core). Time blocking (gray bars for lunch/holidays/etc). Recurring appointments (weekly/biweekly). Red "now" indicator line in week/day views (useRef, no re-renders), auto-scrolls to current hour on mount. Multiple agendas with color-coded filter pills, agenda selector in schedule/block forms, colored left-border on appointments. Client-side cache (Map, 60s TTL) for fast prev/next navigation. O(1) appointment lookup via Map indexes. ConflictDialog (AlertDialog) replaces native confirm(). All sub-components React.memo'd.
 - Patient detail: hero with tags/insurance, action buttons (Prescricao, Atestado). Secondary actions in "Mais" dropdown (Export, Merge, Deactivate). Empty fields hidden by default with "Mostrar todos" toggle.
 - Empty states with contextual CTAs (Tratamentos, Documentos, Gravacoes, Anamnese).
 - Prescriptions & certificates: print-friendly pages (Ctrl+P → PDF).
