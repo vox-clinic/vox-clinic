@@ -32,20 +32,24 @@ export async function processVoiceRegistration(formData: FormData) {
   const arrayBuffer = await audioFile.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  // 1. Upload to Supabase Storage (returns path, not public URL)
-  const audioPath = await uploadAudio(buffer, audioFile.name || "recording.webm")
+  let audioPath: string | null = null
+  let transcript: string | null = null
 
   try {
+    // 1. Upload to Supabase Storage (returns path, not public URL)
+    audioPath = await uploadAudio(buffer, audioFile.name || "recording.webm")
+
     // 2. Preprocess audio for transcription (silence removal + speed up)
     const { buffer: processedBuffer } = await preprocessAudio(buffer, audioFile.name || "recording.webm")
 
     // 3. Transcribe the processed (smaller) audio via Whisper
     const workspaceProcedureNames = (user.workspace.procedures as any[]).map((p: any) => p.name)
-    const { text: transcript } = await transcribeAudio(
+    const result = await transcribeAudio(
       processedBuffer,
       "processed.mp3",
       workspaceProcedureNames
     )
+    transcript = result.text
 
     // 4. Extract entities via Claude
     const workspaceConfig = {
@@ -59,7 +63,7 @@ export async function processVoiceRegistration(formData: FormData) {
       const rec = await tx.recording.create({
         data: {
           workspaceId: user.workspace!.id,
-          audioUrl: audioPath,
+          audioUrl: audioPath!,
           transcript,
           aiExtractedData: extractedData as any,
           status: "processed",
@@ -91,21 +95,23 @@ export async function processVoiceRegistration(formData: FormData) {
       recordingId: recording.id,
     }
   } catch (err) {
-    // Save recording with error status so audio is preserved for retry
-    try {
-      await db.recording.create({
-        data: {
-          audioUrl: audioPath,
-          transcript: undefined,
-          aiExtractedData: undefined,
-          status: "error",
-          errorMessage: err instanceof Error ? err.message : "Erro desconhecido no processamento",
-          workspaceId: user.workspace!.id,
-          fileSize: audioFile.size,
-        },
-      })
-    } catch {
-      // If even saving the error recording fails, don't lose the original error
+    // Save recording with error status — preserve audio and transcript when available
+    if (audioPath) {
+      try {
+        await db.recording.create({
+          data: {
+            audioUrl: audioPath,
+            transcript: transcript ?? undefined,
+            aiExtractedData: undefined,
+            status: "error",
+            errorMessage: err instanceof Error ? err.message : "Erro desconhecido no processamento",
+            workspaceId: user.workspace!.id,
+            fileSize: audioFile.size,
+          },
+        })
+      } catch {
+        // If even saving the error recording fails, don't lose the original error
+      }
     }
     throw err
   }
@@ -156,12 +162,18 @@ export async function confirmPatientRegistration(data: ConfirmPatientData) {
 
   // Atomic: Create Patient + Appointment + link Recording
   const result = await db.$transaction(async (tx) => {
-    // Validate recording belongs to this workspace (multi-tenant isolation)
-    const recording = await tx.recording.findFirst({
-      where: { id: data.recordingId, workspaceId },
-      select: { id: true },
-    })
+    // Lock recording row to prevent double-confirm (same pattern as confirmConsultation)
+    const rows = await tx.$queryRawUnsafe<Array<{
+      id: string
+      appointmentId: string | null
+    }>>(
+      `SELECT id, "appointmentId" FROM "Recording" WHERE id = $1 AND "workspaceId" = $2 FOR UPDATE`,
+      data.recordingId,
+      workspaceId
+    )
+    const recording = rows[0]
     if (!recording) throw new Error("Recording not found")
+    if (recording.appointmentId) throw new Error("Registro ja confirmado")
 
     const patient = await tx.patient.create({
       data: {

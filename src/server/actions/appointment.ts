@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
+import { logAudit } from "@/lib/audit"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -278,6 +279,15 @@ export async function scheduleAppointment(data: {
     })
   })
 
+  const { userId } = await auth()
+  await logAudit({
+    workspaceId,
+    userId: userId!,
+    action: "appointment.scheduled",
+    entityType: "Appointment",
+    entityId: appointment.id,
+  })
+
   return {
     id: appointment.id,
     date: appointment.date.toISOString(),
@@ -316,6 +326,15 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
     data: { status },
   })
 
+  const { userId } = await auth()
+  await logAudit({
+    workspaceId,
+    userId: userId!,
+    action: `appointment.${status}`,
+    entityType: "Appointment",
+    entityId: appointmentId,
+  })
+
   return { id: updated.id, status: updated.status }
 }
 
@@ -327,9 +346,47 @@ export async function rescheduleAppointment(appointmentId: string, newDate: stri
   })
   if (!existing) throw new Error("Consulta nao encontrada")
 
-  const updated = await db.appointment.update({
-    where: { id: appointmentId },
-    data: { date: new Date(newDate) },
+  const targetDate = new Date(newDate)
+
+  // Conflict check with advisory lock (same pattern as scheduleAppointment)
+  const updated = await db.$transaction(async (tx) => {
+    const hourKey = `${existing.agendaId}-${targetDate.toISOString().slice(0, 13)}`
+    const lockId = hashStringToInt(hourKey)
+    await tx.$queryRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
+
+    const windowMs = 30 * 60 * 1000
+    const windowStart = new Date(targetDate.getTime() - windowMs)
+    const windowEnd = new Date(targetDate.getTime() + windowMs)
+
+    const conflicts = await tx.appointment.findMany({
+      where: {
+        workspaceId,
+        agendaId: existing.agendaId,
+        id: { not: appointmentId },
+        status: { in: ["scheduled", "completed"] },
+        date: { gte: windowStart, lte: windowEnd },
+      },
+      include: { patient: { select: { name: true } } },
+    })
+
+    if (conflicts.length > 0) {
+      const names = conflicts.map((c) => c.patient.name).join(", ")
+      throw new Error(`CONFLICT:Ja existe consulta proxima a este horario (${names}).`)
+    }
+
+    return tx.appointment.update({
+      where: { id: appointmentId },
+      data: { date: targetDate },
+    })
+  })
+
+  const { userId } = await auth()
+  await logAudit({
+    workspaceId,
+    userId: userId!,
+    action: "appointment.rescheduled",
+    entityType: "Appointment",
+    entityId: appointmentId,
   })
 
   return { id: updated.id, date: updated.date.toISOString() }
@@ -345,6 +402,15 @@ export async function deleteAppointment(appointmentId: string) {
 
   await db.appointment.delete({
     where: { id: appointmentId },
+  })
+
+  const { userId } = await auth()
+  await logAudit({
+    workspaceId,
+    userId: userId!,
+    action: "appointment.deleted",
+    entityType: "Appointment",
+    entityId: appointmentId,
   })
 
   return { success: true }
@@ -380,9 +446,29 @@ export async function scheduleRecurringAppointments(data: {
     dates.push(d)
   }
 
-  const appointments = await db.$transaction(
-    dates.map((date) =>
-      db.appointment.create({
+  // Interactive transaction with advisory locks to prevent double-booking
+  const appointments = await db.$transaction(async (tx) => {
+    const results = []
+    for (const date of dates) {
+      // Advisory lock per agenda+hour (same pattern as scheduleAppointment)
+      const hourKey = `${data.agendaId}-${date.toISOString().slice(0, 13)}`
+      const lockId = hashStringToInt(hourKey)
+      await tx.$queryRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
+
+      const windowMs = 30 * 60 * 1000
+      const conflicts = await tx.appointment.findMany({
+        where: {
+          workspaceId,
+          agendaId: data.agendaId,
+          status: { in: ["scheduled", "completed"] },
+          date: { gte: new Date(date.getTime() - windowMs), lte: new Date(date.getTime() + windowMs) },
+        },
+      })
+      if (conflicts.length > 0) {
+        throw new Error(`CONFLICT:Conflito no horario ${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`)
+      }
+
+      results.push(await tx.appointment.create({
         data: {
           workspaceId,
           agendaId: data.agendaId,
@@ -395,9 +481,10 @@ export async function scheduleRecurringAppointments(data: {
         include: {
           patient: { select: { id: true, name: true } },
         },
-      })
-    )
-  )
+      }))
+    }
+    return results
+  })
 
   return appointments.map((a) => ({
     id: a.id,

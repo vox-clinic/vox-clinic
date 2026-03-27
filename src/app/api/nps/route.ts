@@ -37,23 +37,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Score deve ser entre 0 e 10" }, { status: 400 })
   }
 
-  const survey = await db.npsSurvey.findUnique({ where: { token } })
-  if (!survey) {
-    return NextResponse.json({ error: "Pesquisa nao encontrada" }, { status: 404 })
-  }
-
-  if (survey.answeredAt) {
-    return NextResponse.json({ error: "Pesquisa ja respondida" }, { status: 400 })
-  }
-
-  await db.npsSurvey.update({
-    where: { token },
+  // Atomic conditional update — prevents race condition on double-submit
+  const result = await db.npsSurvey.updateMany({
+    where: { token, answeredAt: null },
     data: {
       score,
       comment: comment?.trim() || null,
       answeredAt: new Date(),
     },
   })
+
+  if (result.count === 0) {
+    const survey = await db.npsSurvey.findUnique({ where: { token } })
+    if (!survey) {
+      return NextResponse.json({ error: "Pesquisa nao encontrada" }, { status: 404 })
+    }
+    return NextResponse.json({ error: "Pesquisa ja respondida" }, { status: 400 })
+  }
 
   return NextResponse.json({ success: true })
 }

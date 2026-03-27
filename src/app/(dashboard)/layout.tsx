@@ -1,3 +1,6 @@
+// Allow up to 5 minutes for server actions (audio processing: FFmpeg + Whisper + Claude)
+export const maxDuration = 300
+
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"

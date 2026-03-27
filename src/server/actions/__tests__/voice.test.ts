@@ -180,7 +180,8 @@ describe("voice actions", () => {
     it("creates patient + appointment + updates recording in transaction", async () => {
       // No duplicate found
       mockDb.patient.findFirst.mockResolvedValue(null)
-      mockDb.recording.findFirst.mockResolvedValue({ id: "rec_1" })
+      // FOR UPDATE query returns recording row
+      mockDb.$queryRawUnsafe.mockResolvedValue([{ id: "rec_1", appointmentId: null }])
       const createdPatient = { id: "p_new", name: "Maria Silva" }
       const createdAppointment = { id: "a_new" }
       mockDb.patient.create.mockResolvedValue(createdPatient)
@@ -223,7 +224,7 @@ describe("voice actions", () => {
       mockDb.patient.findFirst
         .mockResolvedValueOnce({ id: "p_existing", name: "Maria S." }) // by document
       // Second findFirst (by name) should not be called since document matched
-      mockDb.recording.findFirst.mockResolvedValue({ id: "rec_1" })
+      mockDb.$queryRawUnsafe.mockResolvedValue([{ id: "rec_1", appointmentId: null }])
 
       const createdPatient = { id: "p_new", name: "Maria Silva" }
       const createdAppointment = { id: "a_new" }
@@ -245,7 +246,7 @@ describe("voice actions", () => {
       // When no document is provided, only the name-based findFirst is called
       mockDb.patient.findFirst
         .mockResolvedValueOnce({ id: "p_existing", name: "Maria Silva" }) // name match (only call)
-      mockDb.recording.findFirst.mockResolvedValue({ id: "rec_1" })
+      mockDb.$queryRawUnsafe.mockResolvedValue([{ id: "rec_1", appointmentId: null }])
 
       const createdPatient = { id: "p_new", name: "Maria Silva" }
       const createdAppointment = { id: "a_new" }
@@ -263,8 +264,8 @@ describe("voice actions", () => {
 
     it("rejects recording from different workspace (multi-tenant isolation)", async () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
-      // Recording not found in this workspace
-      mockDb.recording.findFirst.mockResolvedValue(null)
+      // FOR UPDATE returns empty array (recording not found in this workspace)
+      mockDb.$queryRawUnsafe.mockResolvedValue([])
 
       await expect(
         confirmPatientRegistration({ recordingId: "rec_other_ws", name: "Test" })
@@ -277,7 +278,7 @@ describe("voice actions", () => {
 
     it("logs audit for both patient and appointment creation", async () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
-      mockDb.recording.findFirst.mockResolvedValue({ id: "rec_1" })
+      mockDb.$queryRawUnsafe.mockResolvedValue([{ id: "rec_1", appointmentId: null }])
       mockDb.patient.create.mockResolvedValue({ id: "p_new", name: "Test" })
       mockDb.appointment.create.mockResolvedValue({ id: "a_new" })
       mockDb.recording.update.mockResolvedValue({ id: "rec_1" })

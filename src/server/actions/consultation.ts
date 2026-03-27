@@ -32,20 +32,24 @@ export async function processConsultation(formData: FormData, patientId: string)
   const arrayBuffer = await audioFile.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  // 1. Upload audio
-  const audioPath = await uploadAudio(buffer, audioFile.name || "consultation.webm")
+  let audioPath: string | null = null
+  let transcript: string | null = null
 
   try {
+    // 1. Upload audio
+    audioPath = await uploadAudio(buffer, audioFile.name || "consultation.webm")
+
     // 2. Preprocess audio
     const { buffer: processedBuffer } = await preprocessAudio(buffer, audioFile.name || "consultation.webm")
 
     // 3. Transcribe via Whisper
     const workspaceProcedureNames = (user.workspace.procedures as any[]).map((p: any) => p.name)
-    const { text: transcript } = await transcribeAudio(
+    const result = await transcribeAudio(
       processedBuffer,
       "processed.mp3",
       workspaceProcedureNames
     )
+    transcript = result.text
 
     // 4. Generate summary with Claude
     const workspaceProcedures = user.workspace.procedures as any[]
@@ -59,7 +63,7 @@ export async function processConsultation(formData: FormData, patientId: string)
       const rec = await tx.recording.create({
         data: {
           workspaceId: user.workspace!.id,
-          audioUrl: audioPath,
+          audioUrl: audioPath!,
           transcript,
           aiExtractedData: summary as any,
           status: "processed",
@@ -94,22 +98,24 @@ export async function processConsultation(formData: FormData, patientId: string)
       audioPath,
     }
   } catch (err) {
-    // Save recording with error status so audio is preserved for retry
-    try {
-      await db.recording.create({
-        data: {
-          audioUrl: audioPath,
-          transcript: undefined,
-          aiExtractedData: undefined,
-          status: "error",
-          errorMessage: err instanceof Error ? err.message : "Erro desconhecido no processamento",
-          workspaceId: user.workspace!.id,
-          patientId,
-          fileSize: audioFile.size,
-        },
-      })
-    } catch {
-      // If even saving the error recording fails, don't lose the original error
+    // Save recording with error status — preserve audio and transcript when available
+    if (audioPath) {
+      try {
+        await db.recording.create({
+          data: {
+            audioUrl: audioPath,
+            transcript: transcript ?? undefined,
+            aiExtractedData: undefined,
+            status: "error",
+            errorMessage: err instanceof Error ? err.message : "Erro desconhecido no processamento",
+            workspaceId: user.workspace!.id,
+            patientId,
+            fileSize: audioFile.size,
+          },
+        })
+      } catch {
+        // If even saving the error recording fails, don't lose the original error
+      }
     }
     throw err
   }

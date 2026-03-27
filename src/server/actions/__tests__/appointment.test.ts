@@ -203,7 +203,9 @@ describe("appointment actions", () => {
   // ─── rescheduleAppointment ───────────────────────────────────
   describe("rescheduleAppointment", () => {
     it("updates the appointment date", async () => {
-      mockDb.appointment.findFirst.mockResolvedValue({ id: "a1", workspaceId: WORKSPACE_ID })
+      mockDb.appointment.findFirst.mockResolvedValueOnce({ id: "a1", workspaceId: WORKSPACE_ID, agendaId: AGENDA_ID })
+      mockDb.$queryRawUnsafe.mockResolvedValue(undefined)
+      mockDb.appointment.findMany.mockResolvedValue([]) // no conflicts
       const newDate = new Date("2024-07-01T14:00:00Z")
       mockDb.appointment.update.mockResolvedValue({ id: "a1", date: newDate })
 
