@@ -25,7 +25,7 @@ export const metadata: Metadata = {
  * ============================================================================
  */
 
-const lastUpdated = "2026-03-26"
+const lastUpdated = "2026-03-27"
 
 type FeatureStatus = "done" | "partial" | "planned"
 
@@ -73,7 +73,7 @@ function CategorySection({ icon, title, description, count, children }: { icon: 
 }
 
 const FEATURES_SUMMARY = {
-  total: 70,
+  total: 71,
   categories: 10,
 }
 
@@ -159,7 +159,8 @@ export default function DocsPage() {
         </CategorySection>
 
         {/* ── 2. AGENDAMENTO ── */}
-        <CategorySection icon="📅" title="Agendamento e Agenda" description="Calendario completo com multiplas visoes, bloqueio de horarios e agendamentos recorrentes." count={8}>
+        <CategorySection icon="📅" title="Agendamento e Agenda" description="Calendario completo com multiplas visoes, bloqueio de horarios, agendamentos recorrentes e multiplas agendas." count={9}>
+          <FeatureCard title="Multiplas Agendas" description="Suporte a varias agendas por workspace (por profissional ou sala). Pills coloridos para filtrar. Conflitos e bloqueios por agenda. CRUD completo em Configuracoes > Agendas." />
           <FeatureCard title="Calendario Multi-visao" description="Visualizacao diaria, semanal, mensal e em lista. Navegacao por data, responsivo. Acoes rapidas de status por consulta." />
           <FeatureCard title="Drag and Drop" description="Arraste consultas na visao semanal para reagendar. Integrado com @dnd-kit/core. Atualiza data automaticamente." />
           <FeatureCard title="Deteccao de Conflitos" description="Verifica janela de +/-30 minutos. Alerta visual com opcao de forcar agendamento. Tambem verifica bloqueios de horario." />

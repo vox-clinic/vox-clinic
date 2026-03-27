@@ -106,6 +106,21 @@ export async function generateWorkspace(
       create: { userId: user.id, professionType: profession, ...jsonData },
     })
 
+    // Create default agenda for the workspace (idempotent)
+    const existingAgenda = await tx.agenda.findFirst({
+      where: { workspaceId: ws.id, isDefault: true },
+    })
+    if (!existingAgenda) {
+      await tx.agenda.create({
+        data: {
+          workspaceId: ws.id,
+          name: "Agenda Principal",
+          color: "#14B8A6",
+          isDefault: true,
+        },
+      })
+    }
+
     await tx.user.update({
       where: { id: user.id },
       data: {

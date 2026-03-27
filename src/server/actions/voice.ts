@@ -8,6 +8,7 @@ import { preprocessAudio } from "@/lib/audio-preprocessing"
 import { extractEntities } from "@/lib/claude"
 import { logAudit } from "@/lib/audit"
 import { recordConsent } from "@/lib/consent"
+import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
 import type { ExtractedPatientData } from "@/types"
 
 export async function processVoiceRegistration(formData: FormData) {
@@ -135,6 +136,7 @@ export async function confirmPatientRegistration(data: ConfirmPatientData) {
   if (!user.workspace) throw new Error("Workspace not configured")
 
   const workspaceId = user.workspace.id
+  const agendaId = await getDefaultAgendaIdForWorkspace(workspaceId)
 
   // Check for duplicate patient by document or similar name
   let duplicatePatient = null
@@ -178,6 +180,7 @@ export async function confirmPatientRegistration(data: ConfirmPatientData) {
       data: {
         patientId: patient.id,
         workspaceId,
+        agendaId,
         procedures: data.procedures ?? [],
         notes: data.notes ?? null,
       },

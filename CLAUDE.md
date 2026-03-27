@@ -54,7 +54,7 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/appointments/[id]/receipt` — Print-friendly receipt (Ctrl+P → PDF)
   - `/patients/new/voice` — Voice registration flow
   - `/patients/new/manual` — Manual registration form
-  - `/calendar` — Week/day/month/list views with scheduling, conflict detection, drag & drop rescheduling (week view, via @dnd-kit/core), time blocking (BlockedSlot), recurring appointments (weekly/biweekly)
+  - `/calendar` — Week/day/month/list views with scheduling, conflict detection, drag & drop rescheduling (week view, via @dnd-kit/core), time blocking (BlockedSlot), recurring appointments (weekly/biweekly), multiple agendas with color-coded filter pills
   - `/appointments/new` — Record consultation for existing patient
   - `/appointments/review` — Review AI summary before confirming
   - `/prescriptions/[id]` — Print-friendly prescription page (medications table, Ctrl+P → PDF)
@@ -103,7 +103,8 @@ All data mutations use Server Actions with `"use server"` directive:
 - `receipt.ts` — generateReceiptData
 - `prescription.ts` — createPrescription, getPrescription, getPatientPrescriptions, deletePrescription
 - `certificate.ts` — createCertificate (auto-generates content for atestado/declaracao), getCertificate, getPatientCertificates, deleteCertificate
-- `blocked-slot.ts` — getBlockedSlots (expands weekly recurring), createBlockedSlot, deleteBlockedSlot
+- `blocked-slot.ts` — getBlockedSlots (expands weekly recurring, optional agendaIds filter), createBlockedSlot (requires agendaId), deleteBlockedSlot
+- `agenda.ts` — getAgendas, getDefaultAgendaId, getDefaultAgendaIdForWorkspace, createAgenda, updateAgenda, deleteAgenda
 - `reports.ts` — getReportsData (analytics: monthly revenue, patient trends, procedure ranking, hour heatmap, return rate, no-show rate, patient ranking by frequency/revenue, NPS score)
 - `dashboard.ts` — getDashboardData (stats, today's agenda, recent activity, trends)
 - `reminder.ts` — sendAppointmentReminder, sendBulkReminders
@@ -201,7 +202,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - **User**: clerkId, role (user/superadmin), profession, clinicName, onboardingComplete → has one Workspace
 - **Workspace**: professionType, customFields, procedures, anamnesisTemplate, categories, plan (free/starter/professional/clinic), planStatus (trialing/active/past_due/canceled), stripeCustomerId, stripeSubId, trialEndsAt → has many Patients, Appointments, Recordings
 - **Patient**: belongs to Workspace. name, document (CPF, unique per workspace), rg, gender, address (JSON: street/number/complement/neighborhood/city/state/zipCode), insurance (convenio), guardian (responsavel), source (origin: instagram/google/indicacao/convenio/site/facebook/outro), tags (String[]), medicalHistory (JSON: allergies/chronicDiseases/medications/bloodType/notes), customData, alerts, isActive (soft delete). Has many Appointments, Recordings, TreatmentPlans
-- **Appointment**: links Patient + Workspace. date, procedures, notes, aiSummary, audioUrl, transcript, status (scheduled/completed/cancelled/no_show)
+- **Appointment**: links Patient + Workspace + Agenda. date, procedures, notes, aiSummary, audioUrl, transcript, status (scheduled/completed/cancelled/no_show). Conflict detection scoped per agenda
 - **TreatmentPlan**: links Patient + Workspace. name, procedures, totalSessions, completedSessions, status (active/completed/cancelled/paused), notes, startDate, estimatedEndDate, completedAt
 - **Notification**: workspaceId, userId, type (appointment_soon/appointment_missed/treatment_complete/system), title, body, entityType, entityId, read. Polling-based (60s)
 - **PatientDocument**: links Patient + Workspace. name, url (Supabase Storage), type (image/pdf/other), mimeType, fileSize. 10MB limit, signed URLs
@@ -212,7 +213,8 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - **Recording**: audioUrl, transcript, aiExtractedData, status (pending/processed), workspaceId, errorMessage, fileSize, duration
 - **Prescription**: patientId, workspaceId, appointmentId?, medications (JSON: [{ name, dosage, frequency, duration, notes }]), notes. Print-to-PDF via `/prescriptions/[id]`
 - **MedicalCertificate**: patientId, workspaceId, type (atestado/declaracao_comparecimento/encaminhamento/laudo), content (auto-generated for standard types), days?, cid?. Print-to-PDF via `/certificates/[id]`
-- **BlockedSlot**: workspaceId, title, startDate, endDate, allDay, recurring (null=one-time, "weekly"=repeats). Shown as gray bars in calendar
+- **Agenda**: workspaceId, name, color (hex), isDefault, isActive. One default agenda per workspace ("Agenda Principal"). Appointments and BlockedSlots belong to an agenda. Multiple agendas per workspace for multi-professional clinics
+- **BlockedSlot**: workspaceId, agendaId, title, startDate, endDate, allDay, recurring (null=one-time, "weekly"=repeats). Shown as gray bars in calendar
 - **NpsSurvey**: workspaceId, patientId, appointmentId? (unique), score (0-10), comment, token (unique, public access), sentAt, answeredAt. Public survey page at `/nps/[token]`
 - **AuditLog**: workspaceId, userId, action, entityType, entityId, details (Json)
 - **ConsentRecord**: workspaceId, patientId?, recordingId?, consentType, givenBy, givenAt
@@ -267,7 +269,7 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - All UI in Brazilian Portuguese (pt-BR). Dates DD/MM/AAAA, phone +55 DDD, CPF validation.
 - Navigation: sidebar on desktop (w-56, 5 items), bottom nav on mobile (grid-cols-5).
 - Dashboard: stat cards (4), today's agenda, recent activity, quick actions in compact horizontal row. Agenda/activity full-width layout.
-- Calendar: month/week/day/list views, scheduling, quick status actions. Week view supports drag & drop rescheduling (@dnd-kit/core). Time blocking (gray bars for lunch/holidays/etc). Recurring appointments (weekly/biweekly). Red "now" indicator line in week view, auto-scrolls to current hour on mount.
+- Calendar: month/week/day/list views, scheduling, quick status actions. Week view supports drag & drop rescheduling (@dnd-kit/core). Time blocking (gray bars for lunch/holidays/etc). Recurring appointments (weekly/biweekly). Red "now" indicator line in week view, auto-scrolls to current hour on mount. Multiple agendas with color-coded filter pills, agenda selector in schedule/block forms, colored left-border on appointments.
 - Patient detail: hero with tags/insurance, action buttons (Prescricao, Atestado). Secondary actions in "Mais" dropdown (Export, Merge, Deactivate). Empty fields hidden by default with "Mostrar todos" toggle.
 - Empty states with contextual CTAs (Tratamentos, Documentos, Gravacoes, Anamnese).
 - Prescriptions & certificates: print-friendly pages (Ctrl+P → PDF).

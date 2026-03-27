@@ -24,17 +24,23 @@ export interface BlockedSlotItem {
   allDay: boolean
   recurring: string | null
   isExpanded?: boolean // true if this is an expanded occurrence of a recurring slot
+  agendaId: string
 }
 
-export async function getBlockedSlots(startDate: string, endDate: string): Promise<BlockedSlotItem[]> {
+export async function getBlockedSlots(startDate: string, endDate: string, agendaIds?: string[]): Promise<BlockedSlotItem[]> {
   const workspaceId = await getWorkspaceId()
   const rangeStart = new Date(startDate)
   const rangeEnd = new Date(endDate)
 
+  const baseWhere: any = { workspaceId }
+  if (agendaIds && agendaIds.length > 0) {
+    baseWhere.agendaId = { in: agendaIds }
+  }
+
   // Fetch one-time slots that overlap with the range
   const oneTimeSlots = await db.blockedSlot.findMany({
     where: {
-      workspaceId,
+      ...baseWhere,
       recurring: null,
       startDate: { lte: rangeEnd },
       endDate: { gte: rangeStart },
@@ -45,7 +51,7 @@ export async function getBlockedSlots(startDate: string, endDate: string): Promi
   // Fetch recurring weekly slots that started before the range end
   const recurringSlots = await db.blockedSlot.findMany({
     where: {
-      workspaceId,
+      ...baseWhere,
       recurring: "weekly",
       startDate: { lte: rangeEnd },
     },
@@ -59,6 +65,7 @@ export async function getBlockedSlots(startDate: string, endDate: string): Promi
     endDate: s.endDate.toISOString(),
     allDay: s.allDay,
     recurring: s.recurring,
+    agendaId: s.agendaId,
   }))
 
   // Expand recurring weekly slots into all occurrences within the range
@@ -86,6 +93,7 @@ export async function getBlockedSlots(startDate: string, endDate: string): Promi
           allDay: slot.allDay,
           recurring: slot.recurring,
           isExpanded: true,
+          agendaId: slot.agendaId,
         })
       }
     }
@@ -98,12 +106,19 @@ export async function createBlockedSlot(data: {
   title: string
   startDate: string
   endDate: string
+  agendaId: string
   allDay?: boolean
   recurring?: string | null
 }) {
   const workspaceId = await getWorkspaceId()
 
   if (!data.title.trim()) throw new Error("Titulo e obrigatorio")
+
+  // Validate agenda belongs to workspace
+  const agenda = await db.agenda.findFirst({
+    where: { id: data.agendaId, workspaceId },
+  })
+  if (!agenda) throw new Error("Agenda nao encontrada")
 
   const startDate = new Date(data.startDate)
   const endDate = new Date(data.endDate)
@@ -113,6 +128,7 @@ export async function createBlockedSlot(data: {
   const slot = await db.blockedSlot.create({
     data: {
       workspaceId,
+      agendaId: data.agendaId,
       title: data.title.trim(),
       startDate,
       endDate,
@@ -128,6 +144,7 @@ export async function createBlockedSlot(data: {
     endDate: slot.endDate.toISOString(),
     allDay: slot.allDay,
     recurring: slot.recurring,
+    agendaId: slot.agendaId,
   }
 }
 

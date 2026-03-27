@@ -45,6 +45,7 @@ model Workspace {
   members           WorkspaceMember[]
   blockedSlots      BlockedSlot[]
   usageRecords      UsageRecord[]
+  agendas           Agenda[]
 }
 
 model Patient {
@@ -88,6 +89,8 @@ model Appointment {
   patient      Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   workspaceId  String
   workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agendaId     String
+  agenda       Agenda      @relation(fields: [agendaId], references: [id], onDelete: Cascade)
   date         DateTime    @default(now())
   procedures   Json        @default("[]")
   notes        String?
@@ -103,6 +106,8 @@ model Appointment {
   @@index([patientId])
   @@index([workspaceId])
   @@index([workspaceId, date])
+  @@index([agendaId])
+  @@index([agendaId, date])
 }
 
 model Recording {
@@ -324,6 +329,8 @@ model BlockedSlot {
   id          String    @id @default(cuid())
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agendaId    String
+  agenda      Agenda    @relation(fields: [agendaId], references: [id], onDelete: Cascade)
   title       String    // "Almoco", "Ferias", "Feriado", "Reuniao", etc.
   startDate   DateTime
   endDate     DateTime
@@ -333,6 +340,8 @@ model BlockedSlot {
 
   @@index([workspaceId])
   @@index([workspaceId, startDate, endDate])
+  @@index([agendaId])
+  @@index([agendaId, startDate, endDate])
 }
 
 model Prescription {
@@ -376,4 +385,21 @@ model UsageRecord {
   @@unique([workspaceId, period, metric])
   @@index([workspaceId])
   @@index([period])
+}
+
+model Agenda {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String    // "Agenda Principal", "Dr. Silva", "Sala 1"
+  color       String    @default("#14B8A6")
+  isDefault   Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  appointments Appointment[]
+  blockedSlots BlockedSlot[]
+
+  @@index([workspaceId])
 }

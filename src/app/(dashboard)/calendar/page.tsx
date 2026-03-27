@@ -44,6 +44,7 @@ import {
   deleteBlockedSlot,
   type BlockedSlotItem,
 } from "@/server/actions/blocked-slot"
+import { getAgendas } from "@/server/actions/agenda"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -58,6 +59,15 @@ import {
 
 // ────────────────────── Types ──────────────────────
 
+interface AgendaItem {
+  id: string
+  name: string
+  color: string
+  isDefault: boolean
+  isActive: boolean
+  appointmentCount: number
+}
+
 interface AppointmentItem {
   id: string
   date: string
@@ -65,6 +75,8 @@ interface AppointmentItem {
   procedures: string[]
   notes: string | null
   status: string
+  agendaId: string
+  agenda?: { id: string; name: string; color: string }
 }
 
 interface PatientOption {
@@ -202,6 +214,11 @@ export default function CalendarPage() {
   const [nowLineTop, setNowLineTop] = useState<number | null>(null)
   const router = useRouter()
 
+  // Agendas
+  const [agendas, setAgendas] = useState<AgendaItem[]>([])
+  const [selectedAgendaIds, setSelectedAgendaIds] = useState<string[]>([]) // empty = all
+  const [scheduleAgendaId, setScheduleAgendaId] = useState("")
+
   // Schedule form
   const [patientQuery, setPatientQuery] = useState("")
   const [patientResults, setPatientResults] = useState<PatientOption[]>([])
@@ -234,14 +251,29 @@ export default function CalendarPage() {
     return [new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59, 59, 999)]
   }, [view, currentDate, year, month])
 
+  const loadAgendas = useCallback(async () => {
+    try {
+      const data = await getAgendas()
+      setAgendas(data)
+      // Set default agenda for schedule form
+      if (data.length > 0 && !scheduleAgendaId) {
+        const defaultAgenda = data.find((a) => a.isDefault) || data[0]
+        setScheduleAgendaId(defaultAgenda.id)
+      }
+    } catch {
+      setAgendas([])
+    }
+  }, [])
+
   const loadAppointments = useCallback(() => {
     setLoading(true)
     const [start, end] = getDateRange()
+    const filterIds = selectedAgendaIds.length > 0 ? selectedAgendaIds : undefined
     startTransition(async () => {
       try {
         const [apptData, slotData] = await Promise.all([
-          getAppointmentsByDateRange(start.toISOString(), end.toISOString()),
-          getBlockedSlots(start.toISOString(), end.toISOString()),
+          getAppointmentsByDateRange(start.toISOString(), end.toISOString(), filterIds),
+          getBlockedSlots(start.toISOString(), end.toISOString(), filterIds),
         ])
         setAppointments(apptData)
         setBlockedSlots(slotData)
@@ -252,7 +284,11 @@ export default function CalendarPage() {
         setLoading(false)
       }
     })
-  }, [getDateRange])
+  }, [getDateRange, selectedAgendaIds])
+
+  useEffect(() => {
+    loadAgendas()
+  }, [loadAgendas])
 
   useEffect(() => {
     loadAppointments()
@@ -398,13 +434,14 @@ export default function CalendarPage() {
   }
 
   async function handleSchedule(forceSchedule = false) {
-    if (!selectedPatient || !scheduleDate || !scheduleTime) return
+    if (!selectedPatient || !scheduleDate || !scheduleTime || !scheduleAgendaId) return
     const dateTime = new Date(`${scheduleDate}T${scheduleTime}:00`)
     try {
       if (recurringEnabled) {
         await scheduleRecurringAppointments({
           patientId: selectedPatient.id,
           startDate: dateTime.toISOString(),
+          agendaId: scheduleAgendaId,
           notes: scheduleNotes || undefined,
           recurrence,
           occurrences,
@@ -414,6 +451,7 @@ export default function CalendarPage() {
         await scheduleAppointment({
           patientId: selectedPatient.id,
           date: dateTime.toISOString(),
+          agendaId: scheduleAgendaId,
           notes: scheduleNotes || undefined,
           forceSchedule,
         })
@@ -566,6 +604,46 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* ─── Agenda Filter ─── */}
+      {agendas.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {agendas.filter((a) => a.isActive).map((agenda) => {
+            const isSelected = selectedAgendaIds.length === 0 || selectedAgendaIds.includes(agenda.id)
+            return (
+              <button
+                key={agenda.id}
+                onClick={() => {
+                  setSelectedAgendaIds((prev) => {
+                    if (prev.length === 0) {
+                      // First click: select only this one (filter to this agenda)
+                      return [agenda.id]
+                    }
+                    if (prev.includes(agenda.id)) {
+                      const next = prev.filter((id) => id !== agenda.id)
+                      return next.length === 0 ? [] : next // empty = show all
+                    }
+                    const next = [...prev, agenda.id]
+                    // If all active agendas selected, reset to show all
+                    return next.length === agendas.filter((a) => a.isActive).length ? [] : next
+                  })
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                  isSelected
+                    ? "border-border/60 bg-background shadow-sm"
+                    : "border-transparent bg-muted/40 text-muted-foreground opacity-50"
+                }`}
+              >
+                <span
+                  className="size-2 rounded-full shrink-0"
+                  style={{ backgroundColor: agenda.color }}
+                />
+                {agenda.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* ─── Schedule Form ─── */}
       {showScheduleForm && (
         <ScheduleForm
@@ -579,6 +657,8 @@ export default function CalendarPage() {
           recurringEnabled={recurringEnabled} setRecurringEnabled={setRecurringEnabled}
           recurrence={recurrence} setRecurrence={setRecurrence}
           occurrences={occurrences} setOccurrences={setOccurrences}
+          agendas={agendas.filter((a) => a.isActive)}
+          scheduleAgendaId={scheduleAgendaId} setScheduleAgendaId={setScheduleAgendaId}
           onSchedule={() => handleSchedule()} onCancel={() => { setShowScheduleForm(false); resetScheduleForm() }}
         />
       )}
@@ -586,6 +666,8 @@ export default function CalendarPage() {
       {/* ─── Block Time Form ─── */}
       {showBlockForm && (
         <BlockTimeForm
+          agendas={agendas.filter((a) => a.isActive)}
+          defaultAgendaId={scheduleAgendaId}
           onSave={async (data) => {
             try {
               await createBlockedSlot(data)
@@ -689,9 +771,10 @@ export default function CalendarPage() {
                           <DraggableAppointment key={a.id} appointment={a}>
                             <div
                               onClick={() => router.push(`/patients/${a.patient.id}`)}
-                              className={`block truncate rounded-md px-1.5 py-1 text-[10px] font-medium leading-tight mb-0.5 cursor-grab active:cursor-grabbing transition-opacity hover:opacity-80 ${
+                              className={`block truncate rounded-md px-1.5 py-1 text-[10px] font-medium leading-tight mb-0.5 cursor-grab active:cursor-grabbing transition-opacity hover:opacity-80 border-l-[3px] ${
                                 STATUS_CONFIG[a.status]?.className ?? "bg-muted text-muted-foreground"
                               }`}
+                              style={{ borderLeftColor: a.agenda?.color || "#14B8A6" }}
                             >
                               <span className="font-semibold">{formatTime(a.date)}</span>{" "}
                               {a.patient.name.split(" ")[0]}
@@ -910,6 +993,7 @@ function ScheduleForm(props: {
   recurringEnabled: boolean; setRecurringEnabled: (v: boolean) => void
   recurrence: "weekly" | "biweekly"; setRecurrence: (v: "weekly" | "biweekly") => void
   occurrences: number; setOccurrences: (v: number) => void
+  agendas: AgendaItem[]; scheduleAgendaId: string; setScheduleAgendaId: (v: string) => void
   onSchedule: () => void; onCancel: () => void
 }) {
   return (
@@ -952,6 +1036,20 @@ function ScheduleForm(props: {
             </div>
           )}
         </div>
+        {props.agendas.length > 1 && (
+          <div className="space-y-2 sm:col-span-2">
+            <Label className="text-xs">Agenda</Label>
+            <select
+              value={props.scheduleAgendaId}
+              onChange={(e) => props.setScheduleAgendaId(e.target.value)}
+              className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-vox-primary/30"
+            >
+              {props.agendas.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="space-y-2">
           <Label className="text-xs">Data</Label>
           <Input type="date" value={props.scheduleDate} onChange={(e) => props.setScheduleDate(e.target.value)} className="rounded-xl text-sm" />
@@ -1105,8 +1203,10 @@ function AppointmentCard({
 
 // ────────────────────── Block Time Form ──────────────────────
 
-function BlockTimeForm({ onSave, onCancel }: {
-  onSave: (data: { title: string; startDate: string; endDate: string; allDay?: boolean; recurring?: string | null }) => Promise<void>
+function BlockTimeForm({ agendas, defaultAgendaId, onSave, onCancel }: {
+  agendas: AgendaItem[]
+  defaultAgendaId: string
+  onSave: (data: { title: string; startDate: string; endDate: string; agendaId: string; allDay?: boolean; recurring?: string | null }) => Promise<void>
   onCancel: () => void
 }) {
   const [title, setTitle] = useState("")
@@ -1117,9 +1217,10 @@ function BlockTimeForm({ onSave, onCancel }: {
   const [allDay, setAllDay] = useState(false)
   const [recurring, setRecurring] = useState<string>("")
   const [saving, setSaving] = useState(false)
+  const [agendaId, setAgendaId] = useState(defaultAgendaId)
 
   async function handleSave() {
-    if (!title.trim() || !startDate) return
+    if (!title.trim() || !startDate || !agendaId) return
     setSaving(true)
     try {
       const start = allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime || "00:00"}:00`
@@ -1128,6 +1229,7 @@ function BlockTimeForm({ onSave, onCancel }: {
         title: title.trim(),
         startDate: new Date(start).toISOString(),
         endDate: new Date(end).toISOString(),
+        agendaId,
         allDay,
         recurring: recurring || null,
       })
@@ -1157,6 +1259,20 @@ function BlockTimeForm({ onSave, onCancel }: {
             className="rounded-xl text-sm"
           />
         </div>
+        {agendas.length > 1 && (
+          <div className="space-y-2 sm:col-span-2">
+            <Label className="text-xs">Agenda</Label>
+            <select
+              value={agendaId}
+              onChange={(e) => setAgendaId(e.target.value)}
+              className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-vox-primary/30"
+            >
+              {agendas.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="space-y-2 sm:col-span-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input

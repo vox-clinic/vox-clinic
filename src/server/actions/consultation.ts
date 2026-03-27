@@ -8,6 +8,7 @@ import { preprocessAudio } from "@/lib/audio-preprocessing"
 import { generateConsultationSummary } from "@/lib/claude"
 import { logAudit } from "@/lib/audit"
 import { recordConsent } from "@/lib/consent"
+import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
 import type { AppointmentSummary } from "@/types"
 
 export async function processConsultation(formData: FormData, patientId: string) {
@@ -156,6 +157,7 @@ export async function confirmConsultation(data: {
   if (!user?.workspace) throw new Error("Workspace not configured")
 
   const workspaceId = user.workspace.id
+  const agendaId = await getDefaultAgendaIdForWorkspace(workspaceId)
 
   // Atomic: Create Appointment + link Recording (with double-confirm guard via FOR UPDATE)
   const result = await db.$transaction(async (tx) => {
@@ -177,6 +179,7 @@ export async function confirmConsultation(data: {
       data: {
         patientId: data.patientId,
         workspaceId,
+        agendaId,
         procedures: data.summary.procedures,
         notes: data.summary.observations,
         aiSummary: JSON.stringify(data.summary),

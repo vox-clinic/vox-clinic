@@ -52,6 +52,7 @@ const getCachedDashboardData = unstable_cache(
         },
         include: {
           patient: { select: { id: true, name: true } },
+          agenda: { select: { id: true, name: true, color: true } },
         },
         orderBy: { date: "asc" },
       }),
@@ -98,6 +99,7 @@ const getCachedDashboardData = unstable_cache(
         procedures: a.procedures as string[],
         notes: a.notes,
         patient: a.patient,
+        agenda: a.agenda,
       })),
       scheduledAppointments,
       totalRecordings,

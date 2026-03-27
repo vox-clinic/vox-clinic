@@ -57,22 +57,34 @@ export async function getAppointments(page: number = 1, status?: string) {
   }
 }
 
-export async function getAppointmentsByDateRange(startDate: string, endDate: string) {
+export async function getAppointmentsByDateRange(startDate: string, endDate: string, agendaIds?: string[]) {
   const workspaceId = await getWorkspaceId()
 
-  const appointments = await db.appointment.findMany({
-    where: {
-      workspaceId,
-      date: {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
-      },
+  const where: any = {
+    workspaceId,
+    date: {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
     },
+  }
+  if (agendaIds && agendaIds.length > 0) {
+    where.agendaId = { in: agendaIds }
+  }
+
+  const appointments = await db.appointment.findMany({
+    where,
     include: {
       patient: {
         select: {
           id: true,
           name: true,
+        },
+      },
+      agenda: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
         },
       },
     },
@@ -86,10 +98,12 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
     procedures: a.procedures as string[],
     notes: a.notes,
     status: a.status,
+    agendaId: a.agendaId,
+    agenda: a.agenda,
   }))
 }
 
-export async function checkAppointmentConflicts(date: string) {
+export async function checkAppointmentConflicts(date: string, agendaId?: string) {
   const workspaceId = await getWorkspaceId()
   const targetDate = new Date(date)
 
@@ -98,13 +112,30 @@ export async function checkAppointmentConflicts(date: string) {
   const windowStart = new Date(targetDate.getTime() - windowMs)
   const windowEnd = new Date(targetDate.getTime() + windowMs)
 
+  const appointmentWhere: any = {
+    workspaceId,
+    status: { in: ["scheduled", "completed"] },
+    date: { gte: windowStart, lte: windowEnd },
+  }
+  if (agendaId) appointmentWhere.agendaId = agendaId
+
+  const blockedSlotWhere: any = {
+    workspaceId,
+    startDate: { lte: windowEnd },
+    endDate: { gte: windowStart },
+  }
+  if (agendaId) blockedSlotWhere.agendaId = agendaId
+
+  const recurringWhere: any = {
+    workspaceId,
+    recurring: "weekly",
+    startDate: { lte: windowEnd },
+  }
+  if (agendaId) recurringWhere.agendaId = agendaId
+
   const [appointmentConflicts, blockedSlots] = await Promise.all([
     db.appointment.findMany({
-      where: {
-        workspaceId,
-        status: { in: ["scheduled", "completed"] },
-        date: { gte: windowStart, lte: windowEnd },
-      },
+      where: appointmentWhere,
       include: {
         patient: { select: { id: true, name: true } },
       },
@@ -112,21 +143,13 @@ export async function checkAppointmentConflicts(date: string) {
     }),
     // Check blocked slots that overlap with the target time
     db.blockedSlot.findMany({
-      where: {
-        workspaceId,
-        startDate: { lte: windowEnd },
-        endDate: { gte: windowStart },
-      },
+      where: blockedSlotWhere,
     }),
   ])
 
   // Also check recurring weekly blocked slots
   const recurringSlots = await db.blockedSlot.findMany({
-    where: {
-      workspaceId,
-      recurring: "weekly",
-      startDate: { lte: windowEnd },
-    },
+    where: recurringWhere,
   })
 
   const blockedConflicts: Array<{ id: string; title: string; startDate: string; endDate: string; type: "blocked" }> = []
@@ -184,11 +207,18 @@ export async function checkAppointmentConflicts(date: string) {
 export async function scheduleAppointment(data: {
   patientId: string
   date: string
+  agendaId: string
   notes?: string
   procedures?: string[]
   forceSchedule?: boolean
 }) {
   const workspaceId = await getWorkspaceId()
+
+  // Validate agenda belongs to workspace
+  const agenda = await db.agenda.findFirst({
+    where: { id: data.agendaId, workspaceId },
+  })
+  if (!agenda) throw new Error("Agenda nao encontrada")
 
   // Verify patient belongs to workspace
   const patient = await db.patient.findFirst({
@@ -200,8 +230,8 @@ export async function scheduleAppointment(data: {
 
   // Atomic conflict check + create to prevent double-booking
   const appointment = await db.$transaction(async (tx) => {
-    // Advisory lock on workspaceId + hour window to serialize scheduling
-    const hourKey = `${workspaceId}-${targetDate.toISOString().slice(0, 13)}`
+    // Advisory lock on agendaId + hour window to serialize scheduling
+    const hourKey = `${data.agendaId}-${targetDate.toISOString().slice(0, 13)}`
     const lockId = hashStringToInt(hourKey)
     await tx.$queryRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
 
@@ -213,6 +243,7 @@ export async function scheduleAppointment(data: {
       const conflicts = await tx.appointment.findMany({
         where: {
           workspaceId,
+          agendaId: data.agendaId,
           status: { in: ["scheduled", "completed"] },
           date: { gte: windowStart, lte: windowEnd },
         },
@@ -232,6 +263,7 @@ export async function scheduleAppointment(data: {
     return tx.appointment.create({
       data: {
         workspaceId,
+        agendaId: data.agendaId,
         patientId: data.patientId,
         date: targetDate,
         notes: data.notes || null,
@@ -253,6 +285,7 @@ export async function scheduleAppointment(data: {
     procedures: appointment.procedures as string[],
     notes: appointment.notes,
     status: appointment.status,
+    agendaId: appointment.agendaId,
   }
 }
 
@@ -320,6 +353,7 @@ export async function deleteAppointment(appointmentId: string) {
 export async function scheduleRecurringAppointments(data: {
   patientId: string
   startDate: string
+  agendaId: string
   notes?: string
   procedures?: string[]
   recurrence: "weekly" | "biweekly"
@@ -351,6 +385,7 @@ export async function scheduleRecurringAppointments(data: {
       db.appointment.create({
         data: {
           workspaceId,
+          agendaId: data.agendaId,
           patientId: data.patientId,
           date,
           notes: data.notes || null,
@@ -371,5 +406,6 @@ export async function scheduleRecurringAppointments(data: {
     procedures: a.procedures as string[],
     notes: a.notes,
     status: a.status,
+    agendaId: a.agendaId,
   }))
 }
