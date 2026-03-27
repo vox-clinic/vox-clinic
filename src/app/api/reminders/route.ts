@@ -3,7 +3,6 @@ import { db } from "@/lib/db"
 import { env } from "@/lib/env"
 import { sendEmail } from "@/lib/email"
 import { appointmentReminder } from "@/lib/email-templates"
-import { apiLimiter } from "@/lib/rate-limit"
 import { WhatsAppClient } from "@/lib/whatsapp/client"
 import { decrypt } from "@/lib/crypto"
 
@@ -11,13 +10,6 @@ import { decrypt } from "@/lib/crypto"
 export { POST as GET }
 
 export async function POST(req: Request) {
-  // Rate limiting
-  const token = req.headers.get("authorization") || req.headers.get("x-forwarded-for") || "anonymous"
-  const { success } = apiLimiter.check(10, `reminders:${token}`)
-  if (!success) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 })
-  }
-
   // Verify cron secret
   const authHeader = req.headers.get("authorization")
   if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {

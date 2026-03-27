@@ -177,6 +177,37 @@ export async function POST(request: NextRequest) {
         throw new Error("SLOT_TAKEN")
       }
 
+      // Anti-abuse: reject if > 20 bookings from this workspace in the last hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+      const recentBookings = await tx.appointment.count({
+        where: {
+          workspaceId,
+          source: "online",
+          createdAt: { gte: oneHourAgo },
+        },
+      })
+      if (recentBookings > 20) {
+        throw new Error("RATE_LIMIT")
+      }
+
+      // Anti-double-submit: reject if same phone+email booked within last 5 minutes
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
+      const phoneNormalized = patient.phone.replace(/\D/g, "")
+      const recentDuplicate = await tx.appointment.findFirst({
+        where: {
+          workspaceId,
+          source: "online",
+          createdAt: { gte: fiveMinAgo },
+          patient: {
+            phone: phoneNormalized,
+            ...(patient.email ? { email: patient.email } : {}),
+          },
+        },
+      })
+      if (recentDuplicate) {
+        throw new Error("DUPLICATE_BOOKING")
+      }
+
       // Find or create patient
       const phone = patient.phone.replace(/\D/g, "")
       let existingPatient = await tx.patient.findFirst({
@@ -226,6 +257,12 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     if (err.message === "SLOT_TAKEN") {
       return NextResponse.json({ error: "Horario ja foi reservado. Escolha outro horario." }, { status: 409 })
+    }
+    if (err.message === "RATE_LIMIT") {
+      return NextResponse.json({ error: "Muitas solicitacoes. Tente novamente mais tarde." }, { status: 429 })
+    }
+    if (err.message === "DUPLICATE_BOOKING") {
+      return NextResponse.json({ error: "Agendamento ja realizado. Verifique seus agendamentos." }, { status: 409 })
     }
     console.error("Booking error:", err)
     return NextResponse.json({ error: "Erro ao agendar. Tente novamente." }, { status: 500 })

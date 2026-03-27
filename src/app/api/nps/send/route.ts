@@ -1,22 +1,16 @@
 import { NextResponse } from "next/server"
+import { randomUUID } from "crypto"
 import { db } from "@/lib/db"
 import { env } from "@/lib/env"
 import { sendEmail } from "@/lib/email"
 import { WhatsAppClient } from "@/lib/whatsapp/client"
 import { decrypt } from "@/lib/crypto"
-import { apiLimiter } from "@/lib/rate-limit"
 
 // Cron job: send NPS surveys for appointments completed today
 // Vercel Cron invokes via GET; re-export POST handler as GET for compatibility
 export { POST as GET }
 
 export async function POST(req: Request) {
-  const token = req.headers.get("authorization") || req.headers.get("x-forwarded-for") || "anonymous"
-  const { success } = apiLimiter.check(10, `nps-send:${token}`)
-  if (!success) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 })
-  }
-
   const authHeader = req.headers.get("authorization")
   if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -61,35 +55,32 @@ export async function POST(req: Request) {
     const errors: string[] = []
 
     for (const apt of appointments) {
-      // Create survey record
-      const survey = await db.npsSurvey.create({
-        data: {
-          workspaceId: apt.workspaceId,
-          patientId: apt.patientId,
-          appointmentId: apt.id,
-        },
-      })
-
       const clinicName = apt.workspace.user.clinicName || "Clinica"
       const baseUrl = env.NEXT_PUBLIC_APP_URL
-      const surveyUrl = `${baseUrl}/nps/${survey.token}`
+
+      // Generate token and URL before sending — record is only created after successful delivery
+      const surveyToken = randomUUID()
+      const surveyUrl = `${baseUrl}/nps/${surveyToken}`
       const message = `Ola ${apt.patient.name}! Como foi seu atendimento na ${clinicName} hoje? Avalie em 30 segundos: ${surveyUrl}`
 
       const waConfig = configByWorkspace.get(apt.workspaceId)
       const phone = apt.patient.phone?.replace(/\D/g, "")
 
+      let delivered = false
+
+      // Try WhatsApp first
       if (waConfig && phone && phone.length >= 10) {
         try {
           const client = new WhatsAppClient(decrypt(waConfig.accessToken), waConfig.phoneNumberId)
           await client.sendText(phone, message)
-          sent++
-          continue
+          delivered = true
         } catch (error) {
           errors.push(`WhatsApp ${apt.id}: ${error instanceof Error ? error.message : "Erro"}`)
         }
       }
 
-      if (apt.patient.email) {
+      // Email fallback
+      if (!delivered && apt.patient.email) {
         try {
           await sendEmail({
             to: apt.patient.email,
@@ -108,11 +99,24 @@ export async function POST(req: Request) {
               </div>
             `,
           })
-          sent++
+          delivered = true
         } catch (error) {
           errors.push(`Email ${apt.id}: ${error instanceof Error ? error.message : "Erro"}`)
         }
-      } else {
+      }
+
+      // Only create survey record AFTER successful delivery
+      if (delivered) {
+        await db.npsSurvey.create({
+          data: {
+            workspaceId: apt.workspaceId,
+            patientId: apt.patientId,
+            appointmentId: apt.id,
+            token: surveyToken,
+          },
+        })
+        sent++
+      } else if (!apt.patient.email && !(waConfig && phone && phone.length >= 10)) {
         skipped++
       }
     }

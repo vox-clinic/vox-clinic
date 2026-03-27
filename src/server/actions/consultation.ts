@@ -10,6 +10,7 @@ import { generateConsultationSummary } from "@/lib/claude"
 import { logAudit } from "@/lib/audit"
 import { recordConsent } from "@/lib/consent"
 import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
+import { readProcedures, toJsonValue, readMedicalHistory } from "@/lib/json-helpers"
 import type { AppointmentSummary } from "@/types"
 
 export async function processConsultation(formData: FormData, patientId: string) {
@@ -48,7 +49,7 @@ export async function processConsultation(formData: FormData, patientId: string)
     const { buffer: processedBuffer } = await preprocessAudio(buffer, audioFile.name || "consultation.webm")
 
     // 3. Transcribe via Whisper
-    const workspaceProcedureNames = (workspace.procedures as any[]).map((p: any) => p.name)
+    const workspaceProcedureNames = readProcedures(workspace.procedures).map((p) => p.name)
     const result = await transcribeAudio(
       processedBuffer,
       "processed.mp3",
@@ -57,7 +58,7 @@ export async function processConsultation(formData: FormData, patientId: string)
     transcript = result.text
 
     // 4. Generate summary with Claude
-    const workspaceProcedures = workspace.procedures as any[]
+    const workspaceProcedures = readProcedures(workspace.procedures)
     const summary: AppointmentSummary = await generateConsultationSummary(
       transcript,
       workspaceProcedures
@@ -70,7 +71,7 @@ export async function processConsultation(formData: FormData, patientId: string)
           workspaceId,
           audioUrl: audioPath!,
           transcript,
-          aiExtractedData: summary as any,
+          aiExtractedData: toJsonValue(summary),
           status: "processed",
           patientId,
           fileSize: audioFile.size,
@@ -233,7 +234,7 @@ export async function confirmConsultation(data: {
         }
 
         // Merge medical history (allergies, medications, chronicDiseases)
-        const existingHistory = (patient.medicalHistory as Record<string, any>) ?? {}
+        const existingHistory = readMedicalHistory(patient.medicalHistory) as Record<string, string[] | unknown>
         let historyChanged = false
 
         if (updates.allergies && updates.allergies.length > 0) {

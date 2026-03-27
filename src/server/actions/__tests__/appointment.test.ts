@@ -18,7 +18,7 @@ const CLERK_ID = "clerk_test_user_123"
 const mockUser = {
   id: "user_1",
   clerkId: CLERK_ID,
-  workspace: { id: WORKSPACE_ID },
+  workspace: { id: WORKSPACE_ID, plan: "enterprise" },
 }
 
 const AGENDA_ID = "agenda_test_123"

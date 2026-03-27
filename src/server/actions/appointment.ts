@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
 import { revalidateTag } from "next/cache"
+import { checkAppointmentLimit } from "@/lib/plan-enforcement"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -221,6 +222,11 @@ export async function scheduleAppointment(data: {
   const user = await db.user.findUnique({ where: { clerkId: userId }, include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } } })
   const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error("Workspace not configured")
+
+  // Plan enforcement: check appointment limit
+  const workspacePlan = user?.workspace?.plan ?? (await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } }))?.plan ?? "free"
+  const planCheck = await checkAppointmentLimit(workspaceId, workspacePlan)
+  if (!planCheck.allowed) throw new Error(planCheck.reason!)
 
   // Validate agenda belongs to workspace
   const agenda = await db.agenda.findFirst({

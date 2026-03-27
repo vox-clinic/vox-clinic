@@ -4,6 +4,8 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { generateWorkspaceSuggestions } from "@/lib/claude"
 import { logAudit } from "@/lib/audit"
+import type { Prisma } from "@prisma/client"
+import { readProcedures, readCustomFields, readAnamnesisTemplate, readCategories, toJsonValue } from "@/lib/json-helpers"
 import type { WorkspaceConfig, Procedure, CustomField, AnamnesisQuestion, Category } from "@/types"
 
 async function getAuthenticatedUser() {
@@ -29,27 +31,34 @@ export async function getWorkspace() {
   return {
     id: workspace.id,
     professionType: workspace.professionType,
-    procedures: workspace.procedures as any[],
-    customFields: workspace.customFields as any[],
-    anamnesisTemplate: workspace.anamnesisTemplate as any[],
-    categories: workspace.categories as any[],
+    procedures: readProcedures(workspace.procedures),
+    customFields: readCustomFields(workspace.customFields),
+    anamnesisTemplate: readAnamnesisTemplate(workspace.anamnesisTemplate),
+    categories: readCategories(workspace.categories),
     clinicName: user.clinicName,
     profession: user.profession,
   }
 }
 
 export async function updateWorkspace(data: {
-  procedures?: any[]
-  customFields?: any[]
-  anamnesisTemplate?: any[]
-  categories?: any[]
+  procedures?: Procedure[]
+  customFields?: CustomField[]
+  anamnesisTemplate?: AnamnesisQuestion[]
+  categories?: Category[]
   clinicName?: string
 }) {
   const user = await getAuthenticatedUser()
   const workspaceId = user.workspace?.id ?? user.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error("Workspace not configured")
 
-  const { clinicName, ...workspaceData } = data
+  const { clinicName, ...workspaceFields } = data
+
+  // Convert typed arrays to Prisma-compatible JSON values
+  const workspaceData: Record<string, Prisma.InputJsonValue> = {}
+  if (workspaceFields.procedures) workspaceData.procedures = toJsonValue(workspaceFields.procedures)
+  if (workspaceFields.customFields) workspaceData.customFields = toJsonValue(workspaceFields.customFields)
+  if (workspaceFields.anamnesisTemplate) workspaceData.anamnesisTemplate = toJsonValue(workspaceFields.anamnesisTemplate)
+  if (workspaceFields.categories) workspaceData.categories = toJsonValue(workspaceFields.categories)
 
   await db.$transaction(async (tx) => {
     if (Object.keys(workspaceData).length > 0) {
@@ -89,10 +98,10 @@ export async function generateWorkspace(
   const clerkUser = await clerkClient.users.getUser(userId)
 
   const jsonData = {
-    procedures: (config.procedures ?? []) as any,
-    customFields: (config.customFields ?? []) as any,
-    anamnesisTemplate: (config.anamnesisTemplate ?? []) as any,
-    categories: (config.categories ?? []) as any,
+    procedures: toJsonValue(config.procedures ?? []),
+    customFields: toJsonValue(config.customFields ?? []),
+    anamnesisTemplate: toJsonValue(config.anamnesisTemplate ?? []),
+    categories: toJsonValue(config.categories ?? []),
   }
 
   // Atomic: upsert User + Workspace + mark onboarding complete

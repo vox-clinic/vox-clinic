@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
+import { readProcedures, normalizeProcedureNames, toJsonValue } from "@/lib/json-helpers"
 import type { Procedure } from "@/types"
 
 export async function getFinancialData(period: "month" | "year", date: string) {
@@ -48,9 +49,7 @@ export async function getFinancialData(period: "month" | "year", date: string) {
   // Group by procedure
   const procedureMap = new Map<string, { count: number; total: number }>()
   for (const apt of appointments) {
-    const rawProcs = apt.procedures as unknown as (string | { name?: string })[]
-    if (!Array.isArray(rawProcs)) continue
-    const procNames = rawProcs.map((p) => (typeof p === "string" ? p : p?.name ?? String(p)))
+    const procNames = normalizeProcedureNames(apt.procedures)
     const pricePerProc = apt.price != null && procNames.length > 0 ? apt.price / procNames.length : 0
     for (const name of procNames) {
       const existing = procedureMap.get(name) ?? { count: 0, total: 0 }
@@ -85,10 +84,7 @@ export async function getFinancialData(period: "month" | "year", date: string) {
 
   // Recent transactions (last 10)
   const recentTransactions = appointments.slice(0, 10).map((a) => {
-    const rawProcs = a.procedures as unknown as (string | { name?: string })[]
-    const procNames = Array.isArray(rawProcs)
-      ? rawProcs.map((p) => (typeof p === "string" ? p : p?.name ?? String(p)))
-      : []
+    const procNames = normalizeProcedureNames(a.procedures)
     return {
       id: a.id,
       date: a.date,
@@ -158,14 +154,14 @@ export async function updateProcedurePrice(procedureId: string, price: number) {
       select: { procedures: true, updatedAt: true },
     })
 
-    const procedures = (workspace.procedures as unknown as Procedure[]) ?? []
+    const procedures = readProcedures(workspace.procedures)
     const updatedProcedures = procedures.map((p) =>
       p.id === procedureId ? { ...p, price } : p
     )
 
     const result = await db.workspace.updateMany({
       where: { id: workspaceId, updatedAt: workspace.updatedAt },
-      data: { procedures: updatedProcedures as unknown as any },
+      data: { procedures: toJsonValue(updatedProcedures) },
     })
 
     if (result.count > 0) return { success: true }
@@ -186,9 +182,9 @@ export async function getWorkspaceProcedures() {
   if (!workspaceId) throw new Error("Workspace not configured")
 
   if (user?.workspace) {
-    return (user.workspace.procedures as unknown as Procedure[]) ?? []
+    return readProcedures(user.workspace.procedures)
   }
 
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId } })
-  return (workspace?.procedures as unknown as Procedure[]) ?? []
+  return workspace ? readProcedures(workspace.procedures) : []
 }

@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
+import { checkAgendaLimit } from "@/lib/plan-enforcement"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -89,6 +90,11 @@ export async function createAgenda(data: { name: string; color?: string }) {
   const workspaceId = await getWorkspaceId()
 
   if (!data.name.trim()) throw new Error("Nome da agenda e obrigatorio")
+
+  // Plan enforcement: check agenda limit
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
+  const planCheck = await checkAgendaLimit(workspaceId, workspace?.plan ?? "free")
+  if (!planCheck.allowed) throw new Error(planCheck.reason!)
 
   const agenda = await db.agenda.create({
     data: {

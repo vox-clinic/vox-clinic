@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { encrypt, decrypt } from "@/lib/crypto"
+import { checkFeatureAccess } from "@/lib/plan-enforcement"
 import { createWhatsAppClient } from "@/lib/whatsapp/client"
 
 // ============================================
@@ -48,6 +49,11 @@ export async function saveWhatsAppConfig(data: {
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const workspaceId = await getWorkspaceId()
+
+    // Plan enforcement: check WhatsApp feature access
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
+    const planCheck = checkFeatureAccess(workspace?.plan ?? "free", "whatsapp")
+    if (!planCheck.allowed) return { success: false, error: planCheck.reason }
 
     const encryptedData = {
       ...data,

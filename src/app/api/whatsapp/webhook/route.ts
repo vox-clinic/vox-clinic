@@ -281,11 +281,11 @@ async function handleAppointmentConfirmation(
     const phone = message.from
 
     if (["sim", "confirmo", "ok", "confirmar"].includes(normalized)) {
-      await updateNextAppointmentByPhone(workspaceId, phone, "scheduled")
+      await updateRemindedAppointmentByPhone(workspaceId, phone, "scheduled")
       return
     }
     if (["nao", "não", "cancelar", "cancelo"].includes(normalized)) {
-      await updateNextAppointmentByPhone(workspaceId, phone, "cancelled")
+      await updateRemindedAppointmentByPhone(workspaceId, phone, "cancelled")
       return
     }
     return
@@ -309,38 +309,62 @@ async function handleAppointmentConfirmation(
   }
 }
 
-async function updateNextAppointmentByPhone(
+async function updateRemindedAppointmentByPhone(
   workspaceId: string,
   phone: string,
   newStatus: string
 ) {
-  // Find the patient by phone, then their next scheduled appointment
+  // Normalize phone: try exact match, then with/without country code variants
+  // WhatsApp sends phone as e.g. "5511999998888" (country + area + number)
+  const phoneVariants = [phone]
+  // If phone starts with "55", also try without country code
+  if (phone.startsWith("55") && phone.length > 10) {
+    phoneVariants.push(phone.slice(2))
+  }
+  // If phone does NOT start with "55", also try with country code
+  if (!phone.startsWith("55")) {
+    phoneVariants.push("55" + phone)
+  }
+
+  // Find patient by exact phone match within this workspace
   const patient = await db.patient.findFirst({
     where: {
       workspaceId,
       isActive: true,
-      phone: { contains: phone.slice(-8) }, // match last 8 digits
+      phone: { in: phoneVariants },
     },
   })
-  if (!patient) return
+  if (!patient) {
+    console.warn(
+      `[WhatsApp] No patient found for phone ${maskPhone(phone)} in workspace ${workspaceId} — skipping text reply confirmation`
+    )
+    return
+  }
 
-  const nextAppointment = await db.appointment.findFirst({
+  // Find their next scheduled appointment that has been reminded
+  const remindedAppointment = await db.appointment.findFirst({
     where: {
       patientId: patient.id,
       workspaceId,
       status: "scheduled",
       date: { gte: new Date() },
+      reminderSentAt: { not: null },
     },
     orderBy: { date: "asc" },
   })
-  if (!nextAppointment) return
+  if (!remindedAppointment) {
+    console.warn(
+      `[WhatsApp] No reminded appointment found for patient ${patient.id} — skipping text reply confirmation`
+    )
+    return
+  }
 
   await db.appointment.update({
-    where: { id: nextAppointment.id },
+    where: { id: remindedAppointment.id },
     data: { status: newStatus },
   })
   console.log(
-    `[WhatsApp] Appointment ${nextAppointment.id} ${newStatus} via text reply from ${maskPhone(phone)}`
+    `[WhatsApp] Appointment ${remindedAppointment.id} ${newStatus} via text reply from ${maskPhone(phone)}`
   )
 }
 

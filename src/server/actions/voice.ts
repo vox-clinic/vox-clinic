@@ -10,6 +10,7 @@ import { extractEntities } from "@/lib/claude"
 import { logAudit } from "@/lib/audit"
 import { recordConsent } from "@/lib/consent"
 import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
+import { readProcedures, readCustomFields, toJsonValue } from "@/lib/json-helpers"
 import type { ExtractedPatientData } from "@/types"
 
 export async function processVoiceRegistration(formData: FormData) {
@@ -48,7 +49,7 @@ export async function processVoiceRegistration(formData: FormData) {
     const { buffer: processedBuffer } = await preprocessAudio(buffer, audioFile.name || "recording.webm")
 
     // 3. Transcribe the processed (smaller) audio via Whisper
-    const workspaceProcedureNames = (workspace.procedures as any[]).map((p: any) => p.name)
+    const workspaceProcedureNames = readProcedures(workspace.procedures).map((p) => p.name)
     const result = await transcribeAudio(
       processedBuffer,
       "processed.mp3",
@@ -58,8 +59,8 @@ export async function processVoiceRegistration(formData: FormData) {
 
     // 4. Extract entities via Claude
     const workspaceConfig = {
-      customFields: workspace.customFields as any[],
-      procedures: workspace.procedures as any[],
+      customFields: readCustomFields(workspace.customFields),
+      procedures: readProcedures(workspace.procedures),
     }
     const extractedData: ExtractedPatientData = await extractEntities(transcript, workspaceConfig)
 
@@ -70,7 +71,7 @@ export async function processVoiceRegistration(formData: FormData) {
           workspaceId,
           audioUrl: audioPath!,
           transcript,
-          aiExtractedData: extractedData as any,
+          aiExtractedData: toJsonValue(extractedData),
           status: "processed",
           fileSize: audioFile.size,
         },

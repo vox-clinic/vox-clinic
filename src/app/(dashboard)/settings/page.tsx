@@ -63,8 +63,7 @@ import {
 } from "@/server/actions/booking-config"
 import { CalendarDays, Globe, Copy, RefreshCw, Link2 } from "lucide-react"
 
-type Procedure = { id: string; name: string; category: string; duration?: number }
-type CustomField = { id: string; name: string; type: string; required: boolean }
+import type { Procedure, CustomField } from "@/types"
 
 const professionLabels: Record<string, string> = {
   dentista: "Dentista",

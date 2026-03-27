@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
+import { checkPatientLimit } from "@/lib/plan-enforcement"
 import { getSignedAudioUrl } from "@/lib/storage"
 import { logAudit } from "@/lib/audit"
 import { unstable_cache, revalidateTag } from "next/cache"
@@ -269,6 +270,13 @@ export async function updatePatient(
 
 export async function createPatient(formData: FormData) {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+
+  // Plan enforcement: check patient limit
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
+  if (workspace) {
+    const planCheck = await checkPatientLimit(workspaceId, workspace.plan)
+    if (!planCheck.allowed) throw new Error(planCheck.reason!)
+  }
 
   const name = formData.get("name") as string
   const document = formData.get("document") as string | null

@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
+import { checkTeamMemberLimit } from "@/lib/plan-enforcement"
 import { sendEmail } from "@/lib/email"
 
 async function getAuthContext() {
@@ -87,6 +88,11 @@ export async function inviteTeamMember(email: string, role: string = "member") {
 
   const validRoles = ["admin", "member"]
   if (!validRoles.includes(role)) throw new Error("Role invalido")
+
+  // Plan enforcement: check team member limit
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
+  const planCheck = await checkTeamMemberLimit(workspaceId, workspace?.plan ?? "free")
+  if (!planCheck.allowed) throw new Error(planCheck.reason!)
 
   // Check if already a member
   const existingUser = await db.user.findUnique({ where: { email } })
