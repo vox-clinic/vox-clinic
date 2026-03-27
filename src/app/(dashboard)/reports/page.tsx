@@ -58,12 +58,18 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState<"3m" | "6m" | "12m">("6m")
   const [data, setData] = useState<ReportsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       setData(await getReportsData(period))
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ""
+      setError(msg.includes("plano") || msg.includes("Limite") || msg.includes("upgrade")
+        ? "upgrade"
+        : msg || "Erro ao carregar relatorios")
       setData(null)
     } finally {
       setLoading(false)
@@ -87,7 +93,24 @@ export default function ReportsPage() {
     )
   }
 
-  if (!data) return <p className="text-muted-foreground text-center py-12">Erro ao carregar relatorios</p>
+  if (!data) return (
+    <div className="text-center py-16 space-y-4">
+      {error === "upgrade" ? (
+        <>
+          <BarChart3 className="size-12 text-muted-foreground/40 mx-auto" />
+          <div>
+            <h2 className="text-lg font-semibold">Relatorios indisponiveis no plano atual</h2>
+            <p className="text-sm text-muted-foreground mt-1">Faca upgrade para o plano Pro para acessar relatorios e analytics.</p>
+          </div>
+          <a href="/settings/billing" className="inline-flex items-center gap-2 rounded-xl bg-vox-primary px-4 py-2 text-sm font-medium text-white hover:bg-vox-primary/90 transition-colors">
+            Fazer Upgrade
+          </a>
+        </>
+      ) : (
+        <p className="text-muted-foreground">{error || "Erro ao carregar relatorios"}</p>
+      )}
+    </div>
+  )
 
   const statusPieData = Object.entries(data.statusCounts)
     .filter(([, v]) => v > 0)
