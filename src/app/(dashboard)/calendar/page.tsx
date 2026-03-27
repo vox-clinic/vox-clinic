@@ -32,8 +32,9 @@ import {
   deleteAppointment,
   rescheduleAppointment,
 } from "@/server/actions/appointment"
-import { createBlockedSlot, deleteBlockedSlot, type BlockedSlotItem } from "@/server/actions/blocked-slot"
-import { getCalendarData } from "@/server/actions/calendar"
+import { getAppointmentsByDateRange } from "@/server/actions/appointment"
+import { createBlockedSlot, deleteBlockedSlot, getBlockedSlots, type BlockedSlotItem } from "@/server/actions/blocked-slot"
+import { getAgendas } from "@/server/actions/agenda"
 import type { AgendaItem, AppointmentItem, ViewMode } from "./types"
 import { MONTH_NAMES, MONTH_SHORT, DAY_FULL, getMonday, getWeekDays } from "./helpers"
 import { WeekView } from "./components/week-view"
@@ -99,6 +100,15 @@ export default function CalendarPage() {
     return [new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59, 59, 999)]
   }, [view, currentDate, year, month])
 
+  const loadAgendas = useCallback(async () => {
+    try {
+      const data = await getAgendas()
+      setAgendas(data)
+    } catch {
+      setAgendas([])
+    }
+  }, [])
+
   const loadData = useCallback(async (skipCache = false) => {
     const [start, end] = getDateRange()
     const filterIds = selectedAgendaIds.length > 0 ? selectedAgendaIds : undefined
@@ -117,15 +127,17 @@ export default function CalendarPage() {
 
     setLoading(true)
     try {
-      const data = await getCalendarData(start.toISOString(), end.toISOString(), filterIds)
-      setAppointments(data.appointments)
-      setBlockedSlots(data.blockedSlots)
-      setAgendas(data.agendas)
+      const [apptData, slotData] = await Promise.all([
+        getAppointmentsByDateRange(start.toISOString(), end.toISOString(), filterIds),
+        getBlockedSlots(start.toISOString(), end.toISOString(), filterIds),
+      ])
+      setAppointments(apptData)
+      setBlockedSlots(slotData)
 
       // Update cache
       dataCache.set(cacheKey, {
-        appointments: data.appointments,
-        blockedSlots: data.blockedSlots,
+        appointments: apptData,
+        blockedSlots: slotData,
         timestamp: Date.now(),
       })
     } catch {
@@ -137,13 +149,17 @@ export default function CalendarPage() {
   }, [getDateRange, selectedAgendaIds])
 
   useEffect(() => {
+    loadAgendas()
+  }, [loadAgendas])
+
+  useEffect(() => {
     loadData()
   }, [loadData])
 
   // Invalidate cache and reload
   function reloadData() {
-    // Clear all cache entries since a mutation happened
     dataCache.clear()
+    loadAgendas()
     loadData(true)
   }
 
