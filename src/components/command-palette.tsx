@@ -15,6 +15,8 @@ import {
   FileText,
   Loader2,
   Command,
+  CreditCard,
+  BarChart3,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { searchPatients } from "@/server/actions/patient"
@@ -31,7 +33,9 @@ const pages = [
   { id: "patients", label: "Pacientes", href: "/patients", icon: Users, keywords: "lista pacientes" },
   { id: "calendar", label: "Agenda", href: "/calendar", icon: CalendarDays, keywords: "calendario consultas agendamento" },
   { id: "financial", label: "Financeiro", href: "/financial", icon: DollarSign, keywords: "receita faturamento valor" },
+  { id: "reports", label: "Relatorios", href: "/reports", icon: BarChart3, keywords: "relatorios analytics graficos" },
   { id: "settings", label: "Configuracoes", href: "/settings", icon: Settings, keywords: "config preferencias workspace" },
+  { id: "billing", label: "Plano e Assinatura", href: "/settings/billing", icon: CreditCard, keywords: "plano billing assinatura upgrade stripe pagamento" },
 ]
 
 const actions = [

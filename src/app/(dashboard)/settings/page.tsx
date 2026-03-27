@@ -61,7 +61,7 @@ import {
   updateBookingConfig,
   regenerateBookingToken,
 } from "@/server/actions/booking-config"
-import { CalendarDays, Globe, Copy, RefreshCw, Link2, Receipt } from "lucide-react"
+import { CalendarDays, Globe, Copy, RefreshCw, Link2, Receipt, CreditCard } from "lucide-react"
 import { FiscalTab } from "./fiscal-tab"
 
 import type { Procedure, CustomField } from "@/types"
@@ -353,6 +353,10 @@ export default function SettingsPage() {
           <TabsTrigger value="fiscal" className="gap-2 px-4 py-2.5 text-[13px]">
             <Receipt className="size-4" />
             Fiscal
+          </TabsTrigger>
+          <TabsTrigger value="plano" className="gap-2 px-4 py-2.5 text-[13px]">
+            <CreditCard className="size-4" />
+            Plano
           </TabsTrigger>
         </TabsList>
 
@@ -746,6 +750,26 @@ export default function SettingsPage() {
         {/* ─── Tab: Fiscal (NFS-e) ─── */}
         <TabsContent value="fiscal" className="animate-fade-in space-y-4 pt-4">
           <FiscalTab />
+        </TabsContent>
+
+        {/* ─── Tab: Plano (Billing) ─── */}
+        <TabsContent value="plano" className="animate-fade-in space-y-4 pt-4">
+          <Card>
+            <CardContent className="pt-6 text-center space-y-4">
+              <CreditCard className="size-10 text-vox-primary mx-auto" />
+              <div>
+                <h3 className="text-base font-semibold">Plano e Assinatura</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gerencie seu plano, faca upgrade e veja seu historico de pagamentos.
+                </p>
+              </div>
+              <Link href="/settings/billing">
+                <Button className="bg-vox-primary hover:bg-vox-primary/90 text-white rounded-xl">
+                  Gerenciar Plano
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
