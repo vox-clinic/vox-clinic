@@ -7,6 +7,13 @@ const { mockDb, mockHeadersMap, mockVerifyState } = vi.hoisted(() => {
       upsert: vi.fn(),
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    workspace: {
+      update: vi.fn(),
+    },
+    patient: {
+      updateMany: vi.fn(),
     },
   }
   const mockHeadersMap = new Map<string, string>()
@@ -140,18 +147,32 @@ describe("POST /api/webhooks/clerk", () => {
     })
   })
 
-  it("should delete user on user.deleted event", async () => {
+  it("should soft-delete workspace on user.deleted event", async () => {
     setHeaders("msg_789", "1234567890", "v1,valid")
     mockVerifyState.result = {
       type: "user.deleted",
       data: { id: "user_abc123" },
     }
-    mockDb.user.deleteMany.mockResolvedValueOnce({ count: 1 })
+    mockDb.user.findUnique.mockResolvedValueOnce({
+      id: "db_user_1",
+      workspace: { id: "ws_1" },
+    })
+    mockDb.workspace.update.mockResolvedValueOnce({})
+    mockDb.patient.updateMany.mockResolvedValueOnce({ count: 5 })
 
     const response = await POST(makeRequest({}))
     expect(response.status).toBe(200)
-    expect(mockDb.user.deleteMany).toHaveBeenCalledWith({
+    expect(mockDb.user.findUnique).toHaveBeenCalledWith({
       where: { clerkId: "user_abc123" },
+      include: { workspace: true },
+    })
+    expect(mockDb.workspace.update).toHaveBeenCalledWith({
+      where: { id: "ws_1" },
+      data: { planStatus: "canceled" },
+    })
+    expect(mockDb.patient.updateMany).toHaveBeenCalledWith({
+      where: { workspaceId: "ws_1" },
+      data: { isActive: false },
     })
   })
 
@@ -164,7 +185,21 @@ describe("POST /api/webhooks/clerk", () => {
 
     const response = await POST(makeRequest({}))
     expect(response.status).toBe(200)
-    expect(mockDb.user.deleteMany).not.toHaveBeenCalled()
+    expect(mockDb.user.findUnique).not.toHaveBeenCalled()
+  })
+
+  it("should handle user.deleted when user has no workspace", async () => {
+    setHeaders("msg_789", "1234567890", "v1,valid")
+    mockVerifyState.result = {
+      type: "user.deleted",
+      data: { id: "user_no_ws" },
+    }
+    mockDb.user.findUnique.mockResolvedValueOnce({ id: "db_user_2", workspace: null })
+
+    const response = await POST(makeRequest({}))
+    expect(response.status).toBe(200)
+    expect(mockDb.workspace.update).not.toHaveBeenCalled()
+    expect(mockDb.patient.updateMany).not.toHaveBeenCalled()
   })
 
   it("should return 200 for unknown event types (no-op)", async () => {
