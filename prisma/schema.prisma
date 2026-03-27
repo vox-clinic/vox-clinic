@@ -424,3 +424,25 @@ model BookingConfig {
 
   @@index([token])
 }
+
+model MigrationSession {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  userId        String    // clerkId
+  source        String    // "csv" | "excel" | "iclinic" | "feegow" | "ai_pdf" | "db_dump"
+  status        String    @default("parsing")
+  config        Json      @default("{}")
+  stats         Json      @default("{}")
+  errors        Json      @default("[]")
+  preview       Json?
+  resolutions   Json?
+  fileName      String?
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([userId])
+}
