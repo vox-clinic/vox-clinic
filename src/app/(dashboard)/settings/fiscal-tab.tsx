@@ -230,7 +230,7 @@ export function FiscalTab() {
           </div>
           <div className="space-y-2">
             <Label className="text-xs">Regime Tributario</Label>
-            <Select value={form.regimeTributario} onValueChange={(v) => updateField("regimeTributario", v ?? "simples_nacional")}>
+            <Select value={form.regimeTributario || undefined} onValueChange={(v) => { if (v) updateField("regimeTributario", v) }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione o regime" />
               </SelectTrigger>
@@ -308,7 +308,7 @@ export function FiscalTab() {
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Estado</Label>
-              <Select value={form.clinicState} onValueChange={(v) => updateField("clinicState", v ?? "")}>
+              <Select value={form.clinicState || undefined} onValueChange={(v) => { if (v) updateField("clinicState", v) }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="UF" />
                 </SelectTrigger>
@@ -342,7 +342,7 @@ export function FiscalTab() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label className="text-xs">Provedor</Label>
-            <Select value={form.provider} onValueChange={(v) => updateField("provider", v ?? "nuvem_fiscal")}>
+            <Select value={form.provider || undefined} onValueChange={(v) => { if (v) updateField("provider", v) }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione o provedor" />
               </SelectTrigger>
