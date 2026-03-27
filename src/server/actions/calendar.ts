@@ -2,7 +2,17 @@
 
 import { db } from "@/lib/db"
 import { getWorkspaceId } from "./_helpers"
-import type { BlockedSlotItem } from "./blocked-slot"
+
+interface BlockedSlotItem {
+  id: string
+  title: string
+  startDate: string
+  endDate: string
+  allDay: boolean
+  recurring: string | null
+  isExpanded?: boolean
+  agendaId: string
+}
 
 export async function getCalendarData(
   startDate: string,
