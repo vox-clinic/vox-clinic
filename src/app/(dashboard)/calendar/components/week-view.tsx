@@ -71,26 +71,30 @@ function WeekViewInner({
     const { active, over } = event
     if (!over) return
 
-    const droppableId = over.id as string
-    const lastDash = droppableId.lastIndexOf("-")
-    const dateIso = droppableId.substring(0, lastDash)
-    const hour = parseInt(droppableId.substring(lastDash + 1), 10)
+    try {
+      const droppableId = over.id as string
+      const lastDash = droppableId.lastIndexOf("-")
+      const dateIso = droppableId.substring(0, lastDash)
+      const hour = parseInt(droppableId.substring(lastDash + 1), 10)
 
-    const appointment = appointments.find((a) => a.id === active.id)
-    if (!appointment) return
+      const appointment = appointments.find((a) => a.id === active.id)
+      if (!appointment) return
 
-    const oldDate = new Date(appointment.date)
-    const newDate = new Date(dateIso)
-    newDate.setHours(hour, oldDate.getMinutes(), 0, 0)
-    if (oldDate.getTime() === newDate.getTime()) return
+      const oldDate = new Date(appointment.date)
+      const newDate = new Date(dateIso)
+      newDate.setHours(hour, oldDate.getMinutes(), 0, 0)
+      if (oldDate.getTime() === newDate.getTime()) return
 
-    await onReschedule(appointment.id, newDate.toISOString())
+      await onReschedule(appointment.id, newDate.toISOString())
+    } catch {
+      // Error handled by parent via onReschedule
+    }
   }
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <Card className="rounded-2xl border border-border/40 overflow-hidden shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]">
-        <div ref={weekGridRef} className="overflow-y-auto overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 max-h-[calc(100vh-220px)]" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(128,128,128,0.2) transparent" }}>
+        <div ref={weekGridRef} className="overflow-y-auto overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 max-h-[calc(100vh-220px)]" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(128,128,128,0.2) transparent", scrollbarGutter: "stable" }}>
           {/* Day headers */}
           <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 min-w-[700px] bg-muted/20 sticky top-0 z-20 backdrop-blur-sm">
             <div className="py-3" />
