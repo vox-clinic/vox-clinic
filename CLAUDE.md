@@ -276,6 +276,27 @@ Workspace stores profession-specific config as JSON: `customFields`, `procedures
 - Audio playback: signed URL player in patient recordings tab.
 - Error states shown to users (no silent catches). Toast/banner pattern.
 
+## GitHub Project & Issue Tracking
+
+- **Repo:** [vox-clinic/vox-clinic](https://github.com/vox-clinic/vox-clinic) (public, org `vox-clinic`)
+- **Project board:** [VoxClinic Roadmap](https://github.com/orgs/vox-clinic/projects/1) — Kanban with columns: Backlog → Ready → In progress → In review → Done
+- **Project fields:** Status, Priority (P0/P1/P2), Size (XS/S/M/L/XL), Start date, Target date
+
+### Milestones
+- **MVP** — 7 essential issues: agendamento online, multiplas agendas, contas a receber, fluxo de caixa, NFS-e, billing/Stripe, teleconsulta
+
+### Labels
+- **Category labels:** `agendamento`, `comunicacao`, `financeiro`, `prontuario-ia`, `prescricoes-documentos`, `relatorios`, `seguranca-lgpd`, `admin`, `infraestrutura`, `telemedicina`, `marketing`, `integracoes`, `portal-paciente`, `estoque`
+- **Priority labels:** `essential` (P0), `important` (P1), `differential` (P2)
+
+### Issue Naming Convention
+Issues follow the roadmap ID prefix: `[a07] Agendamento online (paciente)`, `[f04] Contas a receber`, etc. The ID maps to the roadmap in `src/app/(admin)/admin/roadmap/page.tsx`.
+
+### Workflow
+- When implementing a roadmap item, move its issue to "In progress" on the board and create a branch from it
+- When opening a PR, reference the issue (`Closes #N`) so it auto-closes on merge
+- Update the roadmap page status from `planned` → `in_progress` → `done` alongside the code change
+
 ## Environment Variables
 
 Required (validated by `src/lib/env.ts`):
