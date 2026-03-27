@@ -2,11 +2,13 @@
 
 import { useState, memo } from "react"
 import Link from "next/link"
-import { Clock, Check, XCircle, AlertTriangle, X, Video } from "lucide-react"
+import { Clock, Check, XCircle, AlertTriangle, X, Video, Copy, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { toast } from "sonner"
 import type { AppointmentItem } from "../types"
 import { formatTime, STATUS_CONFIG, STATUS_DOT } from "../helpers"
+import { createTeleconsultaRoom } from "@/server/actions/teleconsulta"
 
 function StatusBadge({ status }: { status: string }) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.scheduled
@@ -26,6 +28,22 @@ function AppointmentCardInner({
   compact?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [copyingLink, setCopyingLink] = useState(false)
+
+  async function handleCopyPatientLink() {
+    setCopyingLink(true)
+    try {
+      const result = await createTeleconsultaRoom(appointment.id)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+      const link = `${baseUrl}/sala/${result.videoToken}`
+      await navigator.clipboard.writeText(link)
+      toast.success("Link copiado! Envie ao paciente.")
+    } catch {
+      toast.error("Erro ao gerar link da teleconsulta")
+    } finally {
+      setCopyingLink(false)
+    }
+  }
 
   if (compact) {
     return (
@@ -83,6 +101,19 @@ function AppointmentCardInner({
         {expanded && (
           <div className="mt-3 pt-3 border-t border-border/30 space-y-3" onClick={(e) => e.stopPropagation()}>
             {appointment.notes && <p className="text-xs text-muted-foreground">{appointment.notes}</p>}
+            {appointment.type === "teleconsulta" && appointment.status === "scheduled" && (
+              <div className="flex flex-wrap gap-2 pb-2 border-b border-border/30">
+                <Button size="sm" onClick={handleCopyPatientLink} disabled={copyingLink}
+                  className="rounded-xl text-[11px] h-7 gap-1 bg-vox-primary hover:bg-vox-primary/90 text-white">
+                  <Copy className="size-3" />{copyingLink ? "Gerando..." : "Copiar Link do Paciente"}
+                </Button>
+                <Link href={`/teleconsulta/${appointment.id}`} onClick={(e) => e.stopPropagation()}>
+                  <Button size="sm" variant="outline" className="rounded-xl text-[11px] h-7 gap-1 text-vox-primary border-vox-primary/30 hover:bg-vox-primary/5">
+                    <ExternalLink className="size-3" />Iniciar Teleconsulta
+                  </Button>
+                </Link>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               {appointment.status === "scheduled" && (
                 <>
