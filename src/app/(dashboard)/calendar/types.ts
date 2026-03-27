@@ -14,6 +14,7 @@ export interface AppointmentItem {
   procedures: string[]
   notes: string | null
   status: string
+  type?: string | null
   agendaId: string
   agenda?: { id: string; name: string; color: string }
 }

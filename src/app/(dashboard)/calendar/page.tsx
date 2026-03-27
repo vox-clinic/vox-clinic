@@ -202,6 +202,7 @@ export default function CalendarPage() {
   // ── Handlers ──
   async function handleSchedule(data: {
     patientId: string; date: string; agendaId: string; notes?: string
+    type?: "presencial" | "teleconsulta"
     recurringEnabled: boolean; recurrence: "weekly" | "biweekly"; occurrences: number
   }, forceSchedule = false) {
     try {
@@ -221,9 +222,10 @@ export default function CalendarPage() {
           date: data.date,
           agendaId: data.agendaId,
           notes: data.notes,
+          type: data.type,
           forceSchedule,
         })
-        toast.success("Consulta agendada")
+        toast.success(data.type === "teleconsulta" ? "Teleconsulta agendada" : "Consulta agendada")
       }
       setShowScheduleForm(false)
       reloadData()

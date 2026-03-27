@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, memo } from "react"
-import { X, Search, Loader2, Repeat } from "lucide-react"
+import { X, Search, Loader2, Repeat, Video, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ function ScheduleFormInner({
     agendaId: string
     notes?: string
     procedures?: string[]
+    type?: "presencial" | "teleconsulta"
     recurringEnabled: boolean
     recurrence: "weekly" | "biweekly"
     occurrences: number
@@ -40,6 +41,7 @@ function ScheduleFormInner({
   const [scheduleTime, setScheduleTime] = useState("")
   const [scheduleNotes, setScheduleNotes] = useState("")
   const [scheduleAgendaId, setScheduleAgendaId] = useState(defaultAgendaId)
+  const [appointmentType, setAppointmentType] = useState<"presencial" | "teleconsulta">("presencial")
   const [recurringEnabled, setRecurringEnabled] = useState(false)
   const [recurrence, setRecurrence] = useState<"weekly" | "biweekly">("weekly")
   const [occurrences, setOccurrences] = useState(4)
@@ -63,6 +65,7 @@ function ScheduleFormInner({
       date: new Date(dateTime).toISOString(),
       agendaId: scheduleAgendaId,
       notes: scheduleNotes || undefined,
+      type: appointmentType,
       recurringEnabled,
       recurrence,
       occurrences,
@@ -123,6 +126,37 @@ function ScheduleFormInner({
             </select>
           </div>
         )}
+        {/* Tipo: Presencial / Teleconsulta */}
+        <div className="space-y-2 sm:col-span-2">
+          <Label className="text-xs">Tipo de Consulta</Label>
+          <div className="flex rounded-xl bg-muted/50 p-0.5 w-fit">
+            <button
+              type="button"
+              onClick={() => setAppointmentType("presencial")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                appointmentType === "presencial"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Building2 className="size-3.5" />
+              Presencial
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppointmentType("teleconsulta")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                appointmentType === "teleconsulta"
+                  ? "bg-vox-primary/10 shadow-sm text-vox-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Video className="size-3.5" />
+              Teleconsulta
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label className="text-xs">Data</Label>
           <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="rounded-xl text-sm" />

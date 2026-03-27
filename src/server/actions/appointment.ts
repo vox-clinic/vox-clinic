@@ -103,6 +103,7 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
     procedures: (Array.isArray(a.procedures) ? a.procedures : []).map((p: unknown) => typeof p === "string" ? p : (p as any)?.name ?? String(p)),
     notes: a.notes,
     status: a.status,
+    type: a.type,
     agendaId: a.agendaId,
     agenda: a.agenda,
   }))
@@ -216,6 +217,7 @@ export async function scheduleAppointment(data: {
   notes?: string
   procedures?: string[]
   forceSchedule?: boolean
+  type?: "presencial" | "teleconsulta"
 }) {
   const { userId } = await auth()
   if (!userId) throw new Error("Unauthorized")
@@ -284,6 +286,7 @@ export async function scheduleAppointment(data: {
         notes: data.notes || null,
         procedures: data.procedures || [],
         status: "scheduled",
+        type: data.type || null,
       },
       include: {
         patient: {

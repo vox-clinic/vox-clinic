@@ -2,7 +2,7 @@
 
 import { useState, memo } from "react"
 import Link from "next/link"
-import { Clock, Check, XCircle, AlertTriangle, X } from "lucide-react"
+import { Clock, Check, XCircle, AlertTriangle, X, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { AppointmentItem } from "../types"
@@ -53,10 +53,21 @@ function AppointmentCardInner({
               <span className="text-xs font-medium">{formatTime(appointment.date)}</span>
             </div>
             <div className="min-w-0">
-              <Link href={`/patients/${appointment.patient.id}`} onClick={(e) => e.stopPropagation()}
-                className="text-sm font-medium hover:text-vox-primary transition-colors truncate block">
-                {appointment.patient.name}
-              </Link>
+              <div className="flex items-center gap-1.5">
+                <Link href={`/patients/${appointment.patient.id}`} onClick={(e) => e.stopPropagation()}
+                  className="text-sm font-medium hover:text-vox-primary transition-colors truncate">
+                  {appointment.patient.name}
+                </Link>
+                {appointment.type === "teleconsulta" && (
+                  <Link href={`/teleconsulta/${appointment.id}`} onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-0.5 rounded-full bg-vox-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-vox-primary hover:bg-vox-primary/20 transition-colors shrink-0"
+                    title="Iniciar teleconsulta"
+                  >
+                    <Video className="size-3" />
+                    Video
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
           <StatusBadge status={appointment.status} />
