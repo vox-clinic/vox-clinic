@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { getStripe, PLAN_PRICE_IDS } from "@/lib/stripe"
+import { logger } from "@/lib/logger"
 
 async function getWorkspaceWithUser() {
   const { userId } = await auth()
@@ -112,8 +113,8 @@ export async function getBillingInfo() {
       if (firstItem?.current_period_end) {
         result.currentPeriodEnd = new Date(firstItem.current_period_end * 1000)
       }
-    } catch {
-      // Subscription may have been deleted in Stripe
+    } catch (err) {
+      logger.error("Failed to retrieve Stripe subscription", { action: "getBillingInfo", entityType: "Workspace", entityId: workspace.id }, err)
     }
   }
 

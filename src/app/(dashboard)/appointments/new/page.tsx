@@ -44,7 +44,7 @@ export default function NewAppointmentPage() {
   useEffect(() => {
     getRecentPatients()
       .then(setPatients)
-      .catch(() => {})
+      .catch((err: unknown) => { console.error("[NewAppointment] recent patients load failed", err) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -54,7 +54,7 @@ export default function NewAppointmentPage() {
       setLoading(true)
       getRecentPatients()
         .then(setPatients)
-        .catch(() => {})
+        .catch((err: unknown) => { console.error("[NewAppointment] patient search failed", err) })
         .finally(() => setLoading(false))
       return
     }
@@ -64,8 +64,8 @@ export default function NewAppointmentPage() {
       try {
         const results = await searchPatients(query)
         setPatients(results)
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("[NewAppointment] search failed", err)
       } finally {
         setLoading(false)
       }

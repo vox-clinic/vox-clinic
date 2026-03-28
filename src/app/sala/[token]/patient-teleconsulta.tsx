@@ -90,8 +90,8 @@ export function PatientTeleconsulta({ info, videoToken }: PatientTeleconsultaPro
             setJoining(true)
             try {
               await recordTeleconsultaConsent(videoToken)
-            } catch {
-              // Best-effort: don't block joining if consent persistence fails
+            } catch (err) {
+              console.error("[Teleconsulta] consent save failed", err)
             }
             setJoined(true)
           }}

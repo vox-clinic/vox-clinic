@@ -60,8 +60,8 @@ export default function FinancialPage() {
         prices[p.id] = p.price != null ? String(p.price) : ""
       }
       setProcedurePrices(prices)
-    } catch {
-      // silently handle
+    } catch (err) {
+      console.error("[FinancialPage] loadData failed", err)
     } finally {
       setLoading(false)
     }

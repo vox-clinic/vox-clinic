@@ -11,6 +11,7 @@ import { logAudit } from "@/lib/audit"
 import { recordConsent } from "@/lib/consent"
 import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
 import { readProcedures, toJsonValue, readMedicalHistory } from "@/lib/json-helpers"
+import { logger } from "@/lib/logger"
 import type { AppointmentSummary } from "@/types"
 
 export async function processConsultation(formData: FormData, patientId: string) {
@@ -119,8 +120,8 @@ export async function processConsultation(formData: FormData, patientId: string)
             fileSize: audioFile.size,
           },
         })
-      } catch {
-        // If even saving the error recording fails, don't lose the original error
+      } catch (saveErr) {
+        logger.error("Failed to save error recording", { action: "processConsultation", workspaceId, entityType: "Patient", entityId: patientId }, saveErr)
       }
     }
     throw err

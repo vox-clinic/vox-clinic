@@ -11,12 +11,16 @@ function resolveFfmpegPath(): string {
   try {
     const systemPath = execSync('which ffmpeg', { encoding: 'utf-8' }).trim()
     if (systemPath) return systemPath
-  } catch {}
+  } catch {
+    // System ffmpeg not found, try ffmpeg-static
+  }
   // Fallback to ffmpeg-static
   try {
     const ffmpegStatic = require('ffmpeg-static')
     if (ffmpegStatic) return ffmpegStatic
-  } catch {}
+  } catch {
+    // ffmpeg-static not available, use last resort path
+  }
   // Last resort: node_modules path
   return path.join(process.cwd(), 'node_modules', 'ffmpeg-static', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
 }
@@ -53,7 +57,9 @@ export async function preprocessAudio(
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true
-        try { command.kill('SIGKILL') } catch {}
+        try { command.kill('SIGKILL') } catch (killErr) {
+          console.error('[audio-preprocessing] Failed to kill ffmpeg process', killErr)
+        }
         reject(new Error('FFmpeg timeout: processamento de audio excedeu 30s'))
       }
     }, FFMPEG_TIMEOUT_MS)

@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
 import { checkTeamMemberLimit } from "@/lib/plan-enforcement"
 import { sendEmail } from "@/lib/email"
+import { logger } from "@/lib/logger"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -138,8 +139,8 @@ export async function inviteTeamMember(email: string, role: string = "member") {
         </div>
       `,
     })
-  } catch {
-    // Email send failure is non-critical
+  } catch (err) {
+    logger.error("Failed to send team invite email", { action: "inviteTeamMember", entityType: "WorkspaceInvite", workspaceId }, err)
   }
 
   await logAudit({

@@ -75,8 +75,8 @@ export function CreateChargeDialog({ open, onOpenChange, onSuccess, defaultPatie
         const results = await searchPatients(patientQuery)
         setPatientResults(results.map((r) => ({ id: r.id, name: r.name })))
         setShowResults(true)
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error("[CreateCharge] patient search failed", err)
       } finally {
         setSearching(false)
       }

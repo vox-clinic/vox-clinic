@@ -51,8 +51,8 @@ export function NotificationBell() {
       ])
       setNotifications(items)
       setUnreadCount(count)
-    } catch {
-      // silently handle
+    } catch (err) {
+      console.error("[NotificationBell] fetch failed", err)
     }
   }, [])
 

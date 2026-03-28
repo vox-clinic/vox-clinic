@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { createVideoRoom, createMeetingToken, deleteVideoRoom } from "@/lib/daily"
 import crypto from "crypto"
+import { logger } from "@/lib/logger"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -60,7 +61,9 @@ export async function createTeleconsultaRoom(appointmentId: string) {
 
   if (updated.count === 0) {
     // Another call already created the room, clean up the one we just made
-    await deleteVideoRoom(room.name).catch(() => {})
+    await deleteVideoRoom(room.name).catch((err) => {
+      logger.error("Failed to cleanup duplicate video room", { action: "createTeleconsultaRoom", entityType: "Appointment", entityId: appointmentId }, err)
+    })
     // Re-fetch the existing room info
     const existing = await db.appointment.findUnique({ where: { id: appointmentId } })
     if (!existing?.videoRoomName || !existing?.videoRoomUrl || !existing?.videoToken) {
@@ -177,8 +180,8 @@ export async function endTeleconsulta(appointmentId: string) {
   if (appointment.videoRoomName) {
     try {
       await deleteVideoRoom(appointment.videoRoomName)
-    } catch {
-      // Room cleanup is best-effort, don't fail the action
+    } catch (err) {
+      logger.error("Failed to delete video room on teleconsulta end", { action: "endTeleconsulta", entityType: "Appointment", entityId: appointmentId }, err)
     }
   }
 
@@ -206,8 +209,8 @@ export async function getTeleconsultaInfo(appointmentId: string) {
         expiresAt,
       })
       ownerToken = token.token
-    } catch {
-      // Room may have expired
+    } catch (err) {
+      logger.error("Failed to create meeting token, room may have expired", { action: "getTeleconsultaInfo", entityType: "Appointment", entityId: appointmentId }, err)
     }
   }
 

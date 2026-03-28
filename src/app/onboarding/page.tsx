@@ -78,8 +78,8 @@ export default function OnboardingPage() {
     try {
       const config = await getWorkspacePreview(selectedProfession, answers)
       setPreview(config)
-    } catch {
-      // keep existing preview on error
+    } catch (err) {
+      console.error("[Onboarding] preview generation failed", err)
     } finally {
       setIsGenerating(false)
     }

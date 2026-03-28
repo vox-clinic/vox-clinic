@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { logger } from "@/lib/logger"
 
 export async function logAudit(params: {
   workspaceId: string
@@ -8,5 +9,15 @@ export async function logAudit(params: {
   entityId: string
   details?: any
 }) {
-  await db.auditLog.create({ data: params })
+  try {
+    await db.auditLog.create({ data: params })
+  } catch (err) {
+    logger.error("Audit log write failed", {
+      action: params.action,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      workspaceId: params.workspaceId,
+    }, err)
+    // Don't re-throw — audit is non-critical
+  }
 }

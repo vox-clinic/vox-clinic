@@ -190,8 +190,8 @@ function WeekViewInner({
       if (oldDate.getTime() === newDate.getTime()) return
 
       await onReschedule(appointment.id, newDate.toISOString())
-    } catch {
-      // Error handled by parent
+    } catch (err) {
+      console.error("[WeekView] drag reschedule failed", err)
     }
   }
 

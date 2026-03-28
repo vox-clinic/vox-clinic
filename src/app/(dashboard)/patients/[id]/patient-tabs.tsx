@@ -706,8 +706,8 @@ function HistoricoTab({
                         let parsed: any = null
                         try {
                           parsed = JSON.parse(apt.aiSummary)
-                        } catch {
-                          // Not JSON — legacy plain text summary
+                        } catch (err) {
+                          console.error("[PatientTabs] JSON parse of aiSummary failed", err)
                         }
 
                         if (parsed && typeof parsed === "object" && Array.isArray(parsed.procedures)) {
@@ -899,8 +899,8 @@ function GravacoesTab({
       audio.playbackRate = playbackSpeed
       await audio.play()
       setPlayingId(rec.id)
-    } catch {
-      // Failed to load audio
+    } catch (err) {
+      console.error("[PatientTabs] audio load failed", err)
     } finally {
       setLoadingId(null)
     }

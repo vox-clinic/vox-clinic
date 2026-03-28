@@ -831,7 +831,7 @@ function TeamTab({ clinicName }: { clinicName: string }) {
       setOwner(data.owner)
       setMembers(data.members)
       setInvites(data.invites)
-    } catch { /* silently handle */ }
+    } catch (err) { console.error("[Settings] team load failed", err) }
     finally { setLoading(false) }
   }, [])
 
@@ -1297,8 +1297,8 @@ function BookingTab() {
     try {
       const data = await getBookingConfig()
       setConfig(data)
-    } catch {
-      // No config yet
+    } catch (err) {
+      console.error("[Settings] booking config load failed", err)
     } finally {
       setLoading(false)
     }
