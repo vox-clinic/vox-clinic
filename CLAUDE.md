@@ -21,11 +21,16 @@ npx tsc --noEmit     # Type-check
 
 ## Development Workflow
 
-1. **Feature doc first** → `docs/features/<name>.md`
-2. **Implement** → parallel agents for independent phases
-3. **QA** → `npx prisma validate` + `npx tsc --noEmit` + `npm test` (zero errors)
-4. **Docs update** → update `src/app/docs/page.tsx` FeatureCards + `admin/roadmap` status
-5. **Never skip QA**
+1. **Branch** → `git checkout -b feat/nome-curto` (nunca commitar direto na main)
+2. **Feature doc first** → `docs/features/<name>.md`
+3. **Implement** → parallel agents for independent phases
+4. **QA** → `npx prisma validate` + `npx tsc --noEmit` + `npm test` (zero errors)
+5. **Docs update** → update `src/app/docs/page.tsx` FeatureCards + `admin/roadmap` status
+6. **PR** → Push branch, abrir PR, aguardar CI verde + review
+7. **Merge** → Squash and merge, deletar branch
+8. **Never skip QA**
+
+See `docs/CONTRIBUTING.md` for full team workflow.
 
 ## Tech Stack
 
