@@ -129,7 +129,9 @@ export async function saveNfseConfig(data: {
   if (!isMaskedSecret && !data.clientSecret.trim()) errors.push("Client Secret e obrigatorio")
   if (!data.clinicCity.trim()) errors.push("Cidade e obrigatoria")
   if (!data.clinicState.trim()) errors.push("Estado e obrigatorio")
-  if (!data.clinicCep.replace(/\D/g, "").trim()) errors.push("CEP e obrigatorio")
+  const cepDigits = data.clinicCep.replace(/\D/g, "")
+  if (!cepDigits) errors.push("CEP e obrigatorio")
+  else if (cepDigits.length !== 8) errors.push("CEP deve ter exatamente 8 digitos")
 
   if (errors.length > 0) {
     return { error: errors.join(". ") }

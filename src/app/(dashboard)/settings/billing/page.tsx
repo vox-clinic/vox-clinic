@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
 import {
   getBillingInfo,
+  getWorkspaceUsage,
   createCheckoutSession,
   createPortalSession,
 } from "@/server/actions/billing"
@@ -32,6 +33,18 @@ interface BillingInfo {
   trialEndsAt: Date | null
   currentPeriodEnd: Date | null
   cancelAtPeriodEnd: boolean
+}
+
+interface UsageMetric {
+  used: number
+  limit: number
+}
+
+interface WorkspaceUsage {
+  plan: string
+  patients: UsageMetric
+  appointments: UsageMetric
+  recordings: UsageMetric
 }
 
 const PLAN_DETAILS = {
@@ -110,6 +123,7 @@ const STATUS_BADGES: Record<string, { label: string; variant: "default" | "destr
 export default function BillingPage() {
   const searchParams = useSearchParams()
   const [billing, setBilling] = useState<BillingInfo | null>(null)
+  const [usage, setUsage] = useState<WorkspaceUsage | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
@@ -128,12 +142,16 @@ export default function BillingPage() {
 
   async function loadBilling() {
     try {
-      const data = await getBillingInfo()
+      const [data, usageData] = await Promise.all([
+        getBillingInfo(),
+        getWorkspaceUsage(),
+      ])
       setBilling({
         ...data,
         trialEndsAt: data.trialEndsAt ? new Date(data.trialEndsAt) : null,
         currentPeriodEnd: data.currentPeriodEnd ? new Date(data.currentPeriodEnd) : null,
       })
+      setUsage(usageData)
     } catch {
       toast.error("Erro ao carregar informacoes de cobranca.")
     } finally {
@@ -282,6 +300,47 @@ export default function BillingPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Plan Usage */}
+      {usage && (
+        <Card className="rounded-2xl border-border/40">
+          <CardHeader>
+            <CardTitle className="text-lg">Uso do Plano</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[
+              { label: "Pacientes", used: usage.patients.used, limit: usage.patients.limit },
+              { label: "Consultas (este mes)", used: usage.appointments.used, limit: usage.appointments.limit },
+              { label: "Gravacoes (este mes)", used: usage.recordings.used, limit: usage.recordings.limit },
+            ].map(item => (
+              <div key={item.label}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>{item.label}</span>
+                  <span className="text-muted-foreground">
+                    {item.used} / {item.limit === -1 ? "\u221E" : item.limit}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      item.limit !== -1 && item.used / item.limit > 0.9
+                        ? "bg-red-500"
+                        : "bg-vox-primary"
+                    }`}
+                    style={{
+                      width: `${
+                        item.limit === -1
+                          ? 10
+                          : Math.min(100, (item.used / item.limit) * 100)
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Separator />
 

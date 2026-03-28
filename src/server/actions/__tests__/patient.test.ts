@@ -132,7 +132,7 @@ describe("patient actions", () => {
 
       const formData = new FormData()
       formData.set("name", "Joao Santos")
-      formData.set("document", "12345678900")
+      formData.set("document", "52998224725")
       formData.set("phone", "11999990000")
 
       const result = await createPatient(formData)
@@ -142,7 +142,7 @@ describe("patient actions", () => {
         data: expect.objectContaining({
           workspaceId: WORKSPACE_ID,
           name: "Joao Santos",
-          document: "12345678900",
+          document: "52998224725",
           phone: "11999990000",
         }),
       })

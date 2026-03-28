@@ -65,6 +65,7 @@ export async function createTreatmentPlan(data: {
   if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
   if (data.totalSessions < 1) throw new Error("Total de sessoes deve ser pelo menos 1")
+  if (data.totalSessions > 365) throw new Error("Maximo de 365 sessoes permitido.")
 
   const plan = await db.treatmentPlan.create({
     data: {

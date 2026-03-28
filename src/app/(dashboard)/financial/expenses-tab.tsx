@@ -45,6 +45,7 @@ import {
   payExpense,
 } from "@/server/actions/expense"
 import CreateExpenseDialog from "./create-expense-dialog"
+import EditExpenseDialog from "./edit-expense-dialog"
 
 const formatBRL = (value: number) =>
   (value / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -85,6 +86,7 @@ export default function ExpensesTab() {
 
   // Dialogs
   const [createOpen, setCreateOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<ExpenseWithCategory | null>(null)
   const [payingId, setPayingId] = useState<string | null>(null)
   const [payForm, setPayForm] = useState({
     amount: "",
@@ -391,13 +393,7 @@ export default function ExpensesTab() {
                                 Pagar
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem
-                              onClick={() => {
-                                // For simplicity, we reopen the create dialog
-                                // A full edit would need its own dialog
-                                toast.info("Use a acao de excluir e recriar para editar")
-                              }}
-                            >
+                            <DropdownMenuItem onClick={() => setEditingExpense(expense)}>
                               <Pencil className="size-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
@@ -464,6 +460,13 @@ export default function ExpensesTab() {
         onOpenChange={setCreateOpen}
         categories={categories}
         onCreated={loadData}
+      />
+      <EditExpenseDialog
+        open={!!editingExpense}
+        onOpenChange={(open) => !open && setEditingExpense(null)}
+        expense={editingExpense}
+        categories={categories}
+        onSaved={() => { setEditingExpense(null); loadData() }}
       />
       <ConfirmDialog
         open={confirmDialog.open}

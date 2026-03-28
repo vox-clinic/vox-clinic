@@ -30,9 +30,12 @@ import {
   Pie,
   Cell,
 } from "recharts"
-import { getReportsData } from "@/server/actions/reports"
+import { getReportsData, getNpsSurveys } from "@/server/actions/reports"
+import Link from "next/link"
+import { MessageSquare } from "lucide-react"
 
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>
+type NpsSurvey = Awaited<ReturnType<typeof getNpsSurveys>>[number]
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)
@@ -57,6 +60,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function ReportsPage() {
   const [period, setPeriod] = useState<"3m" | "6m" | "12m">("6m")
   const [data, setData] = useState<ReportsData | null>(null)
+  const [npsSurveys, setNpsSurveys] = useState<NpsSurvey[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,7 +68,12 @@ export default function ReportsPage() {
     setLoading(true)
     setError(null)
     try {
-      setData(await getReportsData(period))
+      const [reportsData, surveysData] = await Promise.all([
+        getReportsData(period),
+        getNpsSurveys(period).catch(() => [] as NpsSurvey[]),
+      ])
+      setData(reportsData)
+      setNpsSurveys(surveysData)
     } catch (err) {
       const msg = err instanceof Error ? err.message : ""
       setError(msg.includes("plano") || msg.includes("Limite") || msg.includes("upgrade")
@@ -475,6 +484,62 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* NPS Individual Responses */}
+      {(npsSurveys.length > 0 || data.nps.total > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <MessageSquare className="size-4 text-vox-primary" />
+              Respostas Individuais NPS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {npsSurveys.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">Nenhuma resposta NPS no periodo</p>
+            ) : (
+              <div className="space-y-2">
+                {npsSurveys.map((survey) => {
+                  const category = survey.score >= 9 ? "promoter" : survey.score >= 7 ? "neutral" : "detractor"
+                  const categoryLabel = category === "promoter" ? "Promotor" : category === "neutral" ? "Neutro" : "Detrator"
+                  const categoryColor = category === "promoter"
+                    ? "bg-vox-success/10 text-vox-success border-vox-success/20"
+                    : category === "neutral"
+                    ? "bg-vox-warning/10 text-vox-warning border-vox-warning/20"
+                    : "bg-vox-error/10 text-vox-error border-vox-error/20"
+                  const dateStr = new Date(survey.answeredAt).toLocaleDateString("pt-BR")
+
+                  return (
+                    <div key={survey.id} className="flex items-center gap-3 rounded-xl border border-border/40 px-3 py-2.5">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-muted/50 text-sm font-bold tabular-nums shrink-0">
+                        {survey.score}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {survey.patientId ? (
+                            <Link href={`/patients/${survey.patientId}`} className="text-xs font-medium hover:text-vox-primary transition-colors truncate">
+                              {survey.patientName}
+                            </Link>
+                          ) : (
+                            <span className="text-xs font-medium truncate">{survey.patientName}</span>
+                          )}
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${categoryColor}`}>
+                            {categoryLabel}
+                          </Badge>
+                        </div>
+                        {survey.comment && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{survey.comment}</p>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">{dateStr}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

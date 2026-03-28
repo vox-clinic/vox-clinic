@@ -63,7 +63,7 @@ import {
   updateBookingConfig,
   regenerateBookingToken,
 } from "@/server/actions/booking-config"
-import { CalendarDays, Globe, Copy, RefreshCw, Link2, Receipt, CreditCard } from "lucide-react"
+import { CalendarDays, Globe, Copy, RefreshCw, Link2, Receipt, CreditCard, ClipboardList } from "lucide-react"
 import dynamic from "next/dynamic"
 const FiscalTab = dynamic(() => import("./fiscal-tab").then(m => m.FiscalTab), { ssr: false })
 
@@ -361,6 +361,13 @@ export default function SettingsPage() {
             <CreditCard className="size-4" />
             Plano
           </TabsTrigger>
+          <Link
+            href="/settings/audit"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ClipboardList className="size-4" />
+            Auditoria
+          </Link>
         </TabsList>
 
         {/* ─── Tab: Clinica ─── */}

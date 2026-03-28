@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { getStripe, PLAN_PRICE_IDS } from "@/lib/stripe"
 import { logger } from "@/lib/logger"
+import { getPlanLimits } from "@/lib/plan-limits"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_WORKSPACE_NOT_FOUND, ERR_NO_SUBSCRIPTION } from "@/lib/error-messages"
 
 async function getWorkspaceWithUser() {
@@ -86,6 +87,31 @@ export async function createPortalSession() {
   })
 
   return { url: session.url }
+}
+
+export async function getWorkspaceUsage() {
+  const { workspace } = await getWorkspaceWithUser()
+
+  const workspaceId = workspace.id
+  const plan = workspace.plan || "free"
+
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const [patientCount, appointmentCount, recordingCount] = await Promise.all([
+    db.patient.count({ where: { workspaceId, isActive: true } }),
+    db.appointment.count({ where: { workspaceId, date: { gte: startOfMonth } } }),
+    db.recording.count({ where: { workspaceId, createdAt: { gte: startOfMonth } } }),
+  ])
+
+  const limits = getPlanLimits(plan)
+
+  return {
+    plan,
+    patients: { used: patientCount, limit: limits.maxPatients },
+    appointments: { used: appointmentCount, limit: limits.maxAppointmentsPerMonth },
+    recordings: { used: recordingCount, limit: limits.maxRecordingsPerMonth },
+  }
 }
 
 export async function getBillingInfo() {

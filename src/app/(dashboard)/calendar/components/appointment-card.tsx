@@ -2,13 +2,15 @@
 
 import { useState, memo } from "react"
 import Link from "next/link"
-import { Clock, Check, XCircle, AlertTriangle, X, Video, Copy, ExternalLink, Globe, MessageCircle } from "lucide-react"
+import { Clock, Check, XCircle, AlertTriangle, X, Video, Copy, ExternalLink, Globe, MessageCircle, Bell, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
 import type { AppointmentItem } from "../types"
 import { formatTime, STATUS_CONFIG, STATUS_DOT } from "../helpers"
 import { createTeleconsultaRoom } from "@/server/actions/teleconsulta"
+import { sendAppointmentReminder } from "@/server/actions/reminder"
+import { friendlyError } from "@/lib/error-messages"
 
 function StatusBadge({ status }: { status: string }) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.scheduled
@@ -29,6 +31,7 @@ function AppointmentCardInner({
 }) {
   const [expanded, setExpanded] = useState(false)
   const [copyingLink, setCopyingLink] = useState(false)
+  const [sendingReminder, setSendingReminder] = useState(false)
 
   async function handleCopyPatientLink() {
     setCopyingLink(true)
@@ -140,6 +143,23 @@ function AppointmentCardInner({
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => onStatusChange(appointment.id, "no_show")} className="rounded-xl text-[11px] h-7 gap-1 text-vox-warning border-vox-warning/30 hover:bg-vox-warning/5">
                     <AlertTriangle className="size-3" />Faltou
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={sendingReminder} onClick={async () => {
+                    setSendingReminder(true)
+                    try {
+                      const result = await sendAppointmentReminder(appointment.id)
+                      if (result.success) {
+                        toast.success("Lembrete enviado!")
+                      } else {
+                        toast.error(result.message || "Erro ao enviar lembrete")
+                      }
+                    } catch (err) {
+                      toast.error(friendlyError(err, "Erro ao enviar lembrete"))
+                    } finally {
+                      setSendingReminder(false)
+                    }
+                  }} className="rounded-xl text-[11px] h-7 gap-1 text-blue-600 border-blue-300 hover:bg-blue-50">
+                    {sendingReminder ? <Loader2 className="size-3 animate-spin" /> : <Bell className="size-3" />}Lembrete
                   </Button>
                 </>
               )}

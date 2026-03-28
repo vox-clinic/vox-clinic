@@ -61,6 +61,11 @@ export async function createCertificate(data: {
   const validTypes = ["atestado", "declaracao_comparecimento", "encaminhamento", "laudo"]
   if (!validTypes.includes(data.type)) throw new Error("Tipo de documento invalido")
 
+  if (data.days !== undefined && data.days !== null) {
+    if (data.days < 1) throw new Error("Numero de dias deve ser maior que zero.")
+    if (data.days > 365) throw new Error("Maximo de 365 dias permitido.")
+  }
+
   const patient = await db.patient.findFirst({
     where: { id: data.patientId, workspaceId },
   })

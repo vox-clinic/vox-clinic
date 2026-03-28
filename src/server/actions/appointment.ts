@@ -220,6 +220,7 @@ export async function scheduleAppointment(data: {
   procedures?: string[]
   forceSchedule?: boolean
   type?: "presencial" | "teleconsulta"
+  price?: number
 }) {
   const { userId } = await auth()
   if (!userId) throw new Error(ERR_UNAUTHORIZED)
@@ -289,6 +290,7 @@ export async function scheduleAppointment(data: {
         procedures: data.procedures || [],
         status: "scheduled",
         type: data.type || null,
+        price: data.price ?? null,
       },
       include: {
         patient: {

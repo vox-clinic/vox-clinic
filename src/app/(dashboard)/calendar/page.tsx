@@ -203,7 +203,7 @@ export default function CalendarPage() {
   // ── Handlers ──
   async function handleSchedule(data: {
     patientId: string; date: string; agendaId: string; notes?: string
-    type?: "presencial" | "teleconsulta"
+    type?: "presencial" | "teleconsulta"; price?: number
     recurringEnabled: boolean; recurrence: "weekly" | "biweekly"; occurrences: number
   }, forceSchedule = false) {
     try {
@@ -224,6 +224,7 @@ export default function CalendarPage() {
           agendaId: data.agendaId,
           notes: data.notes,
           type: data.type,
+          price: data.price,
           forceSchedule,
         })
         toast.success(data.type === "teleconsulta" ? "Teleconsulta agendada" : "Consulta agendada")

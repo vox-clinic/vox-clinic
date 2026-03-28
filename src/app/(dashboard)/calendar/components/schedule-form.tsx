@@ -27,6 +27,7 @@ function ScheduleFormInner({
     notes?: string
     procedures?: string[]
     type?: "presencial" | "teleconsulta"
+    price?: number
     recurringEnabled: boolean
     recurrence: "weekly" | "biweekly"
     occurrences: number
@@ -45,6 +46,7 @@ function ScheduleFormInner({
   const [recurringEnabled, setRecurringEnabled] = useState(false)
   const [recurrence, setRecurrence] = useState<"weekly" | "biweekly">("weekly")
   const [occurrences, setOccurrences] = useState(4)
+  const [price, setPrice] = useState("")
 
   // Patient search with debounce
   useEffect(() => {
@@ -60,12 +62,14 @@ function ScheduleFormInner({
   function handleSubmit() {
     if (!selectedPatient || !scheduleDate || !scheduleTime) return
     const dateTime = `${scheduleDate}T${scheduleTime}:00`
+    const priceCentavos = price ? Math.round(parseFloat(price.replace(",", ".")) * 100) : undefined
     onSchedule({
       patientId: selectedPatient.id,
       date: new Date(dateTime).toISOString(),
       agendaId: scheduleAgendaId,
       notes: scheduleNotes || undefined,
       type: appointmentType,
+      price: priceCentavos,
       recurringEnabled,
       recurrence,
       occurrences,
@@ -189,6 +193,17 @@ function ScheduleFormInner({
         <div className="space-y-2 sm:col-span-2">
           <Label className="text-xs">Observacoes (opcional)</Label>
           <Textarea value={scheduleNotes} onChange={(e) => setScheduleNotes(e.target.value)} placeholder="Notas sobre a consulta..." className="rounded-xl text-sm min-h-[80px]" />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label className="text-xs text-muted-foreground">Valor (R$) — opcional</Label>
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder="0,00"
+            value={price}
+            onChange={(e) => setPrice(e.target.value.replace(/[^\d,]/g, ""))}
+            className="h-9 rounded-xl"
+          />
         </div>
 
         {/* Recurring section */}

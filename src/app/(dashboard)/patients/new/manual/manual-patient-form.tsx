@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 import { createPatient } from "@/server/actions/patient"
+import { formatCep, fetchAddressByCep } from "@/lib/viacep"
 import type { CustomField } from "@/types"
 
 function validarCPF(cpf: string): boolean {
@@ -84,6 +86,26 @@ export function ManualPatientForm({
   const [birthDateDisplay, setBirthDateDisplay] = useState("")
   const [birthDateError, setBirthDateError] = useState("")
   const [address, setAddress] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zipCode: "" })
+  const [cepLoading, setCepLoading] = useState(false)
+
+  useEffect(() => {
+    const digits = address.zipCode.replace(/\D/g, "")
+    if (digits.length === 8) {
+      setCepLoading(true)
+      fetchAddressByCep(digits).then((data) => {
+        if (data) {
+          setAddress(prev => ({
+            ...prev,
+            street: data.logradouro || prev.street,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state,
+          }))
+        }
+        setCepLoading(false)
+      })
+    }
+  }, [address.zipCode])
 
   const handleCPFChange = (value: string) => {
     const formatted = formatCPF(value)
@@ -286,6 +308,13 @@ export function ManualPatientForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="zipCode" className="inline-flex items-center gap-2">
+                CEP
+                {cepLoading && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+              </Label>
+              <Input id="zipCode" value={address.zipCode} onChange={(e) => setAddress({ ...address, zipCode: formatCep(e.target.value) })} placeholder="00000-000" />
+            </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="street">Rua</Label>
               <Input id="street" value={address.street} onChange={(e) => setAddress(a => ({ ...a, street: e.target.value }))} placeholder="Rua, Av, Travessa..." />
@@ -319,10 +348,6 @@ export function ManualPatientForm({
                   <option key={uf} value={uf}>{uf}</option>
                 ))}
               </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="zipCode">CEP</Label>
-              <Input id="zipCode" value={address.zipCode} onChange={(e) => setAddress(a => ({ ...a, zipCode: e.target.value }))} placeholder="00000-000" />
             </div>
           </div>
           <input type="hidden" name="address" value={JSON.stringify(address)} />

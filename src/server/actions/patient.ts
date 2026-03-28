@@ -208,6 +208,7 @@ export async function getPatient(patientId: string) {
       notes: a.notes,
       aiSummary: a.aiSummary,
       status: a.status,
+      videoRecordingUrl: a.videoRecordingUrl,
       recordings: a.recordings,
     })),
     recordings: patient.recordings,
@@ -301,6 +302,31 @@ export async function createPatient(formData: FormData) {
   let address = null
   if (addressRaw) {
     try { address = JSON.parse(addressRaw) } catch { address = null }
+  }
+
+  // Validate CPF digit if document looks like a CPF (11 digits)
+  if (document?.trim()) {
+    const docDigits = document.replace(/\D/g, "")
+    if (docDigits.length === 11) {
+      // CPF digit validation
+      if (/^(\d)\1{10}$/.test(docDigits)) {
+        throw new Error("CPF invalido.")
+      }
+      let sum = 0
+      for (let i = 0; i < 9; i++) sum += parseInt(docDigits[i]) * (10 - i)
+      let remainder = (sum * 10) % 11
+      if (remainder === 10) remainder = 0
+      if (remainder !== parseInt(docDigits[9])) {
+        throw new Error("CPF invalido (digito verificador incorreto).")
+      }
+      sum = 0
+      for (let i = 0; i < 10; i++) sum += parseInt(docDigits[i]) * (11 - i)
+      remainder = (sum * 10) % 11
+      if (remainder === 10) remainder = 0
+      if (remainder !== parseInt(docDigits[10])) {
+        throw new Error("CPF invalido (digito verificador incorreto).")
+      }
+    }
   }
 
   const patient = await db.patient.create({
@@ -480,6 +506,21 @@ export async function mergePatients(keepId: string, mergeId: string) {
   revalidateTag("dashboard", "max")
 
   return { success: true }
+}
+
+export async function getDistinctInsurances(): Promise<string[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+  const user = await db.user.findUnique({ where: { clerkId: userId }, include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } } })
+  const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
+  if (!workspaceId) return []
+
+  const patients = await db.patient.findMany({
+    where: { workspaceId, isActive: true, insurance: { not: null } },
+    select: { insurance: true },
+    distinct: ["insurance"],
+  })
+  return patients.map(p => p.insurance!).filter(Boolean).sort()
 }
 
 export async function getAllPatientTags() {

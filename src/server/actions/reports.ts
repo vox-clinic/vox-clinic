@@ -170,3 +170,50 @@ export async function getReportsData(period: "3m" | "6m" | "12m") {
     nps: { score: npsScore, average: npsAvg, total: npsScores.length, promoters: npsPromoters, detractors: npsDetractors },
   }
 }
+
+export async function getNpsSurveys(period: string = "6m") {
+  const { userId } = await auth()
+  if (!userId) throw new Error(ERR_UNAUTHORIZED)
+  const user = await db.user.findUnique({
+    where: { clerkId: userId },
+    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+  })
+  const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
+  if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
+
+  const months = period === "3m" ? 3 : period === "12m" ? 12 : 6
+  const startDate = new Date()
+  startDate.setMonth(startDate.getMonth() - months)
+
+  const surveys = await db.npsSurvey.findMany({
+    where: {
+      workspaceId,
+      answeredAt: { not: null },
+      sentAt: { gte: startDate },
+    },
+    orderBy: { answeredAt: "desc" },
+    take: 50,
+  })
+
+  // Manual join since NpsSurvey has no Prisma relation to Patient
+  const patientIds = [...new Set(surveys.map(s => s.patientId))]
+  const patients = patientIds.length > 0
+    ? await db.patient.findMany({
+        where: { id: { in: patientIds } },
+        select: { id: true, name: true },
+      })
+    : []
+  const patientMap = new Map(patients.map(p => [p.id, p]))
+
+  return surveys.map(s => {
+    const patient = patientMap.get(s.patientId)
+    return {
+      id: s.id,
+      patientName: patient?.name || "Paciente",
+      patientId: patient?.id,
+      score: s.score!,
+      comment: s.comment,
+      answeredAt: s.answeredAt!.toISOString(),
+    }
+  })
+}

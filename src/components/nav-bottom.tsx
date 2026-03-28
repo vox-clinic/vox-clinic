@@ -8,6 +8,7 @@ import {
   Users,
   CalendarDays,
   Mic,
+  MessageCircle,
   DollarSign,
   BarChart3,
   Settings,
@@ -29,6 +30,7 @@ const primaryNav = [
 ]
 
 const moreNav = [
+  { href: "/mensagens", label: "Mensagens", icon: MessageCircle },
   { href: "/financial", label: "Financeiro", icon: DollarSign },
   { href: "/reports", label: "Relatorios", icon: BarChart3 },
   { href: "/settings", label: "Configuracoes", icon: Settings },

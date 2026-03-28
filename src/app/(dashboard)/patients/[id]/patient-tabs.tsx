@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { formatCep, fetchAddressByCep } from "@/lib/viacep"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +43,8 @@ import {
   Pill,
   FileCheck2,
   ExternalLink,
+  AlertTriangle,
+  Video,
 } from "lucide-react"
 import { Progress, ProgressTrack, ProgressIndicator } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
@@ -61,6 +64,7 @@ import {
   deletePatientDocument,
 } from "@/server/actions/document"
 import { getPatientPrescriptions, deletePrescription } from "@/server/actions/prescription"
+import { getPatientBalance } from "@/server/actions/receivable"
 import { getPatientCertificates, deleteCertificate } from "@/server/actions/certificate"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
@@ -91,6 +95,7 @@ type PatientData = {
     notes: string | null
     aiSummary: string | null
     status: string
+    videoRecordingUrl: string | null
     recordings: {
       id: string
       duration: number | null
@@ -231,6 +236,32 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
   const [alerts, setAlerts] = useState<string[]>(patient.alerts ?? [])
   const [newAlert, setNewAlert] = useState("")
   const [saving, setSaving] = useState(false)
+  const [cepLoading, setCepLoading] = useState(false)
+  const [balance, setBalance] = useState<{ pending: number; overdue: number; total: number } | null>(null)
+
+  useEffect(() => {
+    getPatientBalance(patient.id).then(setBalance).catch(() => {})
+  }, [patient.id])
+
+  useEffect(() => {
+    const zip = address?.zipCode || ""
+    const digits = zip.replace(/\D/g, "")
+    if (digits.length === 8 && isEditing) {
+      setCepLoading(true)
+      fetchAddressByCep(digits).then((data) => {
+        if (data) {
+          setAddress((prev) => ({
+            ...prev,
+            street: data.logradouro || prev?.street || "",
+            neighborhood: data.bairro || prev?.neighborhood || "",
+            city: data.localidade || prev?.city || "",
+            state: data.uf || prev?.state || "",
+          }))
+        }
+        setCepLoading(false)
+      })
+    }
+  }, [address?.zipCode, isEditing])
 
   const handleSave = async () => {
     setSaving(true)
@@ -310,6 +341,18 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
   }
 
   return (
+    <div className="space-y-4">
+      {balance && balance.total > 0 && (
+        <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+          <AlertTriangle className="size-4 text-amber-600" />
+          <span className="text-amber-800">
+            Saldo devedor: <strong>R$ {(balance.total / 100).toFixed(2).replace(".", ",")}</strong>
+            {balance.overdue > 0 && (
+              <span className="text-red-600 ml-1">(R$ {(balance.overdue / 100).toFixed(2).replace(".", ",")} vencido)</span>
+            )}
+          </span>
+        </div>
+      )}
     <Card>
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle>Dados Pessoais</CardTitle>
@@ -404,18 +447,21 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
               <p className="text-sm font-medium flex items-center gap-1.5"><MapPin className="size-3.5" /> Endereco</p>
               {isEditing ? (
                 <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="relative">
+                    <Input value={address.zipCode ?? ""} onChange={(e) => setAddress(a => ({ ...a, zipCode: formatCep(e.target.value) }))} placeholder="CEP" />
+                    {cepLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-muted-foreground" />}
+                  </div>
                   <Input value={address.street ?? ""} onChange={(e) => setAddress(a => ({ ...a, street: e.target.value }))} placeholder="Rua" className="sm:col-span-2" />
                   <Input value={address.number ?? ""} onChange={(e) => setAddress(a => ({ ...a, number: e.target.value }))} placeholder="Numero" />
                   <Input value={address.complement ?? ""} onChange={(e) => setAddress(a => ({ ...a, complement: e.target.value }))} placeholder="Complemento" />
                   <Input value={address.neighborhood ?? ""} onChange={(e) => setAddress(a => ({ ...a, neighborhood: e.target.value }))} placeholder="Bairro" />
                   <Input value={address.city ?? ""} onChange={(e) => setAddress(a => ({ ...a, city: e.target.value }))} placeholder="Cidade" />
                   <Input value={address.state ?? ""} onChange={(e) => setAddress(a => ({ ...a, state: e.target.value }))} placeholder="UF" />
-                  <Input value={address.zipCode ?? ""} onChange={(e) => setAddress(a => ({ ...a, zipCode: e.target.value }))} placeholder="CEP" />
                 </div>
               ) : (
                 <p className="text-sm">
                   {hasAddress
-                    ? [patient.address!.street, patient.address!.number, patient.address!.complement, patient.address!.neighborhood, patient.address!.city, patient.address!.state, patient.address!.zipCode].filter(Boolean).join(", ")
+                    ? [patient.address!.zipCode, patient.address!.street, patient.address!.number, patient.address!.complement, patient.address!.neighborhood, patient.address!.city, patient.address!.state].filter(Boolean).join(", ")
                     : "-"}
                 </p>
               )}
@@ -609,6 +655,7 @@ function ResumoTab({ patient, customFields }: { patient: PatientData; customFiel
         )}
       </CardContent>
     </Card>
+    </div>
   )
 }
 
@@ -827,6 +874,30 @@ function HistoricoTab({
                               Recibo
                             </Button>
                           </Link>
+                          {apt.videoRecordingUrl && (
+                            <a
+                              href={apt.videoRecordingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 transition-colors"
+                            >
+                              <Video className="size-3" />
+                              Gravacao
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {currentStatus !== "completed" && apt.videoRecordingUrl && (
+                        <div className="flex gap-2 pt-2 border-t">
+                          <a
+                            href={apt.videoRecordingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 transition-colors"
+                          >
+                            <Video className="size-3" />
+                            Gravacao
+                          </a>
                         </div>
                       )}
                       {isScheduled && (

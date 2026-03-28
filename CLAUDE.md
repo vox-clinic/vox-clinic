@@ -62,6 +62,8 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/settings` — Workspace config (procedures with duration, custom fields, clinic name, agendas management with color picker, online booking toggle and config)
   - `/settings/import` — CSV patient import with column mapping
   - `/settings/whatsapp` — WhatsApp Business API setup wizard (5-step: intro, connect, verify, templates, done)
+  - `/settings/audit` — Audit log viewer with pagination
+  - `/mensagens` — WhatsApp inbox (conversation list + chat, polling-based)
 - `src/app/(admin)/` — Superadmin panel (own layout, no sidebar/nav)
   - `/admin` — Executive dashboard (KPIs: workspaces, users, patients, plan distribution)
   - `/admin/workspaces` — All workspaces table with search, plan/status badges
@@ -101,7 +103,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `workspace.ts` — generateWorkspace (accepts edited preview, NOT re-generated), getWorkspacePreview, getWorkspace, updateWorkspace
 - `voice.ts` — processVoiceRegistration, confirmPatientRegistration (in $transaction), checkDuplicatePatient
 - `consultation.ts` — processConsultation, getRecordingForReview (server-side data fetch), confirmConsultation (in $transaction with double-confirm guard)
-- `patient.ts` — getPatients (paginated, filters isActive, supports tag/insurance filters), getPatient, updatePatient, createPatient, searchPatients (name/CPF/phone/email/insurance), getRecentPatients, getAudioPlaybackUrl, deactivatePatient (soft delete), mergePatients (atomic merge with $transaction), getAllPatientTags
+- `patient.ts` — getPatients (paginated, filters isActive, supports tag/insurance filters), getPatient, updatePatient, createPatient, searchPatients (name/CPF/phone/email/insurance), getRecentPatients, getAudioPlaybackUrl, deactivatePatient (soft delete), mergePatients (atomic merge with $transaction), getAllPatientTags, getDistinctInsurances
 - `appointment.ts` — getAppointmentsByDateRange, scheduleAppointment, scheduleRecurringAppointments (weekly/biweekly, 2-52 occurrences, atomic $transaction), checkAppointmentConflicts (returns { appointments, blockedSlots }), updateAppointmentStatus, rescheduleAppointment (accepts `forceSchedule` param), deleteAppointment. Advisory locks use `$executeRawUnsafe` (Prisma 6 compat)
 - `receipt.ts` — generateReceiptData
 - `prescription.ts` — createPrescription, getPrescription, getPatientPrescriptions, deletePrescription
@@ -109,7 +111,7 @@ All data mutations use Server Actions with `"use server"` directive:
 - `blocked-slot.ts` — getBlockedSlots (expands weekly recurring, optional agendaIds filter), createBlockedSlot (requires agendaId), updateBlockedSlot, deleteBlockedSlot
 - `agenda.ts` — getAgendas, getDefaultAgendaId, getDefaultAgendaIdForWorkspace, createAgenda, updateAgenda, deleteAgenda
 - `booking-config.ts` — getBookingConfig, toggleBooking, updateBookingConfig, regenerateBookingToken
-- `reports.ts` — getReportsData (analytics: monthly revenue, patient trends, procedure ranking, hour heatmap, return rate, no-show rate, patient ranking by frequency/revenue, NPS score)
+- `reports.ts` — getReportsData (analytics: monthly revenue, patient trends, procedure ranking, hour heatmap, return rate, no-show rate, patient ranking by frequency/revenue, NPS score), getNpsSurveys (paginated individual NPS responses)
 - `dashboard.ts` — getDashboardData (stats, today's agenda, recent activity, trends)
 - `reminder.ts` — sendAppointmentReminder, sendBulkReminders
 - `treatment.ts` — getTreatmentPlans, createTreatmentPlan, addSessionToTreatment, updateTreatmentPlanStatus, deleteTreatmentPlan
@@ -119,6 +121,8 @@ All data mutations use Server Actions with `"use server"` directive:
 - `team.ts` — getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite
 - `messaging.ts` — getMessagingConfig, updateMessagingConfig, sendAppointmentMessage (email/WhatsApp/SMS)
 - `whatsapp.ts` — getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth
+- `audit.ts` — getAuditLogs (paginated audit log query with user info)
+- `billing.ts` — (includes) getWorkspaceUsage (plan usage metrics: patients, appointments, recordings vs limits)
 - `admin.ts` — requireSuperAdmin guard, getAdminDashboard, getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus, getAdminUsers
 - `_helpers.ts` — Shared helper with `getWorkspaceId()` and `getAuthContext()` (not used by server actions due to Vercel bundler issue, kept for future use)
 - `calendar.ts` — Unified `getCalendarData()` server action (not used currently due to same bundler issue, kept for future use)
@@ -133,6 +137,7 @@ All actions authenticate via `auth()` from `@clerk/nextjs/server` and scope quer
 - `src/components/notification-bell.tsx` — In-app notification dropdown
 - `src/app/(dashboard)/patients/[id]/merge-dialog.tsx` — Patient merge search + confirm
 - `src/app/(dashboard)/patients/[id]/more-actions-dropdown.tsx` — Dropdown for secondary patient actions (Export, Merge, Deactivate)
+- `src/app/(dashboard)/financial/edit-expense-dialog.tsx` — Edit expense modal, pre-filled with current data, saves via updateExpense
 
 ### Calendar Components (`src/app/(dashboard)/calendar/`)
 Decomposed from a monolithic page into modular sub-components:
@@ -167,6 +172,7 @@ Decomposed from a monolithic page into modular sub-components:
 - `src/lib/storage.ts` — `uploadAudio`, `getSignedAudioUrl` (5min), `getAudioBuffer`
 - `src/lib/export-xlsx.ts` — `generateXlsx(data, sheetName)` and `generateXlsxMultiSheet(sheets)` for Excel export via `xlsx` library
 - `src/lib/error-messages.ts` — Centralized error constants (pt-BR) + `friendlyError(error, fallback?)` helper that translates technical errors to user-friendly messages. All server actions import constants from here; frontend catch blocks use `friendlyError()`
+- `src/lib/viacep.ts` — `formatCep(value)` (formats as XXXXX-XXX) and `fetchAddressByCep(cep)` for ViaCEP integration (auto-fills street, neighborhood, city, state from CEP)
 
 ### Excel Export API Routes
 - `src/app/api/export/patients/route.ts` — GET, auth via Clerk, exports all active patients as .xlsx with columns: Nome, CPF, RG, Telefone, Email, Data Nascimento, Sexo, Convenio, Origem, Tags, Cadastrado em, Ultimo Atendimento

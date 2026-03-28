@@ -1,13 +1,14 @@
-import { getPatients, getAllPatientTags } from "@/server/actions/patient"
+import { getPatients, getAllPatientTags, getDistinctInsurances } from "@/server/actions/patient"
 import { Badge } from "@/components/ui/badge"
 import { Users, Plus, Mic, Download } from "lucide-react"
 import Link from "next/link"
 import { PatientListSearch } from "./patient-list-search"
 
 export default async function PatientsPage() {
-  const [data, availableTags] = await Promise.all([
+  const [data, availableTags, availableInsurances] = await Promise.all([
     getPatients(),
     getAllPatientTags(),
+    getDistinctInsurances(),
   ])
 
   return (
@@ -50,7 +51,7 @@ export default async function PatientsPage() {
         </div>
       </div>
 
-      <PatientListSearch initialPatients={data.patients} totalPages={data.totalPages} availableTags={availableTags} />
+      <PatientListSearch initialPatients={data.patients} totalPages={data.totalPages} availableTags={availableTags} availableInsurances={availableInsurances} />
     </div>
   )
 }

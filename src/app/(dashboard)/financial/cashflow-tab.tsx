@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -10,6 +11,8 @@ import {
   Clock,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
+  BarChart3,
 } from "lucide-react"
 import {
   ComposedChart,
@@ -22,7 +25,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import { getCashFlowData } from "@/server/actions/cashflow"
+import { getCashFlowData, getCashFlowProjection } from "@/server/actions/cashflow"
 import { toast } from "sonner"
 
 const formatBRL = (value: number) =>
@@ -41,6 +44,12 @@ const monthNames = [
   "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ]
 
+const formatProjectionMonth = (monthStr: string) => {
+  // "2026-03" → "Mar/26"
+  const [year, month] = monthStr.split("-")
+  return `${monthNames[parseInt(month, 10) - 1]}/${year.slice(2)}`
+}
+
 type CashFlowResult = Awaited<ReturnType<typeof getCashFlowData>>
 
 export default function CashFlowTab() {
@@ -48,6 +57,8 @@ export default function CashFlowTab() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<CashFlowResult | null>(null)
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [projection, setProjection] = useState<Awaited<ReturnType<typeof getCashFlowProjection>> | null>(null)
+  const [projectionLoading, setProjectionLoading] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -60,6 +71,18 @@ export default function CashFlowTab() {
       setLoading(false)
     }
   }, [period, currentDate])
+
+  const loadProjection = async () => {
+    setProjectionLoading(true)
+    try {
+      const data = await getCashFlowProjection()
+      setProjection(data)
+    } catch {
+      toast.error("Erro ao carregar projecao")
+    } finally {
+      setProjectionLoading(false)
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -320,6 +343,102 @@ export default function CashFlowTab() {
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Projection */}
+      <Card className="rounded-2xl">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold">Projecao de Fluxo de Caixa</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl h-8 text-xs gap-1.5"
+              onClick={loadProjection}
+              disabled={projectionLoading}
+            >
+              {projectionLoading ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <BarChart3 className="size-3.5" />
+              )}
+              {projection ? "Atualizar" : "Carregar projecao"}
+            </Button>
+          </div>
+
+          {!projection ? (
+            <p className="text-sm text-muted-foreground text-center py-12">
+              Clique em &quot;Carregar projecao&quot; para visualizar a projecao dos proximos 6 meses.
+            </p>
+          ) : projection.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">
+              Nenhum dado projetado encontrado.
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={360}>
+              <ComposedChart
+                data={projection.map((p) => ({
+                  month: formatProjectionMonth(p.month),
+                  "Entradas Projetadas": p.projectedInflows / 100,
+                  "Saidas Projetadas": p.projectedOutflows / 100,
+                  "Saldo Projetado": p.projectedBalance / 100,
+                }))}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  stroke="hsl(var(--muted-foreground))"
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v: number) => formatBRLShort(v * 100)}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "1px solid hsl(var(--border))",
+                    background: "hsl(var(--background))",
+                    fontSize: "12px",
+                  }}
+                  formatter={(value: unknown, name: unknown) => [
+                    `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                    String(name),
+                  ]}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
+                />
+                <Bar
+                  dataKey="Entradas Projetadas"
+                  fill="#14B8A6"
+                  radius={[4, 4, 0, 0]}
+                  barSize={24}
+                />
+                <Bar
+                  dataKey="Saidas Projetadas"
+                  fill="#EF4444"
+                  radius={[4, 4, 0, 0]}
+                  barSize={24}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Saldo Projetado"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
                 />
               </ComposedChart>
             </ResponsiveContainer>

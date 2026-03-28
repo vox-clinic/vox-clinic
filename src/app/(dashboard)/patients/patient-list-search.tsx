@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, AlertTriangle, ChevronLeft, ChevronRight, Users, Tag, Filter, X } from "lucide-react"
+import { Search, AlertTriangle, ChevronLeft, ChevronRight, Users, Tag, Filter, X, Shield } from "lucide-react"
 import Link from "next/link"
 import { getPatients } from "@/server/actions/patient"
 
@@ -26,10 +26,12 @@ export function PatientListSearch({
   initialPatients,
   totalPages: initialTotalPages,
   availableTags = [],
+  availableInsurances = [],
 }: {
   initialPatients: PatientItem[]
   totalPages: number
   availableTags?: string[]
+  availableInsurances?: string[]
 }) {
   const [query, setQuery] = useState("")
   const [patients, setPatients] = useState(initialPatients)
@@ -38,15 +40,19 @@ export function PatientListSearch({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [activeInsurance, setActiveInsurance] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const doSearch = useCallback((value: string, p: number = 1, tag?: string | null) => {
+  const doSearch = useCallback((value: string, p: number = 1, tag?: string | null, ins?: string | null) => {
     setError(null)
     startTransition(async () => {
       try {
-        const filters = tag ? { tag } : undefined
-        const data = await getPatients(value || undefined, p, 20, filters)
+        const filters: { tag?: string; insurance?: string } = {
+          ...(tag ? { tag } : {}),
+          ...(ins ? { insurance: ins } : {}),
+        }
+        const data = await getPatients(value || undefined, p, 20, Object.keys(filters).length > 0 ? filters : undefined)
         setPatients(data.patients)
         setTotalPages(data.totalPages)
         setPage(data.page)
@@ -59,16 +65,21 @@ export function PatientListSearch({
   const handleSearch = useCallback((value: string) => {
     setQuery(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => doSearch(value, 1, activeTag), 300)
-  }, [doSearch, activeTag])
+    debounceRef.current = setTimeout(() => doSearch(value, 1, activeTag, activeInsurance), 300)
+  }, [doSearch, activeTag, activeInsurance])
 
   const handleTagFilter = (tag: string | null) => {
     setActiveTag(tag)
-    doSearch(query, 1, tag)
+    doSearch(query, 1, tag, activeInsurance)
+  }
+
+  const handleInsuranceFilter = (ins: string | null) => {
+    setActiveInsurance(ins)
+    doSearch(query, 1, activeTag, ins)
   }
 
   const handlePageChange = (newPage: number) => {
-    doSearch(query, newPage)
+    doSearch(query, newPage, activeTag, activeInsurance)
   }
 
   const formatDate = (date: Date | null) => {
@@ -99,28 +110,39 @@ export function PatientListSearch({
               className="pl-9 h-10"
             />
           </div>
-          {availableTags.length > 0 && (
+          {(availableTags.length > 0 || availableInsurances.length > 0) && (
             <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setShowFilters(!showFilters)} aria-label="Filtros">
               <Filter className="size-4" />
             </Button>
           )}
         </div>
-        {showFilters && availableTags.length > 0 && (
+        {showFilters && (availableTags.length > 0 || availableInsurances.length > 0) && (
           <div className="flex flex-wrap gap-1.5">
-            {activeTag && (
-              <Button variant="ghost" size="sm" className="h-6 text-[11px] gap-1 text-muted-foreground" onClick={() => handleTagFilter(null)}>
-                <X className="size-3" /> Limpar filtro
+            {(activeTag || activeInsurance) && (
+              <Button variant="ghost" size="sm" className="h-6 text-[11px] gap-1 text-muted-foreground" onClick={() => { setActiveTag(null); setActiveInsurance(null); doSearch(query, 1, null, null) }}>
+                <X className="size-3" /> Limpar filtros
               </Button>
             )}
             {availableTags.map(tag => (
               <Badge
-                key={tag}
+                key={`tag-${tag}`}
                 variant={activeTag === tag ? "default" : "secondary"}
                 className="cursor-pointer text-[11px] hover:opacity-80 transition-opacity"
                 onClick={() => handleTagFilter(activeTag === tag ? null : tag)}
               >
                 <Tag className="size-2.5 mr-0.5" />
                 {tag}
+              </Badge>
+            ))}
+            {availableInsurances.map(ins => (
+              <Badge
+                key={`ins-${ins}`}
+                variant={activeInsurance === ins ? "default" : "secondary"}
+                className="cursor-pointer text-[11px] hover:opacity-80 transition-opacity"
+                onClick={() => handleInsuranceFilter(activeInsurance === ins ? null : ins)}
+              >
+                <Shield className="size-2.5 mr-0.5" />
+                {ins}
               </Badge>
             ))}
           </div>

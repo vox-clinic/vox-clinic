@@ -35,6 +35,12 @@ export async function createPrescription(data: {
 
   if (!data.medications.length) throw new Error("Adicione pelo menos um medicamento")
 
+  for (const med of data.medications) {
+    if (!med.name?.trim()) throw new Error("Nome do medicamento e obrigatorio.")
+    if (!med.dosage?.trim()) throw new Error("Dosagem e obrigatoria para cada medicamento.")
+    if (!med.frequency?.trim()) throw new Error("Frequencia e obrigatoria para cada medicamento.")
+  }
+
   const prescription = await db.prescription.create({
     data: {
       patientId: data.patientId,
