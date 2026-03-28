@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
 import { revalidateTag } from "next/cache"
 import { checkAppointmentLimit } from "@/lib/plan-enforcement"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ERR_PATIENT_NOT_FOUND } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -242,7 +242,7 @@ export async function scheduleAppointment(data: {
   const patient = await db.patient.findFirst({
     where: { id: data.patientId, workspaceId },
   })
-  if (!patient) throw new Error("Paciente nao encontrado")
+  if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
   const targetDate = new Date(data.date)
 
@@ -473,7 +473,7 @@ export async function scheduleRecurringAppointments(data: {
   const patient = await db.patient.findFirst({
     where: { id: data.patientId, workspaceId },
   })
-  if (!patient) throw new Error("Paciente nao encontrado")
+  if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
   const intervalDays = data.recurrence === "weekly" ? 7 : 14
   const baseDate = new Date(data.startDate)

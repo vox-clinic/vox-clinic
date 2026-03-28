@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_TREATMENT_NOT_FOUND } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -106,7 +106,7 @@ export async function addSessionToTreatment(planId: string) {
     )
 
     const plan = rows[0]
-    if (!plan) throw new Error("Plano de tratamento nao encontrado")
+    if (!plan) throw new Error(ERR_TREATMENT_NOT_FOUND)
     if (plan.status !== "active") throw new Error("Plano nao esta ativo")
     if (plan.completedSessions >= plan.totalSessions) throw new Error("Todas as sessoes ja foram concluidas")
 
@@ -148,7 +148,7 @@ export async function updateTreatmentPlanStatus(planId: string, status: string) 
   const plan = await db.treatmentPlan.findFirst({
     where: { id: planId, workspaceId },
   })
-  if (!plan) throw new Error("Plano de tratamento nao encontrado")
+  if (!plan) throw new Error(ERR_TREATMENT_NOT_FOUND)
 
   const updated = await db.treatmentPlan.update({
     where: { id: planId },
@@ -176,7 +176,7 @@ export async function deleteTreatmentPlan(planId: string) {
   const plan = await db.treatmentPlan.findFirst({
     where: { id: planId, workspaceId },
   })
-  if (!plan) throw new Error("Plano de tratamento nao encontrado")
+  if (!plan) throw new Error(ERR_TREATMENT_NOT_FOUND)
 
   await db.treatmentPlan.delete({ where: { id: planId } })
 

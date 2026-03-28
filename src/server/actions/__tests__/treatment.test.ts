@@ -11,6 +11,10 @@ import {
   updateTreatmentPlanStatus,
   deleteTreatmentPlan,
 } from "@/server/actions/treatment"
+import {
+  ERR_PATIENT_NOT_FOUND,
+  ERR_TREATMENT_NOT_FOUND,
+} from "@/lib/error-messages"
 
 const WORKSPACE_ID = "ws_test_123"
 const CLERK_ID = "clerk_test_user_123"
@@ -61,7 +65,7 @@ describe("treatment actions", () => {
     it("throws when patient not in workspace", async () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
 
-      await expect(getTreatmentPlans("p_other")).rejects.toThrow("Paciente nao encontrado")
+      await expect(getTreatmentPlans("p_other")).rejects.toThrow(ERR_PATIENT_NOT_FOUND)
     })
   })
 
@@ -119,7 +123,7 @@ describe("treatment actions", () => {
           procedures: [],
           totalSessions: 1,
         })
-      ).rejects.toThrow("Paciente nao encontrado")
+      ).rejects.toThrow(ERR_PATIENT_NOT_FOUND)
     })
   })
 
@@ -181,7 +185,7 @@ describe("treatment actions", () => {
     it("throws when plan not found", async () => {
       mockDb.$queryRawUnsafe.mockResolvedValue([])
 
-      await expect(addSessionToTreatment("tp_missing")).rejects.toThrow("Plano de tratamento nao encontrado")
+      await expect(addSessionToTreatment("tp_missing")).rejects.toThrow(ERR_TREATMENT_NOT_FOUND)
     })
 
     it("logs audit with session details", async () => {
@@ -251,7 +255,7 @@ describe("treatment actions", () => {
       mockDb.treatmentPlan.findFirst.mockResolvedValue(null)
 
       await expect(updateTreatmentPlanStatus("tp_missing", "active")).rejects.toThrow(
-        "Plano de tratamento nao encontrado"
+        ERR_TREATMENT_NOT_FOUND
       )
     })
 
@@ -285,7 +289,7 @@ describe("treatment actions", () => {
     it("throws when plan not found in workspace", async () => {
       mockDb.treatmentPlan.findFirst.mockResolvedValue(null)
 
-      await expect(deleteTreatmentPlan("tp_missing")).rejects.toThrow("Plano de tratamento nao encontrado")
+      await expect(deleteTreatmentPlan("tp_missing")).rejects.toThrow(ERR_TREATMENT_NOT_FOUND)
     })
 
     it("logs audit after deletion", async () => {

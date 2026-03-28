@@ -17,6 +17,12 @@ import {
   confirmPatientRegistration,
   checkDuplicatePatient,
 } from "@/server/actions/voice"
+import {
+  ERR_UNAUTHORIZED,
+  ERR_NO_AUDIO,
+  ERR_AUDIO_TOO_LARGE,
+  ERR_RECORDING_NOT_FOUND,
+} from "@/lib/error-messages"
 
 const WORKSPACE_ID = "ws_test_123"
 const CLERK_ID = "clerk_test_user_123"
@@ -93,13 +99,13 @@ describe("voice actions", () => {
       const formData = new FormData()
       formData.set("audio", createAudioFile(26 * 1024 * 1024))
 
-      await expect(processVoiceRegistration(formData)).rejects.toThrow("Arquivo de audio excede o limite de 25MB")
+      await expect(processVoiceRegistration(formData)).rejects.toThrow(ERR_AUDIO_TOO_LARGE)
     })
 
     it("throws when no audio file provided", async () => {
       const formData = new FormData()
 
-      await expect(processVoiceRegistration(formData)).rejects.toThrow("No audio file provided")
+      await expect(processVoiceRegistration(formData)).rejects.toThrow(ERR_NO_AUDIO)
     })
 
     it("saves error recording on transcription failure (preserves audio)", async () => {
@@ -156,7 +162,7 @@ describe("voice actions", () => {
       const formData = new FormData()
       formData.set("audio", createAudioFile())
 
-      await expect(processVoiceRegistration(formData)).rejects.toThrow("Unauthorized")
+      await expect(processVoiceRegistration(formData)).rejects.toThrow(ERR_UNAUTHORIZED)
     })
 
     it("passes workspace procedure names as vocabulary hints to Whisper", async () => {
@@ -269,7 +275,7 @@ describe("voice actions", () => {
 
       await expect(
         confirmPatientRegistration({ recordingId: "rec_other_ws", name: "Test" })
-      ).rejects.toThrow("Recording not found")
+      ).rejects.toThrow(ERR_RECORDING_NOT_FOUND)
 
       // Should NOT create patient or appointment
       expect(mockDb.patient.create).not.toHaveBeenCalled()

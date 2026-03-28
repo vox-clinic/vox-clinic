@@ -14,7 +14,11 @@ import {
   searchPatients,
   getAudioPlaybackUrl,
 } from "@/server/actions/patient"
-import { RedirectError } from "@/test/mocks/services"
+import {
+  ERR_UNAUTHORIZED,
+  ERR_WORKSPACE_NOT_CONFIGURED,
+  ERR_PATIENT_NOT_FOUND,
+} from "@/lib/error-messages"
 
 // Standard user/workspace mock
 const WORKSPACE_ID = "ws_test_123"
@@ -75,13 +79,13 @@ describe("patient actions", () => {
     it("throws Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue({ userId: null })
 
-      await expect(getPatients()).rejects.toThrow("Unauthorized")
+      await expect(getPatients()).rejects.toThrow(ERR_UNAUTHORIZED)
     })
 
     it("throws when workspace not configured", async () => {
       mockDb.user.findUnique.mockResolvedValue({ id: "u1", clerkId: CLERK_ID, workspace: null })
 
-      await expect(getPatients()).rejects.toThrow("Workspace not configured")
+      await expect(getPatients()).rejects.toThrow(ERR_WORKSPACE_NOT_CONFIGURED)
     })
   })
 
@@ -116,7 +120,7 @@ describe("patient actions", () => {
     it("throws when patient not found", async () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
 
-      await expect(getPatient("nonexistent")).rejects.toThrow("Paciente nao encontrado")
+      await expect(getPatient("nonexistent")).rejects.toThrow(ERR_PATIENT_NOT_FOUND)
     })
   })
 
@@ -131,9 +135,9 @@ describe("patient actions", () => {
       formData.set("document", "12345678900")
       formData.set("phone", "11999990000")
 
-      // createPatient calls redirect(), which throws RedirectError
-      await expect(createPatient(formData)).rejects.toThrow(RedirectError)
+      const result = await createPatient(formData)
 
+      expect(result).toEqual({ patientId: "p_new" })
       expect(mockDb.patient.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           workspaceId: WORKSPACE_ID,
@@ -158,8 +162,9 @@ describe("patient actions", () => {
       formData.set("name", "Test Patient")
       formData.set("customData", JSON.stringify({ alergias: "penicilina" }))
 
-      await expect(createPatient(formData)).rejects.toThrow(RedirectError)
+      const result = await createPatient(formData)
 
+      expect(result).toEqual({ patientId: "p_new" })
       expect(mockDb.patient.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           customData: { alergias: "penicilina" },
@@ -186,7 +191,7 @@ describe("patient actions", () => {
     it("throws when patient not in workspace", async () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
 
-      await expect(updatePatient("p_other", { name: "X" })).rejects.toThrow("Paciente nao encontrado")
+      await expect(updatePatient("p_other", { name: "X" })).rejects.toThrow(ERR_PATIENT_NOT_FOUND)
     })
   })
 
@@ -208,7 +213,7 @@ describe("patient actions", () => {
     it("throws when patient not in workspace", async () => {
       mockDb.patient.findFirst.mockResolvedValue(null)
 
-      await expect(deactivatePatient("p_other")).rejects.toThrow("Paciente nao encontrado")
+      await expect(deactivatePatient("p_other")).rejects.toThrow(ERR_PATIENT_NOT_FOUND)
     })
   })
 

@@ -12,6 +12,11 @@ import {
   checkAppointmentConflicts,
   rescheduleAppointment,
 } from "@/server/actions/appointment"
+import {
+  ERR_UNAUTHORIZED,
+  ERR_PATIENT_NOT_FOUND,
+  ERR_APPOINTMENT_NOT_FOUND,
+} from "@/lib/error-messages"
 
 const WORKSPACE_ID = "ws_test_123"
 const CLERK_ID = "clerk_test_user_123"
@@ -56,7 +61,7 @@ describe("appointment actions", () => {
 
     it("throws Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue({ userId: null })
-      await expect(getAppointmentsByDateRange("2024-06-15", "2024-06-16")).rejects.toThrow("Unauthorized")
+      await expect(getAppointmentsByDateRange("2024-06-15", "2024-06-16")).rejects.toThrow(ERR_UNAUTHORIZED)
     })
   })
 
@@ -144,7 +149,7 @@ describe("appointment actions", () => {
 
       await expect(
         scheduleAppointment({ patientId: "p_other", date: "2024-06-15T10:00:00Z", agendaId: AGENDA_ID })
-      ).rejects.toThrow("Paciente nao encontrado")
+      ).rejects.toThrow(ERR_PATIENT_NOT_FOUND)
     })
   })
 
@@ -177,7 +182,7 @@ describe("appointment actions", () => {
     it("throws when appointment not in workspace", async () => {
       mockDb.appointment.findFirst.mockResolvedValue(null)
 
-      await expect(updateAppointmentStatus("a_other", "completed")).rejects.toThrow("Consulta nao encontrada")
+      await expect(updateAppointmentStatus("a_other", "completed")).rejects.toThrow(ERR_APPOINTMENT_NOT_FOUND)
     })
   })
 
@@ -196,7 +201,7 @@ describe("appointment actions", () => {
     it("throws when appointment not found", async () => {
       mockDb.appointment.findFirst.mockResolvedValue(null)
 
-      await expect(deleteAppointment("a_missing")).rejects.toThrow("Consulta nao encontrada")
+      await expect(deleteAppointment("a_missing")).rejects.toThrow(ERR_APPOINTMENT_NOT_FOUND)
     })
   })
 
@@ -245,7 +250,7 @@ describe("appointment actions", () => {
     it("throws when appointment not in workspace", async () => {
       mockDb.appointment.findFirst.mockResolvedValue(null)
 
-      await expect(rescheduleAppointment("a_other", "2024-07-01T14:00:00Z")).rejects.toThrow("Consulta nao encontrada")
+      await expect(rescheduleAppointment("a_other", "2024-07-01T14:00:00Z")).rejects.toThrow(ERR_APPOINTMENT_NOT_FOUND)
     })
   })
 })

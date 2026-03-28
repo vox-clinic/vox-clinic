@@ -17,6 +17,13 @@ import {
   getRecordingForReview,
   confirmConsultation,
 } from "@/server/actions/consultation"
+import {
+  ERR_UNAUTHORIZED,
+  ERR_NO_AUDIO,
+  ERR_AUDIO_TOO_LARGE,
+  ERR_RECORDING_NOT_FOUND,
+  ERR_ALREADY_CONFIRMED,
+} from "@/lib/error-messages"
 
 const WORKSPACE_ID = "ws_test_123"
 const CLERK_ID = "clerk_test_user_123"
@@ -88,13 +95,13 @@ describe("consultation actions", () => {
       formData.set("audio", createAudioFile(26 * 1024 * 1024))
 
       await expect(processConsultation(formData, "p1")).rejects.toThrow(
-        "Arquivo de audio excede o limite de 25MB"
+        ERR_AUDIO_TOO_LARGE
       )
     })
 
     it("throws when no audio file provided", async () => {
       const formData = new FormData()
-      await expect(processConsultation(formData, "p1")).rejects.toThrow("No audio file provided")
+      await expect(processConsultation(formData, "p1")).rejects.toThrow(ERR_NO_AUDIO)
     })
 
     it("saves error recording on transcription failure (preserves audio)", async () => {
@@ -152,7 +159,7 @@ describe("consultation actions", () => {
       const formData = new FormData()
       formData.set("audio", createAudioFile())
 
-      await expect(processConsultation(formData, "p1")).rejects.toThrow("Unauthorized")
+      await expect(processConsultation(formData, "p1")).rejects.toThrow(ERR_UNAUTHORIZED)
     })
 
     it("passes workspace procedure names to Whisper as hints", async () => {
@@ -199,7 +206,7 @@ describe("consultation actions", () => {
     it("throws when recording not found in workspace", async () => {
       mockDb.recording.findFirst.mockResolvedValue(null)
 
-      await expect(getRecordingForReview("rec_missing")).rejects.toThrow("Recording not found")
+      await expect(getRecordingForReview("rec_missing")).rejects.toThrow(ERR_RECORDING_NOT_FOUND)
     })
 
     it("returns empty transcript when null", async () => {
@@ -267,13 +274,13 @@ describe("consultation actions", () => {
     it("double-confirm guard: rejects if recording already has appointmentId", async () => {
       mockDb.$queryRawUnsafe.mockResolvedValue([{ id: "rec_1", appointmentId: "a_existing" }])
 
-      await expect(confirmConsultation(confirmData)).rejects.toThrow("Consulta ja confirmada")
+      await expect(confirmConsultation(confirmData)).rejects.toThrow(ERR_ALREADY_CONFIRMED)
     })
 
     it("throws when recording not found", async () => {
       mockDb.$queryRawUnsafe.mockResolvedValue([])
 
-      await expect(confirmConsultation(confirmData)).rejects.toThrow("Recording not found")
+      await expect(confirmConsultation(confirmData)).rejects.toThrow(ERR_RECORDING_NOT_FOUND)
     })
 
     it("logs audit after successful confirmation", async () => {
@@ -309,7 +316,7 @@ describe("consultation actions", () => {
       // FOR UPDATE query returns empty (recording not in this workspace)
       mockDb.$queryRawUnsafe.mockResolvedValue([])
 
-      await expect(confirmConsultation(confirmData)).rejects.toThrow("Recording not found")
+      await expect(confirmConsultation(confirmData)).rejects.toThrow(ERR_RECORDING_NOT_FOUND)
 
       // Should NOT create appointment
       expect(mockDb.appointment.create).not.toHaveBeenCalled()
@@ -318,7 +325,7 @@ describe("consultation actions", () => {
     it("Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue({ userId: null })
 
-      await expect(confirmConsultation(confirmData)).rejects.toThrow("Unauthorized")
+      await expect(confirmConsultation(confirmData)).rejects.toThrow(ERR_UNAUTHORIZED)
     })
   })
 })
