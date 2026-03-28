@@ -130,15 +130,14 @@ export class NfseClient {
       cep?: string
     }
   }): Promise<unknown> {
-    // Try to create; if already exists (409), update instead
+    // Try to create; if already exists (400/409), update instead
     try {
       return await this.request("/empresas", {
         method: "POST",
         body: JSON.stringify(data),
       })
     } catch (err) {
-      if (err instanceof Error && err.message.includes("409")) {
-        // Already exists — update
+      if (err instanceof Error && (err.message.includes("409") || err.message.includes("AlreadyExists"))) {
         return await this.request(`/empresas/${data.cpf_cnpj}`, {
           method: "PUT",
           body: JSON.stringify(data),
