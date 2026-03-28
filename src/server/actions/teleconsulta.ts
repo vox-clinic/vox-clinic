@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { createVideoRoom, createMeetingToken, deleteVideoRoom } from "@/lib/daily"
 import crypto from "crypto"
 import { logger } from "@/lib/logger"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ERR_TELECONSULTA_NOT_FOUND, ERR_TELECONSULTA_ROOM_FAILED, ERR_TELECONSULTA_ROOM_NOT_CONFIGURED, ERR_TELECONSULTA_NOT_READY, ERR_TELECONSULTA_EXPIRED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ERR_TELECONSULTA_NOT_FOUND, ERR_TELECONSULTA_ROOM_FAILED, ERR_TELECONSULTA_ROOM_NOT_CONFIGURED, ERR_TELECONSULTA_NOT_READY, ERR_TELECONSULTA_EXPIRED, ActionError } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -68,7 +68,7 @@ export async function createTeleconsultaRoom(appointmentId: string) {
     // Re-fetch the existing room info
     const existing = await db.appointment.findUnique({ where: { id: appointmentId } })
     if (!existing?.videoRoomName || !existing?.videoRoomUrl || !existing?.videoToken) {
-      throw new Error(ERR_TELECONSULTA_ROOM_FAILED)
+      throw new ActionError(ERR_TELECONSULTA_ROOM_FAILED)
     }
     const existingOwnerToken = await createMeetingToken(existing.videoRoomName, {
       isOwner: true,
@@ -126,9 +126,9 @@ export async function getPatientJoinInfo(videoToken: string) {
     },
   })
 
-  if (!appointment) throw new Error(ERR_TELECONSULTA_NOT_FOUND)
+  if (!appointment) throw new ActionError(ERR_TELECONSULTA_NOT_FOUND)
   if (!appointment.videoRoomName || !appointment.videoRoomUrl) {
-    throw new Error(ERR_TELECONSULTA_ROOM_NOT_CONFIGURED)
+    throw new ActionError(ERR_TELECONSULTA_ROOM_NOT_CONFIGURED)
   }
 
   // Allow joining from 30 min before until 3 hours after appointment time
@@ -137,10 +137,10 @@ export async function getPatientJoinInfo(videoToken: string) {
   const latestJoin = new Date(appointment.date.getTime() + 3 * 60 * 60 * 1000)
 
   if (now < earliestJoin) {
-    throw new Error(ERR_TELECONSULTA_NOT_READY)
+    throw new ActionError(ERR_TELECONSULTA_NOT_READY)
   }
   if (now > latestJoin) {
-    throw new Error(ERR_TELECONSULTA_EXPIRED)
+    throw new ActionError(ERR_TELECONSULTA_EXPIRED)
   }
 
   const expiresAt = new Date(appointment.date.getTime() + 3 * 60 * 60 * 1000)

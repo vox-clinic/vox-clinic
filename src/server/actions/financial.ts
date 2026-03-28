@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { readProcedures, normalizeProcedureNames, toJsonValue } from "@/lib/json-helpers"
 import type { Procedure } from "@/types"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 export async function getFinancialData(period: "month" | "year", date: string) {
   const { userId } = await auth()
@@ -107,7 +107,7 @@ export async function getFinancialData(period: "month" | "year", date: string) {
 }
 
 export async function updateAppointmentPrice(appointmentId: string, price: number) {
-  if (!Number.isFinite(price) || price < 0) throw new Error("Preco invalido")
+  if (!Number.isFinite(price) || price < 0) throw new ActionError("Preco invalido")
 
   const { userId } = await auth()
   if (!userId) throw new Error(ERR_UNAUTHORIZED)
@@ -135,7 +135,7 @@ export async function updateAppointmentPrice(appointmentId: string, price: numbe
 }
 
 export async function updateProcedurePrice(procedureId: string, price: number) {
-  if (!Number.isFinite(price) || price < 0) throw new Error("Preco invalido")
+  if (!Number.isFinite(price) || price < 0) throw new ActionError("Preco invalido")
 
   const { userId } = await auth()
   if (!userId) throw new Error(ERR_UNAUTHORIZED)
@@ -168,7 +168,7 @@ export async function updateProcedurePrice(procedureId: string, price: number) {
     if (result.count > 0) return { success: true }
   }
 
-  throw new Error("Nao foi possivel atualizar o preco. Tente novamente.")
+  throw new ActionError("Nao foi possivel atualizar o preco. Tente novamente.")
 }
 
 export async function getWorkspaceProcedures() {

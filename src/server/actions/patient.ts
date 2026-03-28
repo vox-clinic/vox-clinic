@@ -6,7 +6,7 @@ import { checkPatientLimit } from "@/lib/plan-enforcement"
 import { getSignedAudioUrl } from "@/lib/storage"
 import { logAudit } from "@/lib/audit"
 import { unstable_cache, revalidateTag } from "next/cache"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceContext() {
   const { userId } = await auth()
@@ -208,6 +208,9 @@ export async function getPatient(patientId: string) {
       notes: a.notes,
       aiSummary: a.aiSummary,
       status: a.status,
+      type: a.type,
+      price: a.price,
+      transcript: a.transcript,
       videoRecordingUrl: a.videoRecordingUrl,
       recordings: a.recordings,
     })),
@@ -276,7 +279,7 @@ export async function createPatient(formData: FormData) {
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
   if (workspace) {
     const planCheck = await checkPatientLimit(workspaceId, workspace.plan)
-    if (!planCheck.allowed) throw new Error(planCheck.reason!)
+    if (!planCheck.allowed) throw new ActionError(planCheck.reason!)
   }
 
   const name = formData.get("name") as string
@@ -292,7 +295,7 @@ export async function createPatient(formData: FormData) {
   const customDataRaw = formData.get("customData") as string | null
   const addressRaw = formData.get("address") as string | null
 
-  if (!name?.trim()) throw new Error("Nome e obrigatorio")
+  if (!name?.trim()) throw new ActionError("Nome e obrigatorio")
 
   let customData = {}
   if (customDataRaw) {
@@ -310,21 +313,21 @@ export async function createPatient(formData: FormData) {
     if (docDigits.length === 11) {
       // CPF digit validation
       if (/^(\d)\1{10}$/.test(docDigits)) {
-        throw new Error("CPF invalido.")
+        throw new ActionError("CPF invalido.")
       }
       let sum = 0
       for (let i = 0; i < 9; i++) sum += parseInt(docDigits[i]) * (10 - i)
       let remainder = (sum * 10) % 11
       if (remainder === 10) remainder = 0
       if (remainder !== parseInt(docDigits[9])) {
-        throw new Error("CPF invalido (digito verificador incorreto).")
+        throw new ActionError("CPF invalido (digito verificador incorreto).")
       }
       sum = 0
       for (let i = 0; i < 10; i++) sum += parseInt(docDigits[i]) * (11 - i)
       remainder = (sum * 10) % 11
       if (remainder === 10) remainder = 0
       if (remainder !== parseInt(docDigits[10])) {
-        throw new Error("CPF invalido (digito verificador incorreto).")
+        throw new ActionError("CPF invalido (digito verificador incorreto).")
       }
     }
   }
@@ -399,7 +402,7 @@ export async function getAudioPlaybackUrl(audioPath: string) {
       OR: [{ workspaceId }, { patient: { workspaceId } }],
     },
   })
-  if (!recording) throw new Error("Audio nao encontrado")
+  if (!recording) throw new ActionError("Audio nao encontrado")
 
   return getSignedAudioUrl(audioPath)
 }
@@ -407,7 +410,7 @@ export async function getAudioPlaybackUrl(audioPath: string) {
 export async function mergePatients(keepId: string, mergeId: string) {
   const { workspaceId, clerkId } = await getWorkspaceContext()
 
-  if (keepId === mergeId) throw new Error("Nao pode mesclar paciente consigo mesmo")
+  if (keepId === mergeId) throw new ActionError("Nao pode mesclar paciente consigo mesmo")
 
   const mergeResult = await db.$transaction(async (tx) => {
     // Lock both patients with FOR UPDATE to prevent concurrent modification
@@ -421,7 +424,7 @@ export async function mergePatients(keepId: string, mergeId: string) {
     )
     const keep = keepRows[0]
     const mergePatient = mergeRows[0]
-    if (!keep || !mergePatient) throw new Error("Pacientes nao encontrados")
+    if (!keep || !mergePatient) throw new ActionError("Pacientes nao encontrados")
     // Move appointments from merge → keep
     await tx.appointment.updateMany({
       where: { patientId: mergeId, workspaceId },

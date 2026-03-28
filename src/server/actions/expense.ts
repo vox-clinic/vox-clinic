@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_EXPENSE_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_EXPENSE_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 // ─── Auth helper (inline, not shared — Vercel bundler constraint) ────────────
 
@@ -91,9 +91,9 @@ export async function createExpense(data: {
 }) {
   const { userId, workspaceId } = await getWorkspaceContext()
 
-  if (!data.description?.trim()) throw new Error("Descricao da despesa e obrigatoria.")
-  if (!data.amount || data.amount <= 0) throw new Error("Valor da despesa deve ser maior que zero.")
-  if (!data.dueDate) throw new Error("Data de vencimento e obrigatoria.")
+  if (!data.description?.trim()) throw new ActionError("Descricao da despesa e obrigatoria.")
+  if (!data.amount || data.amount <= 0) throw new ActionError("Valor da despesa deve ser maior que zero.")
+  if (!data.dueDate) throw new ActionError("Data de vencimento e obrigatoria.")
 
   const isPaidImmediately = !!data.paymentMethod
   const now = new Date()
@@ -213,8 +213,8 @@ export async function updateExpense(
 ) {
   const { workspaceId } = await getWorkspaceContext()
 
-  if (data.description !== undefined && !data.description.trim()) throw new Error("Descricao da despesa e obrigatoria.")
-  if (data.amount !== undefined && data.amount <= 0) throw new Error("Valor da despesa deve ser maior que zero.")
+  if (data.description !== undefined && !data.description.trim()) throw new ActionError("Descricao da despesa e obrigatoria.")
+  if (data.amount !== undefined && data.amount <= 0) throw new ActionError("Valor da despesa deve ser maior que zero.")
 
   const expense = await db.expense.findUnique({ where: { id } })
   if (!expense || expense.workspaceId !== workspaceId) {
@@ -283,7 +283,7 @@ export async function payExpense(
 ) {
   const { workspaceId } = await getWorkspaceContext()
 
-  if (!data.paidAmount || data.paidAmount <= 0) throw new Error("Valor do pagamento deve ser maior que zero.")
+  if (!data.paidAmount || data.paidAmount <= 0) throw new ActionError("Valor do pagamento deve ser maior que zero.")
 
   const expense = await db.expense.findUnique({ where: { id } })
   if (!expense || expense.workspaceId !== workspaceId) {

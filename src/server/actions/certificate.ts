@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
-import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_CERTIFICATE_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_CERTIFICATE_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -59,11 +59,11 @@ export async function createCertificate(data: {
   const { userId, workspaceId } = await getAuthContext()
 
   const validTypes = ["atestado", "declaracao_comparecimento", "encaminhamento", "laudo"]
-  if (!validTypes.includes(data.type)) throw new Error("Tipo de documento invalido")
+  if (!validTypes.includes(data.type)) throw new ActionError("Tipo de documento invalido")
 
   if (data.days !== undefined && data.days !== null) {
-    if (data.days < 1) throw new Error("Numero de dias deve ser maior que zero.")
-    if (data.days > 365) throw new Error("Maximo de 365 dias permitido.")
+    if (data.days < 1) throw new ActionError("Numero de dias deve ser maior que zero.")
+    if (data.days > 365) throw new ActionError("Maximo de 365 dias permitido.")
   }
 
   const patient = await db.patient.findFirst({
@@ -78,7 +78,7 @@ export async function createCertificate(data: {
     content: data.content,
   })
 
-  if (!content.trim()) throw new Error("O conteudo do documento nao pode ser vazio")
+  if (!content.trim()) throw new ActionError("O conteudo do documento nao pode ser vazio")
 
   const certificate = await db.medicalCertificate.create({
     data: {

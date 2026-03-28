@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
 import { revalidateTag } from "next/cache"
 import { checkAppointmentLimit } from "@/lib/plan-enforcement"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ERR_PATIENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ERR_PATIENT_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -231,13 +231,13 @@ export async function scheduleAppointment(data: {
   // Plan enforcement: check appointment limit
   const workspacePlan = user?.workspace?.plan ?? (await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } }))?.plan ?? "free"
   const planCheck = await checkAppointmentLimit(workspaceId, workspacePlan)
-  if (!planCheck.allowed) throw new Error(planCheck.reason!)
+  if (!planCheck.allowed) throw new ActionError(planCheck.reason!)
 
   // Validate agenda belongs to workspace
   const agenda = await db.agenda.findFirst({
     where: { id: data.agendaId, workspaceId },
   })
-  if (!agenda) throw new Error("Agenda nao encontrada")
+  if (!agenda) throw new ActionError("Agenda nao encontrada")
 
   // Verify patient belongs to workspace
   const patient = await db.patient.findFirst({
@@ -274,7 +274,7 @@ export async function scheduleAppointment(data: {
 
       if (conflicts.length > 0) {
         const names = conflicts.map((c) => c.patient.name).join(", ")
-        throw new Error(
+        throw new ActionError(
           `CONFLICT:Ja existe consulta proxima a este horario (${names}). Deseja agendar mesmo assim?`
         )
       }
@@ -339,7 +339,7 @@ export async function updateAppointmentStatus(appointmentId: string, status: str
 
   const validStatuses = ["scheduled", "completed", "cancelled", "no_show"]
   if (!validStatuses.includes(status)) {
-    throw new Error("Status invalido")
+    throw new ActionError("Status invalido")
   }
 
   const existing = await db.appointment.findFirst({
@@ -406,7 +406,7 @@ export async function rescheduleAppointment(appointmentId: string, newDate: stri
 
       if (conflicts.length > 0) {
         const names = conflicts.map((c) => c.patient.name).join(", ")
-        throw new Error(`CONFLICT:Ja existe consulta proxima a este horario (${names}). Deseja reagendar mesmo assim?`)
+        throw new ActionError(`CONFLICT:Ja existe consulta proxima a este horario (${names}). Deseja reagendar mesmo assim?`)
       }
     }
 
@@ -468,7 +468,7 @@ export async function scheduleRecurringAppointments(data: {
   const workspaceId = await getWorkspaceId()
 
   if (data.occurrences < 2 || data.occurrences > 52) {
-    throw new Error("Numero de ocorrencias deve ser entre 2 e 52")
+    throw new ActionError("Numero de ocorrencias deve ser entre 2 e 52")
   }
 
   // Verify patient belongs to workspace
@@ -506,7 +506,7 @@ export async function scheduleRecurringAppointments(data: {
         },
       })
       if (conflicts.length > 0) {
-        throw new Error(`CONFLICT:Conflito no horario ${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`)
+        throw new ActionError(`CONFLICT:Conflito no horario ${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`)
       }
 
       results.push(await tx.appointment.create({

@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
-import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_PRESCRIPTION_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_PRESCRIPTION_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -33,12 +33,12 @@ export async function createPrescription(data: {
   })
   if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
-  if (!data.medications.length) throw new Error("Adicione pelo menos um medicamento")
+  if (!data.medications.length) throw new ActionError("Adicione pelo menos um medicamento")
 
   for (const med of data.medications) {
-    if (!med.name?.trim()) throw new Error("Nome do medicamento e obrigatorio.")
-    if (!med.dosage?.trim()) throw new Error("Dosagem e obrigatoria para cada medicamento.")
-    if (!med.frequency?.trim()) throw new Error("Frequencia e obrigatoria para cada medicamento.")
+    if (!med.name?.trim()) throw new ActionError("Nome do medicamento e obrigatorio.")
+    if (!med.dosage?.trim()) throw new ActionError("Dosagem e obrigatoria para cada medicamento.")
+    if (!med.frequency?.trim()) throw new ActionError("Frequencia e obrigatoria para cada medicamento.")
   }
 
   const prescription = await db.prescription.create({

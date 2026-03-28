@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { getStripe, PLAN_PRICE_IDS } from "@/lib/stripe"
 import { logger } from "@/lib/logger"
 import { getPlanLimits } from "@/lib/plan-limits"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_WORKSPACE_NOT_FOUND, ERR_NO_SUBSCRIPTION } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_WORKSPACE_NOT_FOUND, ERR_NO_SUBSCRIPTION, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceWithUser() {
   const { userId } = await auth()
@@ -32,7 +32,7 @@ export async function createCheckoutSession(planKey: "pro" | "enterprise") {
 
   const priceId = PLAN_PRICE_IDS[planKey]
   if (!priceId) {
-    throw new Error(`Preco nao configurado para o plano ${planKey}. Configure STRIPE_PRICE_${planKey.toUpperCase()} no ambiente.`)
+    throw new ActionError(`Preco nao configurado para o plano ${planKey}. Configure STRIPE_PRICE_${planKey.toUpperCase()} no ambiente.`)
   }
 
   // Get or create Stripe Customer
@@ -76,7 +76,7 @@ export async function createPortalSession() {
   const { workspace } = await getWorkspaceWithUser()
 
   if (!workspace.stripeCustomerId) {
-    throw new Error(ERR_NO_SUBSCRIPTION)
+    throw new ActionError(ERR_NO_SUBSCRIPTION)
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.voxclinic.com"

@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { checkAgendaLimit } from "@/lib/plan-enforcement"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_AGENDA_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_AGENDA_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -90,12 +90,12 @@ export async function getDefaultAgendaIdForWorkspace(workspaceId: string) {
 export async function createAgenda(data: { name: string; color?: string }) {
   const workspaceId = await getWorkspaceId()
 
-  if (!data.name.trim()) throw new Error("Nome da agenda e obrigatorio")
+  if (!data.name.trim()) throw new ActionError("Nome da agenda e obrigatorio")
 
   // Plan enforcement: check agenda limit
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
   const planCheck = await checkAgendaLimit(workspaceId, workspace?.plan ?? "free")
-  if (!planCheck.allowed) throw new Error(planCheck.reason!)
+  if (!planCheck.allowed) throw new ActionError(planCheck.reason!)
 
   const agenda = await db.agenda.create({
     data: {
@@ -128,7 +128,7 @@ export async function updateAgenda(
 
   // Cannot deactivate default agenda
   if (existing.isDefault && data.isActive === false) {
-    throw new Error("Nao e possivel desativar a agenda padrao")
+    throw new ActionError("Nao e possivel desativar a agenda padrao")
   }
 
   const updated = await db.agenda.update({
@@ -159,11 +159,11 @@ export async function deleteAgenda(id: string) {
   if (!existing) throw new Error(ERR_AGENDA_NOT_FOUND)
 
   if (existing.isDefault) {
-    throw new Error("Nao e possivel excluir a agenda padrao")
+    throw new ActionError("Nao e possivel excluir a agenda padrao")
   }
 
   if (existing._count.appointments > 0) {
-    throw new Error(
+    throw new ActionError(
       `Esta agenda possui ${existing._count.appointments} consulta(s). Mova as consultas para outra agenda antes de excluir.`
     )
   }

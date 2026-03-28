@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { checkFeatureAccess } from "@/lib/plan-enforcement"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -23,7 +23,7 @@ export async function getReportsData(period: "3m" | "6m" | "12m") {
   // Plan enforcement: check reports feature access
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
   const planCheck = checkFeatureAccess(workspace?.plan ?? "free", "reports")
-  if (!planCheck.allowed) throw new Error(planCheck.reason!)
+  if (!planCheck.allowed) throw new ActionError(planCheck.reason!)
 
   const now = new Date()
 

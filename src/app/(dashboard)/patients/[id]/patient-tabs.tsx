@@ -95,6 +95,9 @@ type PatientData = {
     notes: string | null
     aiSummary: string | null
     status: string
+    type: string | null
+    price: number | null
+    transcript: string | null
     videoRecordingUrl: string | null
     recordings: {
       id: string
@@ -743,27 +746,45 @@ function HistoricoTab({
                     }
                   >
                     <CardHeader className="flex-row items-center justify-between py-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium">
                             {formatDate(apt.date)}
                           </p>
                           <Badge variant="outline" className={statusColors[currentStatus] ?? ""}>
                             {statusLabels[currentStatus] ?? currentStatus}
                           </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {(apt.procedures as any[]).map((proc, i) => (
-                            <Badge key={i} variant="secondary">
-                              {typeof proc === "string" ? proc : proc?.name || String(proc)}
+                          {apt.type === "teleconsulta" && (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">
+                              <Video className="size-3 mr-1" />
+                              Teleconsulta
                             </Badge>
-                          ))}
+                          )}
+                          {apt.price != null && apt.price > 0 && (
+                            <span className="text-sm font-medium text-vox-primary">
+                              R$ {apt.price.toFixed(2).replace(".", ",")}
+                            </span>
+                          )}
                         </div>
+                        {(apt.procedures as any[]).length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {(apt.procedures as any[]).map((proc, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {typeof proc === "string" ? proc : proc?.name || String(proc)}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {!isExpanded && (apt.notes || apt.aiSummary) && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            {apt.notes || apt.aiSummary}
+                          </p>
+                        )}
                       </div>
                       {isExpanded ? (
-                        <ChevronUp className="size-4 text-muted-foreground shrink-0" />
+                        <ChevronUp className="size-4 text-muted-foreground shrink-0 ml-2" />
                       ) : (
-                        <ChevronDown className="size-4 text-muted-foreground shrink-0" />
+                        <ChevronDown className="size-4 text-muted-foreground shrink-0 ml-2" />
                       )}
                     </CardHeader>
                   </button>
@@ -839,7 +860,23 @@ function HistoricoTab({
                           <p className="text-xs font-medium text-muted-foreground">
                             Notas
                           </p>
-                          <p className="text-sm">{apt.notes}</p>
+                          <p className="text-sm whitespace-pre-wrap">{apt.notes}</p>
+                        </div>
+                      )}
+                      {apt.price != null && apt.price > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Valor</p>
+                          <p className="text-sm font-medium text-vox-primary">
+                            R$ {apt.price.toFixed(2).replace(".", ",")}
+                          </p>
+                        </div>
+                      )}
+                      {apt.transcript && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Transcricao</p>
+                          <p className="text-sm whitespace-pre-wrap text-muted-foreground bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                            {apt.transcript}
+                          </p>
                         </div>
                       )}
                       {apt.recordings.length > 0 && (

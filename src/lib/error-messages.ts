@@ -1,6 +1,21 @@
 // Mensagens de erro user-friendly em pt-BR
 // Centraliza todas as mensagens para consistencia e facilidade de manutencao
 
+/**
+ * Custom error class for server actions.
+ * Next.js in production sanitizes regular Error messages from server actions.
+ * This class stores the message in the `digest` property which IS forwarded to the client.
+ */
+export class ActionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "ActionError"
+    // The digest property is forwarded to the client by Next.js
+    this.digest = message
+  }
+  digest: string
+}
+
 // ============================================================
 // AUTH & WORKSPACE
 // ============================================================
@@ -148,6 +163,19 @@ const ERROR_MAP: Record<string, string> = {
  * Usa o mapa de traducao e fallback para a mensagem original se ja estiver em pt-BR.
  */
 export function friendlyError(error: unknown, fallback?: string): string {
+  // Check for ActionError digest first (Next.js forwards this to client)
+  const digest = (error as any)?.digest
+  if (typeof digest === "string" && digest.length > 0 && digest.length < 200) {
+    // Check if digest looks like a real message (not a Next.js internal hash)
+    if (!/^[a-z0-9]{20,}$/i.test(digest) && !digest.startsWith("NEXT_")) {
+      if (ERROR_MAP[digest]) return ERROR_MAP[digest]
+      for (const [key, friendly] of Object.entries(ERROR_MAP)) {
+        if (digest.includes(key)) return friendly
+      }
+      return digest
+    }
+  }
+
   const message = error instanceof Error ? error.message : String(error || "")
 
   // Verifica match exato no mapa

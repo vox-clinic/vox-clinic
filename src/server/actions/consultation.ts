@@ -13,7 +13,7 @@ import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
 import { readProcedures, toJsonValue, readMedicalHistory } from "@/lib/json-helpers"
 import { logger } from "@/lib/logger"
 import type { AppointmentSummary } from "@/types"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_NO_AUDIO, ERR_AUDIO_TOO_LARGE, ERR_RECORDING_NOT_FOUND, ERR_ALREADY_CONFIRMED, ERR_PROCESSING_FAILED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_NO_AUDIO, ERR_AUDIO_TOO_LARGE, ERR_RECORDING_NOT_FOUND, ERR_ALREADY_CONFIRMED, ERR_PROCESSING_FAILED, ActionError } from "@/lib/error-messages"
 
 export async function processConsultation(formData: FormData, patientId: string) {
   const { userId } = await auth()
@@ -31,10 +31,10 @@ export async function processConsultation(formData: FormData, patientId: string)
   if (!workspace) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
 
   const audioFile = formData.get("audio") as File | null
-  if (!audioFile) throw new Error(ERR_NO_AUDIO)
+  if (!audioFile) throw new ActionError(ERR_NO_AUDIO)
 
   if (audioFile.size > 25 * 1024 * 1024) {
-    throw new Error(ERR_AUDIO_TOO_LARGE)
+    throw new ActionError(ERR_AUDIO_TOO_LARGE)
   }
 
   const arrayBuffer = await audioFile.arrayBuffer()
@@ -187,8 +187,8 @@ export async function confirmConsultation(data: {
     )
 
     const recording = rows[0]
-    if (!recording) throw new Error(ERR_RECORDING_NOT_FOUND)
-    if (recording.appointmentId) throw new Error(ERR_ALREADY_CONFIRMED)
+    if (!recording) throw new ActionError(ERR_RECORDING_NOT_FOUND)
+    if (recording.appointmentId) throw new ActionError(ERR_ALREADY_CONFIRMED)
 
     const appointment = await tx.appointment.create({
       data: {

@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_AGENDA_NOT_FOUND, ERR_BLOCKED_SLOT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_AGENDA_NOT_FOUND, ERR_BLOCKED_SLOT_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -115,7 +115,7 @@ export async function createBlockedSlot(data: {
 }) {
   const workspaceId = await getWorkspaceId()
 
-  if (!data.title.trim()) throw new Error("Titulo e obrigatorio")
+  if (!data.title.trim()) throw new ActionError("Titulo e obrigatorio")
 
   // Validate agenda belongs to workspace
   const agenda = await db.agenda.findFirst({
@@ -126,7 +126,7 @@ export async function createBlockedSlot(data: {
   const startDate = new Date(data.startDate)
   const endDate = new Date(data.endDate)
 
-  if (endDate <= startDate) throw new Error("Data final deve ser posterior a data inicial")
+  if (endDate <= startDate) throw new ActionError("Data final deve ser posterior a data inicial")
 
   const slot = await db.blockedSlot.create({
     data: {
@@ -166,7 +166,7 @@ export async function updateBlockedSlot(
   const effectiveStart = data.startDate ? new Date(data.startDate) : existing.startDate
   const effectiveEnd = data.endDate ? new Date(data.endDate) : existing.endDate
   if (effectiveEnd <= effectiveStart) {
-    throw new Error("Data final deve ser posterior a data inicial")
+    throw new ActionError("Data final deve ser posterior a data inicial")
   }
 
   const updateData: any = {}

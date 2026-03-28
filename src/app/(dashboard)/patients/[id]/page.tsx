@@ -59,7 +59,7 @@ export default async function PatientPage({
       </nav>
 
       {/* ─── Patient Hero ─── */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-vox-primary/[0.06] via-card to-vox-primary/[0.03] p-5">
+      <div className="relative rounded-2xl border border-border/40 bg-gradient-to-br from-vox-primary/[0.06] via-card to-vox-primary/[0.03] p-5">
         <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-vox-primary/[0.05] blur-3xl" />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">

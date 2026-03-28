@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_TREATMENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_TREATMENT_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -64,8 +64,8 @@ export async function createTreatmentPlan(data: {
   })
   if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
-  if (data.totalSessions < 1) throw new Error("Total de sessoes deve ser pelo menos 1")
-  if (data.totalSessions > 365) throw new Error("Maximo de 365 sessoes permitido.")
+  if (data.totalSessions < 1) throw new ActionError("Total de sessoes deve ser pelo menos 1")
+  if (data.totalSessions > 365) throw new ActionError("Maximo de 365 sessoes permitido.")
 
   const plan = await db.treatmentPlan.create({
     data: {
@@ -108,8 +108,8 @@ export async function addSessionToTreatment(planId: string) {
 
     const plan = rows[0]
     if (!plan) throw new Error(ERR_TREATMENT_NOT_FOUND)
-    if (plan.status !== "active") throw new Error("Plano nao esta ativo")
-    if (plan.completedSessions >= plan.totalSessions) throw new Error("Todas as sessoes ja foram concluidas")
+    if (plan.status !== "active") throw new ActionError("Plano nao esta ativo")
+    if (plan.completedSessions >= plan.totalSessions) throw new ActionError("Todas as sessoes ja foram concluidas")
 
     const newCompleted = plan.completedSessions + 1
     const isComplete = newCompleted >= plan.totalSessions
@@ -144,7 +144,7 @@ export async function updateTreatmentPlanStatus(planId: string, status: string) 
   const { userId, workspaceId } = await getAuthContext()
 
   const validStatuses = ["active", "completed", "cancelled", "paused"]
-  if (!validStatuses.includes(status)) throw new Error("Status invalido")
+  if (!validStatuses.includes(status)) throw new ActionError("Status invalido")
 
   const plan = await db.treatmentPlan.findFirst({
     where: { id: planId, workspaceId },

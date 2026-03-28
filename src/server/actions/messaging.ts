@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { sendEmail } from "@/lib/email"
-import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_WORKSPACE_NOT_FOUND, ERR_APPOINTMENT_NOT_FOUND, ERR_PATIENT_NO_EMAIL, ERR_PATIENT_NO_PHONE, ERR_WHATSAPP_NOT_CONFIGURED, ERR_INVALID_CHANNEL } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_WORKSPACE_NOT_FOUND, ERR_APPOINTMENT_NOT_FOUND, ERR_PATIENT_NO_EMAIL, ERR_PATIENT_NO_PHONE, ERR_WHATSAPP_NOT_CONFIGURED, ERR_INVALID_CHANNEL, ActionError } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -85,7 +85,7 @@ export async function sendAppointmentMessage({ appointmentId, channel }: SendRem
   const message = `Ola ${patientName}! Lembrete: sua consulta na ${clinicName} esta marcada para ${date} as ${time}. Caso precise reagendar, entre em contato.`
 
   if (channel === "email") {
-    if (!appointment.patient.email) throw new Error(ERR_PATIENT_NO_EMAIL)
+    if (!appointment.patient.email) throw new ActionError(ERR_PATIENT_NO_EMAIL)
     await sendEmail({
       to: appointment.patient.email,
       subject: `Lembrete de consulta — ${clinicName}`,
@@ -101,13 +101,13 @@ export async function sendAppointmentMessage({ appointmentId, channel }: SendRem
   }
 
   if (channel === "whatsapp") {
-    if (!appointment.patient.phone) throw new Error(ERR_PATIENT_NO_PHONE)
+    if (!appointment.patient.phone) throw new ActionError(ERR_PATIENT_NO_PHONE)
 
     const waConfig = await db.whatsAppConfig.findFirst({
       where: { workspaceId, isActive: true },
     })
     if (!waConfig) {
-      throw new Error(ERR_WHATSAPP_NOT_CONFIGURED)
+      throw new ActionError(ERR_WHATSAPP_NOT_CONFIGURED)
     }
 
     const { WhatsAppClient } = await import("@/lib/whatsapp/client")
@@ -122,13 +122,13 @@ export async function sendAppointmentMessage({ appointmentId, channel }: SendRem
   if (channel === "sms") {
     const config = await getMessagingConfig()
     if (!config.smsEnabled) {
-      throw new Error("SMS nao configurado. Configure as credenciais Twilio em Configuracoes > Mensagens.")
+      throw new ActionError("SMS nao configurado. Configure as credenciais Twilio em Configuracoes > Mensagens.")
     }
-    if (!appointment.patient.phone) throw new Error(ERR_PATIENT_NO_PHONE)
+    if (!appointment.patient.phone) throw new ActionError(ERR_PATIENT_NO_PHONE)
 
     // TODO: Implement Twilio SMS when user provides credentials
-    throw new Error("Integracao SMS em desenvolvimento. Configure suas credenciais Twilio nas configuracoes.")
+    throw new ActionError("Integracao SMS em desenvolvimento. Configure suas credenciais Twilio nas configuracoes.")
   }
 
-  throw new Error(ERR_INVALID_CHANNEL)
+  throw new ActionError(ERR_INVALID_CHANNEL)
 }

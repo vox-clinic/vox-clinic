@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { NfseClient } from "@/lib/nfse/client"
 import { logger } from "@/lib/logger"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ActionError } from "@/lib/error-messages"
 
 function validateCpf(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "")
@@ -198,18 +198,18 @@ export async function testNfseConnection() {
     where: { workspaceId },
   })
 
-  if (!config) throw new Error("Configuracao NFS-e nao encontrada. Salve a configuracao primeiro.")
-  if (!config.certificateId || !config.apiKey) throw new Error("Client ID e Client Secret nao configurados")
+  if (!config) throw new ActionError("Configuracao NFS-e nao encontrada. Salve a configuracao primeiro.")
+  if (!config.certificateId || !config.apiKey) throw new ActionError("Client ID e Client Secret nao configurados")
 
   const isSandbox = process.env.NFSE_AMBIENTE !== "producao"
   const client = new NfseClient(config.certificateId, config.apiKey, isSandbox)
 
   try {
     const ok = await client.testConnection()
-    if (!ok) throw new Error("Falha na conexao")
+    if (!ok) throw new ActionError("Falha na conexao")
     return { success: true, message: "Conexao com o provedor realizada com sucesso!" }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido"
-    throw new Error(`Falha ao conectar com o provedor: ${message}`)
+    throw new ActionError(`Falha ao conectar com o provedor: ${message}`)
   }
 }

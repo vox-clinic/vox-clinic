@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_APPOINTMENT_NOT_FOUND, ERR_RECEIVABLE_NOT_FOUND, ERR_PAYMENT_NOT_FOUND, ERR_PAYMENT_ALREADY_REGISTERED, ERR_PAYMENT_CANCELLED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_APPOINTMENT_NOT_FOUND, ERR_RECEIVABLE_NOT_FOUND, ERR_PAYMENT_NOT_FOUND, ERR_PAYMENT_ALREADY_REGISTERED, ERR_PAYMENT_CANCELLED, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceContext() {
   const { userId } = await auth()
@@ -48,11 +48,11 @@ export async function createCharge(input: CreateChargeInput) {
     notes,
   } = input
 
-  if (totalAmount <= 0) throw new Error("Valor total deve ser maior que zero")
-  if (discount < 0) throw new Error("Desconto nao pode ser negativo")
-  if (discount > totalAmount) throw new Error("Desconto nao pode ser maior que o valor total")
-  if (installments < 1 || installments > 24) throw new Error("Parcelas devem ser entre 1 e 24")
-  if (!description.trim()) throw new Error("Descricao e obrigatoria")
+  if (totalAmount <= 0) throw new ActionError("Valor total deve ser maior que zero")
+  if (discount < 0) throw new ActionError("Desconto nao pode ser negativo")
+  if (discount > totalAmount) throw new ActionError("Desconto nao pode ser maior que o valor total")
+  if (installments < 1 || installments > 24) throw new ActionError("Parcelas devem ser entre 1 e 24")
+  if (!description.trim()) throw new ActionError("Descricao e obrigatoria")
 
   const netAmount = totalAmount - discount
 
@@ -136,7 +136,7 @@ export async function recordPayment(paymentId: string, input: RecordPaymentInput
 
   const { paidAmount, paymentMethod, paidAt, notes } = input
 
-  if (paidAmount <= 0) throw new Error("Valor pago deve ser maior que zero")
+  if (paidAmount <= 0) throw new ActionError("Valor pago deve ser maior que zero")
 
   return db.$transaction(async (tx) => {
     const payment = await tx.payment.findUnique({
@@ -398,7 +398,7 @@ export async function cancelCharge(chargeId: string) {
     }
 
     if (charge.status === "cancelled") {
-      throw new Error("Cobranca ja cancelada")
+      throw new ActionError("Cobranca ja cancelada")
     }
 
     await tx.payment.updateMany({

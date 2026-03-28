@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { NfseClient } from "@/lib/nfse/client"
 import type { EmitNfseInput } from "@/lib/nfse/types"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_NFSE_NOT_CONFIGURED, ERR_NFSE_DISABLED, ERR_APPOINTMENT_NOT_FOUND, ERR_NFSE_NO_PRICE, ERR_NFSE_ALREADY_EXISTS, ERR_NFSE_NOT_FOUND, ERR_NFSE_ALREADY_CANCELLED, ERR_NFSE_CANCELLED_NO_UPDATE } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_NFSE_NOT_CONFIGURED, ERR_NFSE_DISABLED, ERR_APPOINTMENT_NOT_FOUND, ERR_NFSE_NO_PRICE, ERR_NFSE_ALREADY_EXISTS, ERR_NFSE_NOT_FOUND, ERR_NFSE_ALREADY_CANCELLED, ERR_NFSE_CANCELLED_NO_UPDATE, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -28,8 +28,8 @@ export async function emitNfse(appointmentId: string) {
   const config = await db.nfseConfig.findUnique({
     where: { workspaceId },
   })
-  if (!config) throw new Error(ERR_NFSE_NOT_CONFIGURED)
-  if (!config.isActive) throw new Error(ERR_NFSE_DISABLED)
+  if (!config) throw new ActionError(ERR_NFSE_NOT_CONFIGURED)
+  if (!config.isActive) throw new ActionError(ERR_NFSE_DISABLED)
 
   // Load appointment with patient
   const appointment = await db.appointment.findFirst({
@@ -45,8 +45,8 @@ export async function emitNfse(appointmentId: string) {
       },
     },
   })
-  if (!appointment) throw new Error(ERR_APPOINTMENT_NOT_FOUND)
-  if (!appointment.price) throw new Error(ERR_NFSE_NO_PRICE)
+  if (!appointment) throw new ActionError(ERR_APPOINTMENT_NOT_FOUND)
+  if (!appointment.price) throw new ActionError(ERR_NFSE_NO_PRICE)
 
   // Narrow price after the guard above
   const appointmentPrice = appointment.price!
@@ -61,7 +61,7 @@ export async function emitNfse(appointmentId: string) {
         status: { notIn: ["cancelled", "error"] },
       },
     })
-    if (existing) throw new Error(ERR_NFSE_ALREADY_EXISTS)
+    if (existing) throw new ActionError(ERR_NFSE_ALREADY_EXISTS)
 
     // Build the NFS-e payload
     const valorBRL = appointmentPrice // already in BRL (Float)
@@ -288,19 +288,19 @@ export async function getNfseByAppointment(appointmentId: string) {
 export async function cancelNfse(nfseId: string, motivo: string) {
   const workspaceId = await getWorkspaceId()
 
-  if (!motivo.trim()) throw new Error("Motivo do cancelamento e obrigatorio")
+  if (!motivo.trim()) throw new ActionError("Motivo do cancelamento e obrigatorio")
 
   const nfse = await db.nfse.findFirst({
     where: { id: nfseId, workspaceId },
   })
-  if (!nfse) throw new Error(ERR_NFSE_NOT_FOUND)
-  if (nfse.status === "cancelled") throw new Error(ERR_NFSE_ALREADY_CANCELLED)
+  if (!nfse) throw new ActionError(ERR_NFSE_NOT_FOUND)
+  if (nfse.status === "cancelled") throw new ActionError(ERR_NFSE_ALREADY_CANCELLED)
 
   // Load config to get API key
   const config = await db.nfseConfig.findUnique({
     where: { workspaceId },
   })
-  if (!config) throw new Error(ERR_NFSE_NOT_CONFIGURED)
+  if (!config) throw new ActionError(ERR_NFSE_NOT_CONFIGURED)
 
   // Call cancel on API if we have an external ID
   if (nfse.externalId) {
@@ -309,7 +309,7 @@ export async function cancelNfse(nfseId: string, motivo: string) {
       await client.cancel(nfse.externalId, motivo)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido"
-      throw new Error(`Falha ao cancelar NFS-e no provedor: ${message}`)
+      throw new ActionError(`Falha ao cancelar NFS-e no provedor: ${message}`)
     }
   }
 
@@ -334,14 +334,14 @@ export async function refreshNfseStatus(nfseId: string) {
   const nfse = await db.nfse.findFirst({
     where: { id: nfseId, workspaceId },
   })
-  if (!nfse) throw new Error(ERR_NFSE_NOT_FOUND)
-  if (!nfse.externalId) throw new Error("NFS-e sem referencia externa")
-  if (nfse.status === "cancelled") throw new Error(ERR_NFSE_CANCELLED_NO_UPDATE)
+  if (!nfse) throw new ActionError(ERR_NFSE_NOT_FOUND)
+  if (!nfse.externalId) throw new ActionError("NFS-e sem referencia externa")
+  if (nfse.status === "cancelled") throw new ActionError(ERR_NFSE_CANCELLED_NO_UPDATE)
 
   const config = await db.nfseConfig.findUnique({
     where: { workspaceId },
   })
-  if (!config) throw new Error(ERR_NFSE_NOT_CONFIGURED)
+  if (!config) throw new ActionError(ERR_NFSE_NOT_CONFIGURED)
 
   const client = new NfseClient(config.certificateId ?? '', config.apiKey, process.env.NFSE_AMBIENTE !== 'producao')
   const response = await client.getStatus(nfse.externalId)

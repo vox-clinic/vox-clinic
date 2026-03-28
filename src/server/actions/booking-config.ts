@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { checkFeatureAccess } from "@/lib/plan-enforcement"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ActionError } from "@/lib/error-messages"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -49,7 +49,7 @@ export async function toggleBooking(enabled: boolean) {
   if (enabled) {
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
     const planCheck = checkFeatureAccess(workspace?.plan ?? "free", "onlineBooking")
-    if (!planCheck.allowed) throw new Error(planCheck.reason!)
+    if (!planCheck.allowed) throw new ActionError(planCheck.reason!)
   }
 
   const config = await db.bookingConfig.upsert({
@@ -105,7 +105,7 @@ export async function regenerateBookingToken() {
   const existing = await db.bookingConfig.findUnique({
     where: { workspaceId },
   })
-  if (!existing) throw new Error("Booking config nao encontrada")
+  if (!existing) throw new ActionError("Booking config nao encontrada")
 
   // Generate a new random token
   const newToken = crypto.randomUUID().replace(/-/g, "").slice(0, 24)

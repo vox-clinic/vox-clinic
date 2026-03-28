@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
 import { createClient } from "@supabase/supabase-js"
 import { env } from "@/lib/env"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_NO_FILE, ERR_FILE_TOO_LARGE, ERR_FILE_TYPE_NOT_ALLOWED, ERR_DOCUMENT_NOT_FOUND } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_NO_FILE, ERR_FILE_TOO_LARGE, ERR_FILE_TYPE_NOT_ALLOWED, ERR_DOCUMENT_NOT_FOUND, ActionError } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -62,11 +62,11 @@ export async function uploadPatientDocument(formData: FormData, patientId: strin
   if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
   const file = formData.get("file") as File
-  if (!file) throw new Error(ERR_NO_FILE)
+  if (!file) throw new ActionError(ERR_NO_FILE)
 
   // 10MB limit for documents
   if (file.size > 10 * 1024 * 1024) {
-    throw new Error(ERR_FILE_TOO_LARGE)
+    throw new ActionError(ERR_FILE_TOO_LARGE)
   }
 
   const allowedTypes = [
@@ -76,7 +76,7 @@ export async function uploadPatientDocument(formData: FormData, patientId: strin
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ]
   if (!allowedTypes.includes(file.type)) {
-    throw new Error(ERR_FILE_TYPE_NOT_ALLOWED)
+    throw new ActionError(ERR_FILE_TYPE_NOT_ALLOWED)
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())
@@ -91,7 +91,7 @@ export async function uploadPatientDocument(formData: FormData, patientId: strin
       upsert: false,
     })
 
-  if (uploadError) throw new Error("Erro ao fazer upload: " + uploadError.message)
+  if (uploadError) throw new ActionError("Erro ao fazer upload: " + uploadError.message)
 
   const doc = await db.patientDocument.create({
     data: {
@@ -130,7 +130,7 @@ export async function getDocumentSignedUrl(documentUrl: string) {
     .from("audio")
     .createSignedUrl(documentUrl, 300) // 5 min
 
-  if (error || !data?.signedUrl) throw new Error("Erro ao gerar URL do documento")
+  if (error || !data?.signedUrl) throw new ActionError("Erro ao gerar URL do documento")
   return data.signedUrl
 }
 
