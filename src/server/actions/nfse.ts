@@ -106,7 +106,7 @@ export async function emitNfse(appointmentId: string) {
     }
 
     // Call NFS-e API
-    const client = new NfseClient(config.apiKey)
+    const client = new NfseClient(config.certificateId ?? '', config.apiKey, process.env.NFSE_AMBIENTE !== 'producao')
 
     let externalId: string | null = null
     let numero: string | null = null
@@ -289,7 +289,7 @@ export async function cancelNfse(nfseId: string, motivo: string) {
 
   // Call cancel on API if we have an external ID
   if (nfse.externalId) {
-    const client = new NfseClient(config.apiKey)
+    const client = new NfseClient(config.certificateId ?? '', config.apiKey, process.env.NFSE_AMBIENTE !== 'producao')
     try {
       await client.cancel(nfse.externalId, motivo)
     } catch (err) {
@@ -328,7 +328,7 @@ export async function refreshNfseStatus(nfseId: string) {
   })
   if (!config) throw new Error("Configuracao NFS-e nao encontrada")
 
-  const client = new NfseClient(config.apiKey)
+  const client = new NfseClient(config.certificateId ?? '', config.apiKey, process.env.NFSE_AMBIENTE !== 'producao')
   const response = await client.getStatus(nfse.externalId)
 
   // Map API status to our status

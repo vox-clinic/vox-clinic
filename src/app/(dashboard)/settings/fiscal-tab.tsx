@@ -71,7 +71,8 @@ interface FormData {
   aliquotaISS: string
   regimeTributario: string
   provider: string
-  apiKey: string
+  clientId: string
+  clientSecret: string
   clinicCity: string
   clinicState: string
   clinicCep: string
@@ -85,7 +86,8 @@ const defaultForm: FormData = {
   aliquotaISS: "",
   regimeTributario: "simples_nacional",
   provider: "nuvem_fiscal",
-  apiKey: "",
+  clientId: "",
+  clientSecret: "",
   clinicCity: "",
   clinicState: "",
   clinicCep: "",
@@ -110,7 +112,8 @@ export function FiscalTab() {
           aliquotaISS: (config.aliquotaISS * 100).toFixed(2).replace(/\.?0+$/, ''), // Convert decimal to %
           regimeTributario: config.regimeTributario,
           provider: config.provider,
-          apiKey: config.apiKey,
+          clientId: config.clientId,
+          clientSecret: config.clientSecret,
           clinicCity: config.clinicCity,
           clinicState: config.clinicState,
           clinicCep: formatCep(config.clinicCep),
@@ -149,7 +152,8 @@ export function FiscalTab() {
         aliquotaISS: aliquotaPercent / 100, // Convert % to decimal
         regimeTributario: form.regimeTributario,
         provider: form.provider,
-        apiKey: form.apiKey,
+        clientId: form.clientId,
+        clientSecret: form.clientSecret,
         clinicCity: form.clinicCity,
         clinicState: form.clinicState,
         clinicCep: form.clinicCep,
@@ -356,12 +360,20 @@ export function FiscalTab() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs">API Key</Label>
+            <Label className="text-xs">Client ID</Label>
+            <Input
+              value={form.clientId}
+              onChange={(e) => updateField("clientId", e.target.value)}
+              placeholder="Ex: mQCGn272DXq1OvpJqo9P"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Client Secret</Label>
             <Input
               type="password"
-              value={form.apiKey}
-              onChange={(e) => updateField("apiKey", e.target.value)}
-              placeholder="Sua chave de API do provedor"
+              value={form.clientSecret}
+              onChange={(e) => updateField("clientSecret", e.target.value)}
+              placeholder="Sua chave secreta do provedor"
             />
           </div>
         </CardContent>

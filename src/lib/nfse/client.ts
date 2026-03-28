@@ -1,14 +1,62 @@
 import type { EmitNfseInput, EmitNfseResponse, NfseStatusResponse } from "./types"
+import { logger } from "@/lib/logger"
+
+const AUTH_URL = "https://auth.nuvemfiscal.com.br/oauth/token"
+const API_URL_PROD = "https://api.nuvemfiscal.com.br"
+const API_URL_SANDBOX = "https://api.sandbox.nuvemfiscal.com.br"
 
 export class NfseClient {
-  private apiKey: string
-  private baseUrl = "https://api.nuvemfiscal.com.br"
+  private clientId: string
+  private clientSecret: string
+  private baseUrl: string
+  private accessToken: string | null = null
+  private tokenExpiresAt: number = 0
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey
+  constructor(clientId: string, clientSecret: string, sandbox = true) {
+    this.clientId = clientId
+    this.clientSecret = clientSecret
+    this.baseUrl = sandbox ? API_URL_SANDBOX : API_URL_PROD
+  }
+
+  /** Get OAuth2 access token via client_credentials flow */
+  private async getAccessToken(): Promise<string> {
+    // Return cached token if still valid (with 60s buffer)
+    if (this.accessToken && Date.now() < this.tokenExpiresAt - 60000) {
+      return this.accessToken
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+    try {
+      const res = await fetch(AUTH_URL, {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+          scope: "empresa nfse cep cnpj",
+        }).toString(),
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "Unknown")
+        throw new Error(`OAuth token request failed (${res.status}): ${errorText}`)
+      }
+
+      const data = await res.json()
+      this.accessToken = data.access_token
+      this.tokenExpiresAt = Date.now() + (data.expires_in ?? 3600) * 1000
+
+      return this.accessToken!
+    } finally {
+      clearTimeout(timeout)
+    }
   }
 
   private async request<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+    const token = await this.getAccessToken()
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 30000)
     try {
@@ -17,7 +65,7 @@ export class NfseClient {
         signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${token}`,
           ...options.headers,
         },
       })
@@ -50,12 +98,13 @@ export class NfseClient {
   }
 
   async getPdfBytes(id: string): Promise<ArrayBuffer> {
+    const token = await this.getAccessToken()
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 30000)
     try {
       const res = await fetch(`${this.baseUrl}/nfse/${id}/pdf`, {
         signal: controller.signal,
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error(`Failed to get PDF: ${res.status}`)
       return res.arrayBuffer()
@@ -64,18 +113,14 @@ export class NfseClient {
     }
   }
 
-  /** Simple connectivity test — fetches the root or a lightweight endpoint */
+  /** Test connectivity by fetching the token (validates credentials) */
   async testConnection(): Promise<boolean> {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
     try {
-      const res = await fetch(`${this.baseUrl}/nfse?$top=1`, {
-        signal: controller.signal,
-        headers: { Authorization: `Bearer ${this.apiKey}` },
-      })
-      return res.ok
-    } finally {
-      clearTimeout(timeout)
+      await this.getAccessToken()
+      return true
+    } catch (err) {
+      logger.error("NFS-e connection test failed", { action: "testConnection" }, err)
+      return false
     }
   }
 }
