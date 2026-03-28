@@ -59,6 +59,8 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
   - `/appointments/review` — Review AI summary before confirming
   - `/prescriptions/[id]` — Print-friendly prescription page (medications table, Ctrl+P → PDF)
   - `/certificates/[id]` — Print-friendly medical certificate page (atestado/declaracao/encaminhamento/laudo, Ctrl+P → PDF)
+  - `/financial` — Financial dashboard (revenue, expenses, receivables, cash flow, NFS-e management, price table)
+  - `/teleconsulta/[id]` — Teleconsulta video room (Daily.co iframe, creates room before joining, screen share, chat)
   - `/settings` — Workspace config (procedures with duration, custom fields, clinic name, agendas management with color picker, online booking toggle and config)
   - `/settings/import` — CSV patient import with column mapping
   - `/settings/whatsapp` — WhatsApp Business API setup wizard (5-step: intro, connect, verify, templates, done)
@@ -80,9 +82,11 @@ This project uses **Tailwind CSS v4** with `@theme inline` in `src/app/globals.c
 - `src/app/api/booking/slots/` — Public available slots API (GET by date/agenda/duration)
 - `src/app/api/export/patients/` — Excel export of all active patients
 - `src/app/api/export/reports/` — Excel export of reports data (multi-sheet: Resumo, Mensal, Procedimentos)
+- `src/app/api/webhooks/daily/` — Daily.co recording webhook (POST captures video recordings, downloads and uploads to Supabase Storage `videos` bucket, links to appointment)
 - `src/app/api/whatsapp/webhook/` — WhatsApp webhook (GET for Meta verification, POST for incoming messages/status updates/appointment confirmations)
 - `src/app/nps/[token]/` — Public NPS survey page (no auth, token-based access, 0-10 score + comment)
 - `src/app/booking/[token]/` — Public online booking page (no auth, token-based, multi-step: procedure → date/time → patient info → confirm)
+- `src/app/sala/[token]/` — Public teleconsulta patient access page (no auth, token-based, LGPD consent, 24h access window before/after appointment, join button)
 
 ### Command Palette (Ctrl+K)
 - `src/components/command-palette.tsx` — Global search accessible from any page
@@ -123,6 +127,10 @@ All data mutations use Server Actions with `"use server"` directive:
 - `whatsapp.ts` — getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth
 - `audit.ts` — getAuditLogs (paginated audit log query with user info)
 - `billing.ts` — (includes) getWorkspaceUsage (plan usage metrics: patients, appointments, recordings vs limits)
+- `nfse.ts` — emitNfse (NFS-e emission via NuvemFiscal DPS Nacional format), getNfseList (paginated), searchAppointmentsForNfse (auto-search debounce), getNfseByAppointment, cancelNfse, refreshNfseStatus
+- `nfse-config.ts` — getNfseConfig, saveNfseConfig (fiscal settings: CNPJ, ISS, regime tributario), uploadNfseCertificate (digital certificate A1 .pfx upload), testNfseConnection
+- `teleconsulta.ts` — createTeleconsultaRoom (creates Daily.co room before navigating), recordTeleconsultaConsent, getPatientJoinInfo (24h access window), endTeleconsulta, getTeleconsultaInfo
+- `financial.ts` — getFinancialData, updateAppointmentPrice, updateProcedurePrice, getWorkspaceProcedures
 - `admin.ts` — requireSuperAdmin guard, getAdminDashboard, getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus, getAdminUsers
 - `_helpers.ts` — Shared helper with `getWorkspaceId()` and `getAuthContext()` (not used by server actions due to Vercel bundler issue, kept for future use)
 - `calendar.ts` — Unified `getCalendarData()` server action (not used currently due to same bundler issue, kept for future use)
@@ -169,10 +177,11 @@ Decomposed from a monolithic page into modular sub-components:
   - 30s timeout, workspace config in user message (not system — anti-prompt-injection)
   - Empty transcript guard: throws if < 10 chars
 - `src/lib/schemas.ts` — Zod schemas: `ExtractedPatientDataSchema`, `WorkspaceConfigSchema`, `AppointmentSummarySchema`
-- `src/lib/storage.ts` — `uploadAudio`, `getSignedAudioUrl` (5min), `getAudioBuffer`
+- `src/lib/storage.ts` — `uploadAudio`, `getSignedAudioUrl` (5min), `getAudioBuffer`, `uploadVideo` (Supabase `videos` bucket), `getSignedVideoUrl` (5min)
 - `src/lib/export-xlsx.ts` — `generateXlsx(data, sheetName)` and `generateXlsxMultiSheet(sheets)` for Excel export via `xlsx` library
 - `src/lib/error-messages.ts` — Centralized error constants (pt-BR), `ActionError` class, `safeAction` wrapper, and `friendlyError(error, fallback?)` helper. See "Server Action Error Handling" section below
 - `src/lib/viacep.ts` — `formatCep(value)` (formats as XXXXX-XXX) and `fetchAddressByCep(cep)` for ViaCEP integration (auto-fills street, neighborhood, city, state from CEP)
+- `src/lib/nfse/client.ts` — `NfseClient` class for NuvemFiscal API (DPS Nacional format). Methods: `createDps` (emit NFS-e), `getDps`, `cancelDps`, `downloadPdf`, `registerCompany` (auto-register in NuvemFiscal), `uploadCertificate` (A1 digital cert), `configureNfse` (fiscal config with dynamic CST based on regime tributario). Factory: `createNfseClient()` reads OAuth token from NuvemFiscal
 
 ### Excel Export API Routes
 - `src/app/api/export/patients/route.ts` — GET, auth via Clerk, exports all active patients as .xlsx with columns: Nome, CPF, RG, Telefone, Email, Data Nascimento, Sexo, Convenio, Origem, Tags, Cadastrado em, Ultimo Atendimento

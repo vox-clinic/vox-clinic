@@ -73,7 +73,7 @@ function CategorySection({ icon, title, description, count, children }: { icon: 
 }
 
 const FEATURES_SUMMARY = {
-  total: 92,
+  total: 95,
   categories: 11,
 }
 
@@ -211,7 +211,7 @@ export default function DocsPage() {
         </CategorySection>
 
         {/* ── 6. FINANCEIRO ── */}
-        <CategorySection icon="💰" title="Financeiro" description="Controle completo de receitas, despesas, pagamentos, NFS-e e fluxo de caixa." count={11}>
+        <CategorySection icon="💰" title="Financeiro" description="Controle completo de receitas, despesas, pagamentos, NFS-e e fluxo de caixa." count={12}>
           <FeatureCard title="Preco por Consulta" description="Cada consulta pode ter valor em BRL. Editavel na revisao e no historico. Procedimentos com preco configuravel." />
           <FeatureCard title="Recibos de Atendimento" description="Geracao automatica com dados do paciente, procedimentos e valor. Impressao em PDF (Ctrl+P). Assinatura manual." />
           <FeatureCard title="Dashboard Financeiro" description="Receita total, ticket medio, faturamento mensal, breakdown por procedimento. Exportacao para Excel." />
@@ -223,6 +223,7 @@ export default function DocsPage() {
           <FeatureCard title="Edicao de Despesas" description="Despesas podem ser editadas apos criacao. Dialog pre-preenchido com dados atuais, salvamento via updateExpense." />
           <FeatureCard title="Projecao de Fluxo de Caixa" description="Grafico de projecao de receitas e despesas para os proximos 6 meses. Baseado em cobrancas e despesas recorrentes." />
           <FeatureCard title="Saldo do Paciente" description="Badge no detalhe do paciente mostrando saldo devedor total e valores vencidos, com destaque visual em vermelho." />
+          <FeatureCard title="Certificado Digital NFS-e" description="Upload de certificado digital A1 (.pfx) para emissao de NFS-e. Cadastro automatico da empresa na NuvemFiscal e configuracao fiscal integrada." />
         </CategorySection>
 
         {/* ── 7. RELATORIOS ── */}
@@ -261,7 +262,7 @@ export default function DocsPage() {
         </CategorySection>
 
         {/* ── 10. INFRAESTRUTURA ── */}
-        <CategorySection icon="📱" title="Infraestrutura e UX" description="Performance, responsividade e experiencia do usuario." count={11}>
+        <CategorySection icon="📱" title="Infraestrutura e UX" description="Performance, responsividade e experiencia do usuario." count={12}>
           <FeatureCard title="Design Responsivo" description="Mobile-first com sidebar no desktop e bottom nav no mobile. Funciona em celular, tablet e desktop." />
           <FeatureCard title="PWA Ready" description="Manifest.json e service worker para instalacao como app. Icones configurados para iOS e Android." />
           <FeatureCard title="Performance" description="Next.js 16 com Turbopack. Server components, cache com unstable_cache. Carregamento rapido com skeletons." />
@@ -273,12 +274,14 @@ export default function DocsPage() {
           <FeatureCard title="Indicador de Horario Atual" description="Linha vermelha nas visoes semanal e diaria mostrando a hora atual (useRef, sem re-renders no pai), com auto-scroll para o horario do dia." />
           <FeatureCard title="Mensagens de Erro Amigaveis" description="Todas as mensagens de erro em portugues, claras e orientativas. Erros tecnicos traduzidos automaticamente para linguagem acessivel via helper centralizado (friendlyError)." />
           <FeatureCard title="Filtro por Convenio" description="Filtro de pacientes por convenio (plano de saude) na lista de pacientes, complementando o filtro por tags existente." />
+          <FeatureCard title="Busca Automatica (Debounce)" description="Campos de busca em dialogs (NFS-e, merge de pacientes) iniciam a pesquisa automaticamente ao digitar, sem necessidade de clicar em botao. Debounce de 300ms." />
         </CategorySection>
 
         {/* ── 11. TELEMEDICINA ── */}
-        <CategorySection icon="🎥" title="Telemedicina" description="Teleconsulta por video integrada ao fluxo de atendimento." count={3}>
+        <CategorySection icon="🎥" title="Telemedicina" description="Teleconsulta por video integrada ao fluxo de atendimento." count={4}>
           <FeatureCard title="Teleconsulta por Video" description="Videochamada integrada via Daily.co com sala privada, sala de espera (knocking), compartilhamento de tela e chat. Iframe embeddable sem dependencias." />
-          <FeatureCard title="Acesso do Paciente" description="Link publico de acesso (/sala/[token]) sem necessidade de login. Tela pre-chamada com consentimento LGPD, dados da consulta e botao de entrada." />
+          <FeatureCard title="Acesso do Paciente" description="Link publico de acesso (/sala/[token]) sem necessidade de login. Janela de acesso de 24h antes/depois da consulta. Tela pre-chamada com consentimento LGPD, dados da consulta e botao de entrada." />
+          <FeatureCard title="Gravacao Automatica de Video" description="Webhook Daily.co captura gravacoes de teleconsulta e salva automaticamente no Supabase Storage. Vinculado ao atendimento para consulta posterior." />
           <FeatureCard title="Billing e Planos (Stripe)" description="Assinaturas via Stripe Checkout com planos Free/Pro/Enterprise. Customer Portal para autogestao, webhooks para sincronizacao de plano, suporte a PIX e boleto." />
         </CategorySection>
 
