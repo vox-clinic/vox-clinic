@@ -120,7 +120,7 @@ describe("NotificationBell", () => {
 
     await user.click(screen.getByLabelText("Notificacoes"))
 
-    expect(screen.getByText("Nenhuma notificacao")).toBeInTheDocument()
+    expect(screen.getByText("Nenhuma notificação")).toBeInTheDocument()
   })
 
   it("mark all as read button calls markAllAsRead", async () => {

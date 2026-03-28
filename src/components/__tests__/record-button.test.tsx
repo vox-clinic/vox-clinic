@@ -93,7 +93,7 @@ describe("RecordButton", () => {
     await user.click(screen.getByLabelText("Iniciar gravacao"))
 
     expect(
-      screen.getByText("Consentimento para Gravacao")
+      screen.getByText("Consentimento para Gravação")
     ).toBeInTheDocument()
     expect(screen.getByText("Concordo e Gravar")).toBeInTheDocument()
     expect(screen.getByText("Cancelar")).toBeInTheDocument()
@@ -108,7 +108,7 @@ describe("RecordButton", () => {
     await user.click(screen.getByLabelText("Iniciar gravacao"))
 
     expect(
-      screen.queryByText("Consentimento para Gravacao")
+      screen.queryByText("Consentimento para Gravação")
     ).not.toBeInTheDocument()
   })
 
@@ -120,12 +120,12 @@ describe("RecordButton", () => {
 
     await user.click(screen.getByLabelText("Iniciar gravacao"))
     expect(
-      screen.getByText("Consentimento para Gravacao")
+      screen.getByText("Consentimento para Gravação")
     ).toBeInTheDocument()
 
     await user.click(screen.getByText("Cancelar"))
     expect(
-      screen.queryByText("Consentimento para Gravacao")
+      screen.queryByText("Consentimento para Gravação")
     ).not.toBeInTheDocument()
   })
 

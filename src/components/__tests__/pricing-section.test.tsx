@@ -22,12 +22,12 @@ import { PricingSection } from "../landing/pricing-section"
 describe("PricingSection", () => {
   it("renders 3 pricing tiers", () => {
     render(<PricingSection />)
-    expect(screen.getByText("Gratis")).toBeInTheDocument()
+    expect(screen.getByText("Grátis")).toBeInTheDocument()
     expect(screen.getByText("Profissional")).toBeInTheDocument()
-    expect(screen.getByText("Clinica")).toBeInTheDocument()
+    expect(screen.getByText("Clínica")).toBeInTheDocument()
   })
 
-  it("Gratis shows R$ 0", () => {
+  it("Grátis shows R$ 0", () => {
     render(<PricingSection />)
     expect(screen.getByText("R$ 0")).toBeInTheDocument()
   })
@@ -37,7 +37,7 @@ describe("PricingSection", () => {
     expect(screen.getByText("R$ 97")).toBeInTheDocument()
   })
 
-  it("Clinica shows R$ 197", () => {
+  it("Clínica shows R$ 197", () => {
     render(<PricingSection />)
     expect(screen.getByText("R$ 197")).toBeInTheDocument()
   })
@@ -47,55 +47,54 @@ describe("PricingSection", () => {
     expect(screen.getByText("Mais popular")).toBeInTheDocument()
   })
 
-  it("Gratis and Clinica do not have a badge", () => {
+  it("Grátis and Clínica do not have a badge", () => {
     render(<PricingSection />)
-    // Only one badge element should exist
     const badges = screen.getAllByText("Mais popular")
     expect(badges).toHaveLength(1)
   })
 
   it("each tier has a CTA button", () => {
     render(<PricingSection />)
-    expect(screen.getByText("Comecar Gratis")).toBeInTheDocument()
+    expect(screen.getByText("Começar Grátis")).toBeInTheDocument()
     expect(screen.getByText("Assinar Profissional")).toBeInTheDocument()
     expect(screen.getByText("Falar com vendas")).toBeInTheDocument()
   })
 
   it("CTA buttons link to /sign-up", () => {
     render(<PricingSection />)
-    const ctas = ["Comecar Gratis", "Assinar Profissional", "Falar com vendas"]
+    const ctas = ["Começar Grátis", "Assinar Profissional", "Falar com vendas"]
     ctas.forEach((text) => {
       const el = screen.getByText(text)
       expect(el.closest("a")).toHaveAttribute("href", "/sign-up")
     })
   })
 
-  it("Gratis features render correctly", () => {
+  it("Grátis features render correctly", () => {
     render(<PricingSection />)
-    expect(screen.getByText("Ate 50 consultas/mes")).toBeInTheDocument()
+    expect(screen.getByText("Até 50 consultas/mês")).toBeInTheDocument()
     expect(screen.getByText("1 profissional")).toBeInTheDocument()
-    expect(screen.getByText("Transcricao por voz")).toBeInTheDocument()
-    expect(screen.getByText("Prontuario basico")).toBeInTheDocument()
-    expect(screen.getByText("Agenda com calendario")).toBeInTheDocument()
+    expect(screen.getByText("Transcrição por voz")).toBeInTheDocument()
+    expect(screen.getByText("Prontuário básico")).toBeInTheDocument()
+    expect(screen.getByText("Agenda com calendário")).toBeInTheDocument()
   })
 
   it("Profissional features render correctly", () => {
     render(<PricingSection />)
-    expect(screen.getByText("Tudo do plano Gratis")).toBeInTheDocument()
+    expect(screen.getByText("Tudo do plano Grátis")).toBeInTheDocument()
     expect(screen.getByText("Consultas ilimitadas")).toBeInTheDocument()
-    expect(screen.getByText("IA avancada (Claude)")).toBeInTheDocument()
+    expect(screen.getByText("IA avançada (Claude)")).toBeInTheDocument()
     expect(screen.getByText("WhatsApp Business")).toBeInTheDocument()
-    expect(screen.getByText("Relatorios e analytics")).toBeInTheDocument()
-    expect(screen.getByText("Suporte prioritario")).toBeInTheDocument()
+    expect(screen.getByText("Relatórios e analytics")).toBeInTheDocument()
+    expect(screen.getByText("Suporte prioritário")).toBeInTheDocument()
   })
 
-  it("Clinica features render correctly", () => {
+  it("Clínica features render correctly", () => {
     render(<PricingSection />)
     expect(screen.getByText("Tudo do Profissional")).toBeInTheDocument()
     expect(screen.getByText("Equipe ilimitada")).toBeInTheDocument()
     expect(screen.getByText("Multi-agenda")).toBeInTheDocument()
-    expect(screen.getByText("Importacao CSV")).toBeInTheDocument()
+    expect(screen.getByText("Importação CSV")).toBeInTheDocument()
     expect(screen.getByText("Onboarding dedicado")).toBeInTheDocument()
-    expect(screen.getByText("API de integracao")).toBeInTheDocument()
+    expect(screen.getByText("API de integração")).toBeInTheDocument()
   })
 })

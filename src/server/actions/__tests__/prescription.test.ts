@@ -89,7 +89,7 @@ describe("prescription actions", () => {
 
       expect(result).toHaveProperty("error")
       if ("error" in result) {
-        expect(result.error).toBe("Nome do medicamento e obrigatorio.")
+        expect(result.error).toBe("Nome do medicamento é obrigatório.")
       }
     })
 
@@ -103,7 +103,7 @@ describe("prescription actions", () => {
 
       expect(result).toHaveProperty("error")
       if ("error" in result) {
-        expect(result.error).toBe("Duracao e obrigatoria para cada medicamento.")
+        expect(result.error).toBe("Duração é obrigatória para cada medicamento.")
       }
     })
 
