@@ -30,6 +30,11 @@ function DayViewInner({
     <Card className="rounded-2xl border border-border/40 overflow-hidden">
       <div className="relative max-h-[calc(100vh-240px)] overflow-y-auto">
         <NowLineDay />
+        {appointments.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <p className="text-sm text-muted-foreground">Nenhuma consulta hoje</p>
+          </div>
+        )}
         {HOURS.map((hour) => {
           const key = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}-${hour}`
           const hourAppts = appointmentIndex.get(key) || []

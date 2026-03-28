@@ -234,6 +234,11 @@ function WeekViewInner({
           {/* Time grid */}
           <div ref={gridRef} className="relative grid grid-cols-[56px_repeat(7,1fr)] min-w-[700px]">
             <NowLine weekDays={weekDays} />
+            {appointments.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <p className="text-sm text-muted-foreground">Nenhuma consulta nesta semana</p>
+              </div>
+            )}
             {HOURS.map((hour) => (
               <div key={hour} className="contents">
                 <div className="flex items-start justify-end pr-3 pt-2 text-[10px] font-medium text-muted-foreground/60 h-[72px] border-b border-border/[0.06] tabular-nums">

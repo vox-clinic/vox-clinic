@@ -15,6 +15,7 @@ export interface AppointmentItem {
   notes: string | null
   status: string
   type?: string | null
+  source?: string | null
   agendaId: string
   agenda?: { id: string; name: string; color: string }
 }

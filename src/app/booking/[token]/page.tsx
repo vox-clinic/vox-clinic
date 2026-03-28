@@ -135,6 +135,11 @@ export default function BookingPage() {
   // Submit booking
   async function handleSubmit() {
     if (!selectedProcedure || !selectedAgenda || !selectedDate || !selectedTime) return
+    if (patientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientEmail.trim())) {
+      setErrorMessage("Email invalido. Verifique e tente novamente.")
+      setStep("error")
+      return
+    }
     setStep("confirming")
     try {
       const [hours, minutes] = selectedTime.split(":").map(Number)

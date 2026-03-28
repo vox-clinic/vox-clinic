@@ -105,6 +105,7 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
     notes: a.notes,
     status: a.status,
     type: a.type,
+    source: a.source,
     agendaId: a.agendaId,
     agenda: a.agenda,
   }))

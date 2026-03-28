@@ -2,7 +2,7 @@
 
 import { useState, memo } from "react"
 import Link from "next/link"
-import { Clock, Check, XCircle, AlertTriangle, X, Video, Copy, ExternalLink } from "lucide-react"
+import { Clock, Check, XCircle, AlertTriangle, X, Video, Copy, ExternalLink, Globe, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
@@ -53,6 +53,9 @@ function AppointmentCardInner({
       >
         <span className="font-semibold tabular-nums">{formatTime(appointment.date)}</span>
         <span className="truncate font-medium">{appointment.patient.name}</span>
+        {appointment.source === "online" && <Globe className="size-3 text-blue-500 shrink-0" />}
+        {appointment.source === "whatsapp" && <MessageCircle className="size-3 text-green-500 shrink-0" />}
+        {appointment.type === "teleconsulta" && <Video className="size-3 text-purple-500 shrink-0" />}
         <div className={`size-1.5 rounded-full ml-auto shrink-0 ${STATUS_DOT[appointment.status] ?? "bg-muted-foreground"}`} />
       </Link>
     )
@@ -71,14 +74,26 @@ function AppointmentCardInner({
               <span className="text-xs font-medium">{formatTime(appointment.date)}</span>
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Link href={`/patients/${appointment.patient.id}`} onClick={(e) => e.stopPropagation()}
                   className="text-sm font-medium hover:text-vox-primary transition-colors truncate">
                   {appointment.patient.name}
                 </Link>
+                {appointment.source === "online" && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 shrink-0">
+                    <Globe className="size-3" />
+                    Online
+                  </span>
+                )}
+                {appointment.source === "whatsapp" && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600 shrink-0">
+                    <MessageCircle className="size-3" />
+                    WhatsApp
+                  </span>
+                )}
                 {appointment.type === "teleconsulta" && (
                   <Link href={`/teleconsulta/${appointment.id}`} onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-0.5 rounded-full bg-vox-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-vox-primary hover:bg-vox-primary/20 transition-colors shrink-0"
+                    className="inline-flex items-center gap-0.5 rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-600 hover:bg-purple-100 transition-colors shrink-0"
                     title="Iniciar teleconsulta"
                   >
                     <Video className="size-3" />
