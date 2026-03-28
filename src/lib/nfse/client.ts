@@ -147,6 +147,17 @@ export class NfseClient {
     }
   }
 
+  /** Upload digital certificate (.pfx/.p12) for a company */
+  async uploadCertificate(cpfCnpj: string, certificateBase64: string, password: string): Promise<unknown> {
+    return this.request(`/empresas/${cpfCnpj}/certificado`, {
+      method: "PUT",
+      body: JSON.stringify({
+        certificado: certificateBase64,
+        password,
+      }),
+    })
+  }
+
   /** Configure NFS-e settings for a company (series, batch number, environment) */
   async configureNfse(cpfCnpj: string, data: {
     rps?: { lote?: number; serie?: string; numero?: number }

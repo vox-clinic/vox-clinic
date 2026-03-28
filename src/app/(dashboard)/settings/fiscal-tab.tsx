@@ -21,8 +21,9 @@ import {
   AlertCircle,
   FileText,
   Wifi,
+  Upload,
 } from "lucide-react"
-import { getNfseConfig, saveNfseConfig, testNfseConnection } from "@/server/actions/nfse-config"
+import { getNfseConfig, saveNfseConfig, testNfseConnection, uploadNfseCertificate } from "@/server/actions/nfse-config"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
 
@@ -98,6 +99,8 @@ export function FiscalTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [certPassword, setCertPassword] = useState("")
+  const [uploadingCert, setUploadingCert] = useState(false)
   const [form, setForm] = useState<FormData>(defaultForm)
   const [isConfigured, setIsConfigured] = useState(false)
 
@@ -414,6 +417,73 @@ export function FiscalTab() {
           Testar Conexao
         </Button>
       </div>
+
+      {/* Certificado Digital */}
+      {isConfigured && (
+        <Card className="rounded-2xl border-border/40">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Upload className="size-4" />
+              Certificado Digital (A1)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Envie seu certificado digital .pfx ou .p12 para assinar as NFS-e. Necessario para emissao no padrao nacional.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Label className="text-xs">Arquivo (.pfx / .p12)</Label>
+                <Input
+                  type="file"
+                  accept=".pfx,.p12"
+                  id="cert-file"
+                  className="h-9 rounded-xl text-sm"
+                />
+              </div>
+              <div className="w-full sm:w-48">
+                <Label className="text-xs">Senha do certificado</Label>
+                <Input
+                  type="password"
+                  value={certPassword}
+                  onChange={(e) => setCertPassword(e.target.value)}
+                  placeholder="Senha"
+                  className="h-9 rounded-xl"
+                />
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className="rounded-xl"
+              disabled={uploadingCert}
+              onClick={async () => {
+                const fileInput = document.getElementById("cert-file") as HTMLInputElement
+                const file = fileInput?.files?.[0]
+                if (!file) { toast.error("Selecione o arquivo do certificado"); return }
+                if (!certPassword.trim()) { toast.error("Informe a senha do certificado"); return }
+                setUploadingCert(true)
+                try {
+                  const formData = new FormData()
+                  formData.append("certificate", file)
+                  formData.append("password", certPassword)
+                  const result = await uploadNfseCertificate(formData)
+                  if ('error' in result) { toast.error(result.error); return }
+                  toast.success(result.message || "Certificado enviado!")
+                  setCertPassword("")
+                  if (fileInput) fileInput.value = ""
+                } catch (err) {
+                  toast.error(friendlyError(err, "Erro ao enviar certificado"))
+                } finally {
+                  setUploadingCert(false)
+                }
+              }}
+            >
+              {uploadingCert ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
+              {uploadingCert ? "Enviando..." : "Enviar Certificado"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {!isConfigured && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">

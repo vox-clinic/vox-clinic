@@ -220,6 +220,44 @@ export async function saveNfseConfig(data: {
   }
 }
 
+export const uploadNfseCertificate = safeAction(async (formData: FormData) => {
+  const { userId } = await auth()
+  if (!userId) throw new Error(ERR_UNAUTHORIZED)
+  const user = await db.user.findUnique({
+    where: { clerkId: userId },
+    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+  })
+  const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
+  if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
+
+  const config = await db.nfseConfig.findUnique({ where: { workspaceId } })
+  if (!config) throw new ActionError("Salve a configuracao fiscal antes de enviar o certificado.")
+  if (!config.certificateId || !config.apiKey) throw new ActionError("Configure Client ID e Client Secret primeiro.")
+
+  const file = formData.get("certificate") as File | null
+  const password = formData.get("password") as string | null
+  if (!file) throw new ActionError("Selecione o arquivo do certificado (.pfx ou .p12).")
+  if (!password?.trim()) throw new ActionError("Informe a senha do certificado.")
+
+  // Convert file to base64
+  const arrayBuffer = await file.arrayBuffer()
+  const base64 = Buffer.from(arrayBuffer).toString("base64")
+
+  const isSandbox = process.env.NFSE_AMBIENTE !== "producao"
+  const client = new NfseClient(config.certificateId, config.apiKey, isSandbox)
+
+  try {
+    await client.uploadCertificate(config.cnpj, base64, password.trim())
+    return { success: true, message: "Certificado enviado com sucesso!" }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Erro desconhecido"
+    if (msg.includes("InvalidCertificateOrPassword")) {
+      throw new ActionError("Certificado ou senha invalidos. Verifique o arquivo .pfx e a senha.")
+    }
+    throw new ActionError(`Erro ao enviar certificado: ${msg}`)
+  }
+})
+
 export const testNfseConnection = safeAction(async () => {
   const { userId } = await auth()
   if (!userId) throw new Error(ERR_UNAUTHORIZED)
