@@ -136,7 +136,7 @@ export const emitNfse = safeAction(async (appointmentId: string) => {
             },
             tribFed: {
               piscofins: {
-                CST: "99", // Outras operacoes
+                CST: "06", // Operacao tributada a aliquota zero
                 vBCPisCofins: 0,
                 pAliqPis: 0,
                 pAliqCofins: 0,
