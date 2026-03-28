@@ -21,6 +21,7 @@ import {
   User,
 } from "lucide-react"
 import { emitNfse, searchAppointmentsForNfse } from "@/server/actions/nfse"
+import { updateAppointmentPrice } from "@/server/actions/financial"
 import { toast } from "sonner"
 
 type AppointmentResult = Awaited<ReturnType<typeof searchAppointmentsForNfse>>[number]
@@ -60,6 +61,7 @@ export function EmitNfseDialog({ open, onOpenChange, onSuccess }: EmitNfseDialog
   const [selected, setSelected] = useState<AppointmentResult | null>(null)
   const [emitting, setEmitting] = useState(false)
   const [result, setResult] = useState<{ numero?: string | null; status: string } | null>(null)
+  const [manualPrice, setManualPrice] = useState("")
 
   // Reset on close
   useEffect(() => {
@@ -70,6 +72,7 @@ export function EmitNfseDialog({ open, onOpenChange, onSuccess }: EmitNfseDialog
       setSelected(null)
       setEmitting(false)
       setResult(null)
+      setManualPrice("")
     }
   }, [open])
 
@@ -86,10 +89,25 @@ export function EmitNfseDialog({ open, onOpenChange, onSuccess }: EmitNfseDialog
     }
   }
 
+  const getEffectivePrice = () => {
+    if (selected?.price != null && selected.price > 0) return selected.price
+    const parsed = parseFloat(manualPrice.replace(/\./g, '').replace(',', '.'))
+    return isNaN(parsed) ? 0 : parsed
+  }
+
   const handleEmit = async () => {
     if (!selected) return
+    const price = getEffectivePrice()
+    if (price <= 0) {
+      toast.error("Informe o valor da consulta para emitir a NFS-e")
+      return
+    }
     setEmitting(true)
     try {
+      // Save price if it was manually entered
+      if (!selected.price || selected.price <= 0) {
+        await updateAppointmentPrice(selected.id, price)
+      }
       const nfse = await emitNfse(selected.id)
       setResult({ numero: nfse.numero, status: nfse.status })
       setStep("success")
@@ -146,7 +164,7 @@ export function EmitNfseDialog({ open, onOpenChange, onSuccess }: EmitNfseDialog
             <div className="max-h-64 space-y-2 overflow-y-auto">
               {appointments.length === 0 && !searching && searchQuery && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  Nenhuma consulta encontrada com valor definido
+                  Nenhuma consulta encontrada para este paciente
                 </p>
               )}
               {appointments.map((appt) => {
@@ -218,12 +236,30 @@ export function EmitNfseDialog({ open, onOpenChange, onSuccess }: EmitNfseDialog
                     <span>{getProcedureNames(selected.procedures).join(", ")}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t pt-2">
+                <div className="flex items-center justify-between border-t pt-2">
                   <span className="text-muted-foreground">Valor</span>
-                  <span className="text-base font-bold text-vox-primary">
-                    {selected.price != null ? formatBRL(selected.price) : "-"}
-                  </span>
+                  {selected.price != null && selected.price > 0 ? (
+                    <span className="text-base font-bold text-vox-primary">
+                      {formatBRL(selected.price)}
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted-foreground">R$</span>
+                      <Input
+                        type="text"
+                        value={manualPrice}
+                        onChange={(e) => setManualPrice(e.target.value)}
+                        placeholder="150,00"
+                        className="w-28 text-right h-8 text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
+                {(!selected.price || selected.price <= 0) && !manualPrice && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Esta consulta nao tem valor definido. Informe o valor acima para emitir a NFS-e.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -233,7 +269,7 @@ export function EmitNfseDialog({ open, onOpenChange, onSuccess }: EmitNfseDialog
               </Button>
               <Button
                 onClick={handleEmit}
-                disabled={emitting}
+                disabled={emitting || getEffectivePrice() <= 0}
                 className="bg-vox-primary hover:bg-vox-primary/90"
               >
                 {emitting ? (
