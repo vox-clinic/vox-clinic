@@ -78,43 +78,76 @@ export const emitNfse = safeAction(async (appointmentId: string) => {
       cep?: string
     } | null
 
-    // Build NFS-e Nacional DPS payload (Nuvem Fiscal format)
-    const ambiente = process.env.NFSE_AMBIENTE === 'producao' ? 1 : 2 // 1=producao, 2=homologacao
+    // Build NFS-e Nacional DPS payload (Nuvem Fiscal /nfse/dps format)
+    // Ref: https://suporte.nuvemfiscal.com.br/t/exemplo-montagem-nfs-e/2156
+    const ambienteStr = process.env.NFSE_AMBIENTE === 'producao' ? 'producao' : 'homologacao'
+    const tpAmb = process.env.NFSE_AMBIENTE === 'producao' ? 1 : 2
     const patientCpf = appointment.patient.document?.replace(/\D/g, "") || undefined
+    const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD for dCompet
+    const issValor = Math.round(valorBRL * aliquotaDecimal * 100) / 100
 
     const payload = {
-      ambiente,
+      ambiente: ambienteStr,
       referencia: `vox-${appointment.id}`,
-      DPS: {
-        infDPS: {
-          dhEmi: new Date().toISOString(),
-          prest: {
-            CNPJ: config.cnpj.length === 14 ? config.cnpj : undefined,
-            CPF: config.cnpj.length === 11 ? config.cnpj : undefined,
-            IM: config.inscricaoMunicipal,
-          },
-          toma: {
-            CPF: patientCpf && patientCpf.length === 11 ? patientCpf : undefined,
-            CNPJ: patientCpf && patientCpf.length === 14 ? patientCpf : undefined,
-            xNome: appointment.patient.name,
-            ...(address ? {
-              end: {
-                xLgr: address.logradouro,
-                nro: address.numero || "S/N",
-                xBairro: address.bairro,
-                UF: address.uf,
-                CEP: address.cep?.replace(/\D/g, ""),
-              },
-            } : {}),
-          },
-          serv: {
-            cServ: {
-              cTribNac: config.codigoServico,
-              xDescServ: config.descricaoServico,
+      infDPS: {
+        tpAmb,
+        dhEmi: new Date().toISOString(),
+        dCompet: today,
+        prest: {
+          CNPJ: config.cnpj.length === 14 ? config.cnpj : undefined,
+          CPF: config.cnpj.length === 11 ? config.cnpj : undefined,
+          IM: config.inscricaoMunicipal,
+        },
+        toma: {
+          CPF: patientCpf && patientCpf.length === 11 ? patientCpf : undefined,
+          CNPJ: patientCpf && patientCpf.length === 14 ? patientCpf : undefined,
+          xNome: appointment.patient.name,
+          ...(address ? {
+            end: {
+              ...(address.codigoMunicipio ? {
+                endNac: {
+                  cMun: address.codigoMunicipio,
+                  CEP: address.cep?.replace(/\D/g, ""),
+                },
+              } : {}),
+              xLgr: address.logradouro,
+              nro: address.numero || "S/N",
+              xBairro: address.bairro,
             },
+          } : {}),
+        },
+        serv: {
+          cServ: {
+            cTribNac: config.codigoServico,
+            xDescServ: config.descricaoServico,
+          },
+        },
+        valores: {
+          vServPrest: {
             vServ: valorBRL,
-            vISS: Math.round(valorBRL * aliquotaDecimal * 100) / 100,
-            vLiq: valorBRL,
+            vReceb: valorBRL,
+          },
+          trib: {
+            tribMun: {
+              tribISSQN: 1, // 1=Operacao normal
+              vBC: valorBRL,
+              pAliq: aliquotaDecimal * 100, // API espera percentual (ex: 5.0 para 5%)
+              vISSQN: issValor,
+              vLiq: Math.round((valorBRL - issValor) * 100) / 100,
+            },
+            tribFed: {
+              piscofins: {
+                CST: "99", // Outras operacoes
+                vBCPisCofins: 0,
+                pAliqPis: 0,
+                pAliqCofins: 0,
+                vPis: 0,
+                vCofins: 0,
+              },
+              vRetCP: 0,
+              vRetIRRF: 0,
+              vRetCSLL: 0,
+            },
           },
         },
       },
