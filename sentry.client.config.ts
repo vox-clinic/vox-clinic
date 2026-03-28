@@ -21,8 +21,8 @@ Sentry.init({
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
-  // Enable sending user PII
-  sendDefaultPii: true,
+  // LGPD: do NOT send user PII (IP, cookies) to external servers
+  sendDefaultPii: false,
 
   // Filter out noisy Next.js errors
   ignoreErrors: [

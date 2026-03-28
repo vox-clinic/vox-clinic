@@ -6,6 +6,7 @@ import { encrypt, decrypt } from "@/lib/crypto"
 import { checkFeatureAccess } from "@/lib/plan-enforcement"
 import { createWhatsAppClient } from "@/lib/whatsapp/client"
 import { logAudit } from "@/lib/audit"
+import { safeAction, ActionError } from "@/lib/error-messages"
 
 // ============================================
 // Server Actions - WhatsApp
@@ -46,70 +47,57 @@ export async function getWhatsAppConfig() {
   }
 }
 
-export async function saveWhatsAppConfig(data: {
+export const saveWhatsAppConfig = safeAction(async (data: {
   phoneNumberId: string
   wabaId: string
   displayPhoneNumber: string
   businessName: string
   accessToken: string
-}): Promise<{ success: boolean; error?: string }> {
-  try {
-    const workspaceId = await getWorkspaceId()
+}) => {
+  const workspaceId = await getWorkspaceId()
 
-    // Plan enforcement: check WhatsApp feature access
-    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
-    const planCheck = checkFeatureAccess(workspace?.plan ?? "free", "whatsapp")
-    if (!planCheck.allowed) return { success: false, error: planCheck.reason }
+  // Plan enforcement: check WhatsApp feature access
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { plan: true } })
+  const planCheck = checkFeatureAccess(workspace?.plan ?? "free", "whatsapp")
+  if (!planCheck.allowed) throw new ActionError(planCheck.reason ?? "Recurso não disponível no seu plano")
 
-    const encryptedData = {
-      ...data,
-      accessToken: encrypt(data.accessToken),
-    }
+  const encryptedData = {
+    ...data,
+    accessToken: encrypt(data.accessToken),
+  }
 
-    await db.whatsAppConfig.upsert({
-      where: {
-        workspaceId_phoneNumberId: {
-          workspaceId,
-          phoneNumberId: data.phoneNumberId,
-        },
-      },
-      create: {
+  await db.whatsAppConfig.upsert({
+    where: {
+      workspaceId_phoneNumberId: {
         workspaceId,
-        ...encryptedData,
-        webhookSecret: crypto.randomUUID(),
-        isActive: true,
+        phoneNumberId: data.phoneNumberId,
       },
-      update: {
-        ...encryptedData,
-        isActive: true,
-      },
-    })
+    },
+    create: {
+      workspaceId,
+      ...encryptedData,
+      webhookSecret: crypto.randomUUID(),
+      isActive: true,
+    },
+    update: {
+      ...encryptedData,
+      isActive: true,
+    },
+  })
 
-    return { success: true }
-  } catch (error) {
-    console.error("[WhatsApp Config] Erro:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao salvar",
-    }
-  }
-}
+  return { success: true }
+})
 
-export async function disconnectWhatsApp(): Promise<{ success: boolean }> {
-  try {
-    const workspaceId = await getWorkspaceId()
+export const disconnectWhatsApp = safeAction(async () => {
+  const workspaceId = await getWorkspaceId()
 
-    await db.whatsAppConfig.updateMany({
-      where: { workspaceId },
-      data: { isActive: false },
-    })
+  await db.whatsAppConfig.updateMany({
+    where: { workspaceId },
+    data: { isActive: false },
+  })
 
-    return { success: true }
-  } catch (error) {
-    console.error("[WhatsApp Disconnect] Erro:", error)
-    return { success: false }
-  }
-}
+  return { success: true }
+})
 
 // ---- Conversas ----
 
@@ -155,98 +143,80 @@ export async function fetchMessages(
 
 // ---- Envio de Mensagens ----
 
-export async function sendTextMessage(
+export const sendTextMessage = safeAction(async (
   conversationId: string,
   to: string,
   text: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { workspaceId, userId } = await getAuthContext()
-    const client = await createWhatsAppClient(workspaceId)
+) => {
+  const { workspaceId, userId } = await getAuthContext()
+  const client = await createWhatsAppClient(workspaceId)
 
-    // Audit: WhatsApp credential accessed to send message
-    logAudit({
+  // Audit: WhatsApp credential accessed to send message
+  logAudit({
+    workspaceId,
+    userId,
+    action: "credential.accessed",
+    entityType: "WhatsAppConfig",
+    entityId: workspaceId,
+    details: { credentialType: "whatsapp_access_token", purpose: "sendTextMessage", to },
+  }).catch(() => {})
+
+  const result = await client.sendText(to, text)
+
+  await db.whatsAppMessage.create({
+    data: {
+      conversationId,
       workspaceId,
-      userId,
-      action: "credential.accessed",
-      entityType: "WhatsAppConfig",
-      entityId: workspaceId,
-      details: { credentialType: "whatsapp_access_token", purpose: "sendTextMessage", to },
-    })
+      waMessageId: result.messages[0].id,
+      direction: "outbound",
+      type: "text",
+      content: text,
+      status: "sent",
+    },
+  })
 
-    const result = await client.sendText(to, text)
+  return { success: true }
+})
 
-    await db.whatsAppMessage.create({
-      data: {
-        conversationId,
-        workspaceId,
-        waMessageId: result.messages[0].id,
-        direction: "outbound",
-        type: "text",
-        content: text,
-        status: "sent",
-      },
-    })
-
-    return { success: true }
-  } catch (error) {
-    console.error("[WhatsApp Send] Erro:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao enviar",
-    }
-  }
-}
-
-export async function sendTemplateMessage(
+export const sendTemplateMessage = safeAction(async (
   to: string,
   templateName: string,
   params?: Array<{ type: "text"; text: string }>
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { workspaceId, userId } = await getAuthContext()
-    const client = await createWhatsAppClient(workspaceId)
+) => {
+  const { workspaceId, userId } = await getAuthContext()
+  const client = await createWhatsAppClient(workspaceId)
 
-    // Audit: WhatsApp credential accessed to send template
-    logAudit({
-      workspaceId,
-      userId,
-      action: "credential.accessed",
-      entityType: "WhatsAppConfig",
-      entityId: workspaceId,
-      details: { credentialType: "whatsapp_access_token", purpose: "sendTemplateMessage", to, templateName },
-    })
+  // Audit: WhatsApp credential accessed to send template
+  logAudit({
+    workspaceId,
+    userId,
+    action: "credential.accessed",
+    entityType: "WhatsAppConfig",
+    entityId: workspaceId,
+    details: { credentialType: "whatsapp_access_token", purpose: "sendTemplateMessage", to, templateName },
+  }).catch(() => {})
 
-    await client.sendTemplate(to, templateName, "pt_BR", params)
+  await client.sendTemplate(to, templateName, "pt_BR", params)
 
-    return { success: true }
-  } catch (error) {
-    console.error("[WhatsApp Template Send] Erro:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao enviar template",
-    }
-  }
-}
+  return { success: true }
+})
 
-export async function markConversationAsRead(
+export const markConversationAsRead = safeAction(async (
   conversationId: string,
   lastMessageWaId: string
-): Promise<void> {
-  try {
-    const workspaceId = await getWorkspaceId()
-    const client = await createWhatsAppClient(workspaceId)
+) => {
+  const workspaceId = await getWorkspaceId()
+  const client = await createWhatsAppClient(workspaceId)
 
-    await client.markAsRead(lastMessageWaId)
+  await client.markAsRead(lastMessageWaId)
 
-    await db.whatsAppConversation.updateMany({
-      where: { id: conversationId, workspaceId },
-      data: { unreadCount: 0 },
-    })
-  } catch (error) {
-    console.error("[WhatsApp markAsRead] Erro:", error)
-  }
-}
+  await db.whatsAppConversation.updateMany({
+    where: { id: conversationId, workspaceId },
+    data: { unreadCount: 0 },
+  })
+
+  return { success: true }
+})
 
 // ---- Templates ----
 

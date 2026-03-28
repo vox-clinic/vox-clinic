@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, safeAction } from "@/lib/error-messages"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -45,28 +45,32 @@ export async function getUnreadCount() {
   })
 }
 
-export async function markAsRead(notificationId: string) {
+export const markAsRead = safeAction(async (notificationId: string) => {
   const { userId, workspaceId } = await getAuthContext()
 
   const notification = await db.notification.findFirst({
     where: { id: notificationId, workspaceId, userId },
   })
-  if (!notification) return
+  if (!notification) return { success: true }
 
   await db.notification.update({
     where: { id: notificationId },
     data: { read: true },
   })
-}
 
-export async function markAllAsRead() {
+  return { success: true }
+})
+
+export const markAllAsRead = safeAction(async () => {
   const { userId, workspaceId } = await getAuthContext()
 
   await db.notification.updateMany({
     where: { workspaceId, userId, read: false },
     data: { read: true },
   })
-}
+
+  return { success: true }
+})
 
 export async function generateUpcomingNotifications() {
   const { userId, workspaceId } = await getAuthContext()

@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+tests/e2e/.auth/
 
 # next.js
 /.next/
@@ -58,3 +62,6 @@ dbsetup.js
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Temporary prompt/instruction files
+prompt-*.md

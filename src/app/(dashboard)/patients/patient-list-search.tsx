@@ -107,6 +107,7 @@ export function PatientListSearch({
               aria-label="Buscar paciente"
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
+              data-testid="input-patient-search"
               className="pl-9 h-10"
             />
           </div>
@@ -150,19 +151,19 @@ export function PatientListSearch({
       </div>
 
       {error && (
-        <div className="rounded-xl border border-vox-error/30 bg-vox-error/5 p-3 text-sm text-vox-error">
+        <div data-testid="error-fetch-patients" className="rounded-xl border border-vox-error/30 bg-vox-error/5 p-3 text-sm text-vox-error">
           {error}
         </div>
       )}
 
       {isPending ? (
-        <div className="space-y-2">
+        <div data-testid="loading-patients" className="space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-[72px] rounded-2xl bg-muted/30 animate-pulse" />
           ))}
         </div>
       ) : patients.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <div data-testid="empty-patients" className="flex flex-col items-center gap-3 py-12 text-center">
           <div className="flex size-14 items-center justify-center rounded-full bg-muted/60">
             <Users className="size-6 text-muted-foreground/50" />
           </div>
@@ -176,9 +177,9 @@ export function PatientListSearch({
           </div>
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div data-testid="patient-list" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {patients.map((patient) => (
-            <Link key={patient.id} href={`/patients/${patient.id}`} aria-label={`Ver paciente ${patient.name}`} className="rounded-2xl focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none">
+            <Link key={patient.id} href={`/patients/${patient.id}`} aria-label={`Ver paciente ${patient.name}`} data-testid="patient-item" className="rounded-2xl focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none">
               <Card className="group h-full hover:border-border hover:shadow-[0_2px_8px_0_rgb(0_0_0/0.04)] transition-all cursor-pointer border-border/50">
                 <CardContent className="flex items-center gap-3 py-3">
                   {/* Avatar with initials */}

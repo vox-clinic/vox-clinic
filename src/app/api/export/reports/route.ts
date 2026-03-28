@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
         Receita: `R$ ${(data.revenue / 100).toFixed(2)}`,
       }))
 
-    const buffer = generateXlsxMultiSheet([
+    const buffer = await generateXlsxMultiSheet([
       { name: "Resumo", data: resumoData },
       { name: "Mensal", data: mensalData },
       { name: "Procedimentos", data: procedimentosData },

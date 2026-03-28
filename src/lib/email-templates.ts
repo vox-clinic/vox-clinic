@@ -134,3 +134,48 @@ export function appointmentConfirmation(data: {
 
   return baseLayout(content, clinicName)
 }
+
+export function prescriptionEmail(data: {
+  patientName: string
+  clinicName: string
+  doctorName: string
+  medicationsSummary: string
+  pdfUrl: string
+  date: string
+}) {
+  const { patientName, clinicName, doctorName, medicationsSummary, pdfUrl, date } = data
+
+  const content = `
+    <h2 style="margin:0 0 16px;color:#18181b;font-size:22px;font-weight:600;">
+      Sua Prescri\u00e7\u00e3o M\u00e9dica
+    </h2>
+    <p style="margin:0 0 24px;color:#3f3f46;font-size:15px;line-height:1.6;">
+      Ol\u00e1, <strong>${patientName}</strong>!
+    </p>
+    <p style="margin:0 0 24px;color:#3f3f46;font-size:15px;line-height:1.6;">
+      Segue sua prescri\u00e7\u00e3o m\u00e9dica emitida por <strong>${doctorName}</strong> em <strong>${date}</strong>.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;width:100%;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0 0 8px;color:#71717a;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Medicamentos</p>
+          <p style="margin:0;color:#18181b;font-size:15px;font-weight:500;">${medicationsSummary}</p>
+        </td>
+      </tr>
+    </table>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td>
+          <a href="${pdfUrl}" target="_blank" style="display:inline-block;background-color:#14B8A6;color:#ffffff;font-size:15px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">
+            Baixar Prescri\u00e7\u00e3o (PDF)
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;color:#71717a;font-size:13px;line-height:1.5;">
+      Este link expira em 24 horas. Em caso de d\u00favidas, entre em contato com a cl\u00ednica.
+    </p>
+  `
+
+  return baseLayout(content, clinicName)
+}

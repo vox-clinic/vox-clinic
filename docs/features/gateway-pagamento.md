@@ -222,7 +222,7 @@ Nova secao em `/settings` — "Gateway de Pagamento":
 
 ## 8. Seguranca
 
-- API keys encriptadas com ENCRYPTION_KEY existente (mesmo padrao de MemedPrescriber)
+- API keys encriptadas com ENCRYPTION_KEY existente (AES-256-GCM)
 - Webhook signature validation obrigatoria
 - Webhook log completo para auditoria
 - Rate limiting no endpoint de webhook (reuso de rate-limit.ts)

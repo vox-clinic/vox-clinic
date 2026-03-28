@@ -33,7 +33,7 @@ npx tsc --noEmit     # Type-check
 - **Database:** PostgreSQL via Supabase + Prisma 6
 - **Auth:** Clerk (pt-BR) | **AI:** Claude (tool_use) + Whisper
 - **Storage:** Supabase Storage (signed URLs) | **Email:** Resend
-- **Video:** Daily.co | **Prescription:** Memed | **Fiscal:** NuvemFiscal
+- **Video:** Daily.co | **Fiscal:** NuvemFiscal
 - **Payment:** Asaas | **Background Jobs:** Inngest | **Monitoring:** Sentry
 
 ## Design System (Tailwind v4)
@@ -81,7 +81,7 @@ All multi-step mutations wrapped in `db.$transaction()`.
 
 Required: `DATABASE_URL`, `DIRECT_URL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
 
-Optional: `RESEND_API_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY`, `DAILY_API_KEY`, `MEMED_API_KEY`, `STRIPE_SECRET_KEY`, `INNGEST_DEV`, `NEXT_PUBLIC_SENTRY_DSN`
+Optional: `RESEND_API_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY`, `DAILY_API_KEY`, `STRIPE_SECRET_KEY`, `INNGEST_DEV`, `NEXT_PUBLIC_SENTRY_DSN`
 
 See `.env.example` for full list.
 

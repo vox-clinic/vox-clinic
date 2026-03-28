@@ -335,7 +335,7 @@ export default function CalendarPage() {
   const weekDays = view === "week" ? getWeekDays(getMonday(currentDate)) : []
 
   return (
-    <div className="flex flex-col gap-4 pb-24 md:pb-6">
+    <div data-testid="page-calendar" className="flex flex-col gap-4 pb-24 md:pb-6">
       {/* ─── Header ─── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ export default function CalendarPage() {
 
       {/* ─── Loading ─── */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <div data-testid="loading-calendar" className="flex flex-col items-center justify-center py-16 gap-3">
           <Loader2 className="size-5 animate-spin text-vox-primary" />
           <p className="text-xs text-muted-foreground">Carregando agenda...</p>
         </div>
@@ -538,7 +538,7 @@ export default function CalendarPage() {
 
       {/* ─── Delete Dialog ─── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="modal-confirm-delete">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir consulta</AlertDialogTitle>
             <AlertDialogDescription>Tem certeza que deseja excluir esta consulta? Esta ação não pode ser desfeita.</AlertDialogDescription>

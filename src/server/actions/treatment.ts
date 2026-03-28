@@ -31,6 +31,7 @@ export async function getTreatmentPlans(patientId: string) {
   const plans = await db.treatmentPlan.findMany({
     where: { patientId, workspaceId },
     orderBy: { createdAt: "desc" },
+    take: 100,
   })
 
   return plans.map((p) => ({

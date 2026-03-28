@@ -18,7 +18,6 @@ import {
   ClipboardList,
   Stethoscope,
   FileText,
-  Pill,
   Percent,
   RotateCcw,
 } from "lucide-react"
@@ -67,10 +66,6 @@ const PlanoSection = dynamic(
 )
 const FiscalTab = dynamic(
   () => import("./fiscal-tab").then((m) => m.FiscalTab),
-  { ssr: false }
-)
-const MemedSection = dynamic(
-  () => import("./sections/memed-section").then((m) => m.MemedSection),
   { ssr: false }
 )
 const FormulariosSection = dynamic(
@@ -350,10 +345,6 @@ export default function SettingsPage() {
             <Receipt className="size-4" />
             Fiscal
           </TabsTrigger>
-          <TabsTrigger value="memed" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Pill className="size-4" />
-            Memed
-          </TabsTrigger>
           <TabsTrigger value="plano" className="gap-2 px-4 py-2.5 text-[13px]">
             <CreditCard className="size-4" />
             Plano
@@ -442,11 +433,6 @@ export default function SettingsPage() {
         {/* ─── Tab: Fiscal (NFS-e) ─── */}
         <TabsContent value="fiscal" className="animate-fade-in space-y-4 pt-4">
           <FiscalTab />
-        </TabsContent>
-
-        {/* ─── Tab: Memed ─── */}
-        <TabsContent value="memed" className="animate-fade-in space-y-4 pt-4">
-          <MemedSection />
         </TabsContent>
 
         {/* ─── Tab: Plano (Billing) ─── */}

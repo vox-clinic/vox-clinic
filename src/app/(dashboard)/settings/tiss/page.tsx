@@ -342,7 +342,7 @@ export default function TissSettingsPage() {
             <div className="space-y-2">
               <Label className="text-xs">CBO (6 digitos)</Label>
               <Select
-                value={form.cbos || undefined}
+                value={form.cbos || ""}
                 onValueChange={(v) => { if (v) updateField("cbos", v) }}
               >
                 <SelectTrigger className="w-full">
@@ -363,7 +363,7 @@ export default function TissSettingsPage() {
             <div className="space-y-2">
               <Label className="text-xs">Conselho Profissional</Label>
               <Select
-                value={form.conselhoProfissional || undefined}
+                value={form.conselhoProfissional || ""}
                 onValueChange={(v) => { if (v) updateField("conselhoProfissional", v) }}
               >
                 <SelectTrigger className="w-full">
@@ -392,7 +392,7 @@ export default function TissSettingsPage() {
             <div className="space-y-2">
               <Label className="text-xs">UF do Conselho</Label>
               <Select
-                value={form.ufConselho || undefined}
+                value={form.ufConselho || ""}
                 onValueChange={(v) => { if (v) updateField("ufConselho", v) }}
               >
                 <SelectTrigger className="w-full">

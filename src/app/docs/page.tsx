@@ -198,10 +198,8 @@ export default function DocsPage() {
         </CategorySection>
 
         {/* ── 4. PRESCRICOES E DOCUMENTOS ── */}
-        <CategorySection icon="💊" title="Prescrições e Documentos" description="Prescrição eletrônica, atestados, declarações e laudos com impressão em PDF. Integração Memed." count={6}>
+        <CategorySection icon="💊" title="Prescrições e Documentos" description="Prescrição eletrônica nativa, atestados, declarações e laudos com impressão em PDF." count={4}>
           <FeatureCard title="Prescrição Eletrônica" description="Crie prescrições com lista de medicamentos (nome, posologia, frequência, duração, observações). Imprima como PDF (Ctrl+P). Acessível pelo perfil do paciente." />
-          <FeatureCard title="Integração Memed" description="Prescrição digital via Memed (60k+ medicamentos, alertas de interação, assinatura ICP-Brasil). Gratuito para parceiros. Chooser automático: Memed ou manual." />
-          <FeatureCard title="Prescrição Memed — Assinatura Digital" description="Prescrições Memed são assinadas digitalmente com certificado ICP-Brasil. PDF assinado armazenado, link digital para o paciente, badge de assinatura na listagem." />
           <FeatureCard title="Atestados Médicos" description="Geração automática de texto com nome, CPF, data e dias de afastamento. Campo opcional para código CID. Impressão em PDF." />
           <FeatureCard title="Declaração de Comparecimento" description="Texto auto-gerado com horário de entrada e saída. Impressão em PDF com assinatura e dados da clínica." />
           <FeatureCard title="Encaminhamento e Laudo" description="Documentos com texto livre para encaminhamentos médicos e laudos técnicos. Impressão em PDF padronizada." />

@@ -1,17 +1,38 @@
-import * as XLSX from "xlsx"
+import ExcelJS from "exceljs"
 
-export function generateXlsx(data: Record<string, unknown>[], sheetName: string = "Dados"): Buffer {
-  const ws = XLSX.utils.json_to_sheet(data)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, sheetName)
-  return Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }))
+export async function generateXlsx(data: Record<string, unknown>[], sheetName: string = "Dados"): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook()
+  addSheetFromData(workbook, sheetName, data)
+  const arrayBuffer = await workbook.xlsx.writeBuffer()
+  return Buffer.from(arrayBuffer)
 }
 
-export function generateXlsxMultiSheet(sheets: { name: string; data: Record<string, unknown>[] }[]): Buffer {
-  const wb = XLSX.utils.book_new()
+export async function generateXlsxMultiSheet(sheets: { name: string; data: Record<string, unknown>[] }[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook()
   for (const sheet of sheets) {
-    const ws = XLSX.utils.json_to_sheet(sheet.data)
-    XLSX.utils.book_append_sheet(wb, ws, sheet.name)
+    addSheetFromData(workbook, sheet.name, sheet.data)
   }
-  return Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }))
+  const arrayBuffer = await workbook.xlsx.writeBuffer()
+  return Buffer.from(arrayBuffer)
+}
+
+function addSheetFromData(workbook: ExcelJS.Workbook, name: string, data: Record<string, unknown>[]) {
+  const worksheet = workbook.addWorksheet(name)
+  if (data.length === 0) return
+
+  const keys = Object.keys(data[0])
+  worksheet.columns = keys.map((key) => ({
+    header: key,
+    key,
+    width: Math.max(key.length + 2, 15),
+  }))
+
+  for (const row of data) {
+    worksheet.addRow(
+      keys.reduce<Record<string, unknown>>((acc, key) => {
+        acc[key] = row[key] ?? ""
+        return acc
+      }, {})
+    )
+  }
 }

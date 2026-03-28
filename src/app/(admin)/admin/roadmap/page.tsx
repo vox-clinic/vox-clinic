@@ -106,8 +106,6 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
   { id: "d02", name: "Atestados médicos", description: "Texto auto-gerado, CID opcional, impressão PDF", status: "done", priority: "essential", effort: "medium", category: "Prescrições e Documentos" },
   { id: "d03", name: "Declaração de comparecimento", description: "Horário entrada/saída, impressão PDF", status: "done", priority: "essential", effort: "low", category: "Prescrições e Documentos" },
   { id: "d04", name: "Encaminhamento e laudo", description: "Texto livre, impressão PDF padronizada", status: "done", priority: "essential", effort: "low", category: "Prescrições e Documentos" },
-  { id: "d05", name: "Integração Memed", description: "Prescrição digital via Memed (60k+ medicamentos, interações, assinatura ICP-Brasil). Gratuito. Hook useMemed, panel embed, settings, sync prescriçãoImpressa", status: "done", priority: "important", effort: "medium", category: "Prescrições e Documentos" },
-
   // ── COMUNICAÇÃO ──
   { id: "m01", name: "WhatsApp Business API", description: "Meta Cloud API, setup wizard, envio e recebimento", status: "done", priority: "essential", effort: "high", category: "Comunicação" },
   { id: "m02", name: "Lembretes automáticos", description: "24h antes, WhatsApp com botões + email fallback", status: "done", priority: "essential", effort: "medium", category: "Comunicação" },

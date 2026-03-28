@@ -23,8 +23,6 @@ VoxClinic runs several long-running processes synchronously inside Vercel server
 
 4. **Notification generation cron** (`src/app/api/notifications/generate/route.ts`) — nested loops: for each workspace, query upcoming + missed appointments, then for each user, check for existing notification before creating. N+1 query pattern with no parallelism.
 
-5. **Memed prescription sync** (`src/server/actions/memed.ts` lines 234-326) — `syncMemedPrescription` makes 2 sequential HTTP calls to Memed API (PDF URL + digital link) after the user event fires, blocking the UI thread.
-
 ### Why Inngest
 
 Inngest provides **step functions for serverless** — each step is independently retryable, with built-in concurrency control, fan-out, scheduling, and an event-driven architecture. It runs on existing Vercel infrastructure (no separate server).
@@ -112,36 +110,6 @@ step.run("create-notifications") → Batch createMany for new notifications
 
 **Improvement:** Replace the current N+1 pattern (per-workspace, per-appointment, per-user `findFirst`) with batch queries using `IN` clauses. The current code (lines 32-119 of generate/route.ts) does individual DB queries in nested loops.
 
-### 2.4 `sync-memed-prescription` — Async Prescription Sync
-
-**Trigger:** `app/memed.prescription-created` event
-
-**Steps:**
-```
-step.run("fetch-pdf-url")       → client.getPrescriptionPdfUrl()
-step.run("fetch-digital-link")  → client.getDigitalPrescriptionLink()
-step.run("save-prescription")   → db.prescription.create() + audit log
-```
-
-**Event payload:**
-```typescript
-{
-  name: "app/memed.prescription-created",
-  data: {
-    workspaceId: string
-    userId: string
-    patientId: string
-    appointmentId?: string
-    memedPrescriptionId: string
-    medications: Array<{ name, dosage, frequency, duration, notes? }>
-    notes?: string
-    memedPayload: object
-  }
-}
-```
-
-**Advantage:** Current `syncMemedPrescription` (memed.ts lines 234-326) blocks the UI while fetching PDF URL and digital link from Memed. Moving to Inngest makes the UI return immediately after the Memed prescricaoImpressa event.
-
 ---
 
 ## 3. Setup
@@ -159,8 +127,6 @@ import { inngest } from "@/lib/inngest/client"
 import { processAudio } from "@/lib/inngest/functions/process-audio"
 import { sendReminderBatch, sendSingleReminder } from "@/lib/inngest/functions/send-reminder"
 import { generateNotifications } from "@/lib/inngest/functions/generate-notifications"
-import { syncMemedPrescription } from "@/lib/inngest/functions/sync-memed"
-
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
@@ -168,7 +134,6 @@ export const { GET, POST, PUT } = serve({
     sendReminderBatch,
     sendSingleReminder,
     generateNotifications,
-    syncMemedPrescription,
   ],
 })
 ```
@@ -210,7 +175,7 @@ Keep `/api/birthdays` and `/api/nps/send` as Vercel Cron until migrated in a fut
 - `Recording` — already has `status` field with values `pending | processed | error`
 - `Appointment` — already has `reminderSentAt`
 - `Notification` — existing model with deduplication fields
-- `Prescription` — existing model with Memed fields
+- `Prescription` — existing model with status/type fields
 
 The Recording `status` field gains a new value `"processing"` to represent in-progress background jobs. This is a runtime convention, not a schema enum (the field is a String).
 
@@ -239,10 +204,6 @@ The Recording `status` field gains a new value `"processing"` to represent in-pr
 
 No UI changes. These run in the background already (cron-triggered). The only visible improvement is better reliability (retries per item).
 
-### Memed Sync
-
-The `memed-prescription-panel.tsx` already shows a success toast after the Memed event. With Inngest, the prescription row will appear in the patient's prescriptions tab after a short delay instead of synchronously. Add a "Sincronizando..." badge on prescriptions with `memedStatus: "syncing"`.
-
 ---
 
 ## 6. Implementation Plan
@@ -269,11 +230,6 @@ The `memed-prescription-panel.tsx` already shows a success toast after the Memed
 1. Create `src/lib/inngest/functions/generate-notifications.ts` — optimized batch queries
 2. Keep `/api/notifications/generate/route.ts` as fallback
 3. Remove from cron after validation
-
-### Phase 4: Memed Async Sync
-1. Create `src/lib/inngest/functions/sync-memed.ts`
-2. Modify `src/server/actions/memed.ts` — `syncMemedPrescription` sends event
-3. Update `src/components/memed-prescription-panel.tsx` — handle async status
 
 ---
 

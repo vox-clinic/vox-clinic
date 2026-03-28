@@ -8,13 +8,11 @@
 
 ### Prescrição Atual (funcional)
 - **Model:** `Prescription` em `prisma/schema.prisma` — patientId, workspaceId, appointmentId?, medications (Json), notes
-- **Campos Memed:** source (manual/memed), memedPrescriptionId, memedStatus, signedPdfUrl, memedDigitalLink, memedPayload
 - **Campos Assinatura Digital:** signedPdfUrl, signedAt, signatureProvider, certificateSerial, certificateSubject, signedByUserId, verificationToken (@unique)
 - **Server Actions:** `src/server/actions/prescription.ts` — createPrescription, getPrescription, getPatientPrescriptions, deletePrescription
-- **Dialog:** `src/components/create-prescription-dialog.tsx` — modal com medication rows (add/remove), chooser Memed vs Manual
+- **Dialog:** `src/components/create-prescription-dialog.tsx` — modal com medication rows (add/remove)
 - **Print Page:** `src/app/(dashboard)/prescriptions/[id]/page.tsx` — HTML render com window.print()
-- **Tab Paciente:** `src/app/(dashboard)/patients/[id]/tabs/prescricoes-tab.tsx` — lista com badge Memed, indicador assinatura
-- **Memed Integration:** `src/hooks/use-memed.ts`, `src/components/memed-prescription-panel.tsx`, `src/server/actions/memed.ts`
+- **Tab Paciente:** `src/app/(dashboard)/patients/[id]/tabs/prescricoes-tab.tsx` — lista com indicador assinatura
 - **Verificação:** `src/app/verificar/[token]/page.tsx` — página pública de verificação de documentos assinados
 
 ### Stack Exata
@@ -41,7 +39,7 @@
 
 ## O que FALTA implementar (escopo deste módulo)
 
-### Prioridade 1: Base de Medicamentos ANVISA (substitui dependência do Memed)
+### Prioridade 1: Base de Medicamentos ANVISA
 - Tabela `MedicationDatabase` com dados da ANVISA (nome, princípio ativo, concentração, forma, fabricante, tipo controle)
 - Import/sync periódico dos dados abertos ANVISA
 - Autocomplete de medicamentos com busca accent-insensitive (mesmo padrão do CID-10)
@@ -106,7 +104,6 @@ model Prescription {
   cancelReason    String?
 
   // Já existem: signedPdfUrl, signedAt, signatureProvider, etc.
-  // Já existem: memedPrescriptionId, memedStatus, etc.
 }
 ```
 
@@ -215,7 +212,6 @@ model MedicationFavorite {
 | Prescription dialog | `src/components/create-prescription-dialog.tsx` | Substituir por PrescriptionEditor page |
 | Prescription print | `src/app/(dashboard)/prescriptions/[id]/page.tsx` | Evoluir para PDF generation |
 | Patient tab | `src/app/(dashboard)/patients/[id]/tabs/prescricoes-tab.tsx` | Já funcional, adicionar status badges |
-| Memed integration | `src/server/actions/memed.ts` + `src/hooks/use-memed.ts` | Manter como alternativa |
 | Digital signature | `docs/features/digital-signature.md` | Schema pronto, implementar signing |
 | Verification page | `src/app/verificar/[token]/page.tsx` | Já existe |
 | WhatsApp | `src/server/actions/whatsapp.ts` + `messaging.ts` | Reusar para envio |
@@ -246,17 +242,11 @@ model MedicationFavorite {
 
 ## Decisões Importantes
 
-### Memed vs Nativo — Coexistência
-- **NÃO remover Memed.** Manter como opção premium (assinatura ICP-Brasil inclusa, base de dados completa)
-- **Prescrição nativa** como alternativa gratuita (sem ICP-Brasil obrigatório para receita simples)
-- O profissional escolhe no dialog: "Memed" ou "Prescrição VoxClinic"
-- Dados fluem para o mesmo model `Prescription` com campo `source`
-
-### Base ANVISA vs Memed para medicamentos
-- Base ANVISA é gratuita e pública — ~60k medicamentos
-- Sem interações medicamentosas nativas (precisa de fonte secundária)
-- Memed tem interações, mas é dependência externa
-- **Decisão:** base ANVISA como principal, DrugBank/open source para interações
+### Prescrição 100% Nativa
+- Memed foi removido — prescrição é inteiramente nativa
+- Base ANVISA como fonte principal de medicamentos (~60k)
+- DrugInteraction model para interações (fonte: DrugBank/open source)
+- Assinatura digital via ICP-Brasil (A1 server-side ou BirdID cloud)
 
 ### PDF Library
 - **pdf-lib** (já planejado em digital-signature.md) — leve, funciona em Node.js, suporta assinatura PAdES

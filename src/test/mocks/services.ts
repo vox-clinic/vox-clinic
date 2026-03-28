@@ -42,7 +42,10 @@ vi.mock("@/lib/plan-enforcement", () => ({
   checkPatientLimit: vi.fn().mockResolvedValue({ allowed: true }),
   checkAppointmentLimit: vi.fn().mockResolvedValue({ allowed: true }),
   checkAgendaLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  checkTeamMemberLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }))
+export const mockSendEmail = vi.fn().mockResolvedValue(undefined)
+vi.mock("@/lib/email", () => ({ sendEmail: mockSendEmail }))
 vi.mock("@/lib/inngest/client", () => ({
   isInngestEnabled: vi.fn().mockReturnValue(false),
   sendInngestEvent: vi.fn().mockResolvedValue(false),

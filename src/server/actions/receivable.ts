@@ -3,6 +3,8 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_APPOINTMENT_NOT_FOUND, ERR_RECEIVABLE_NOT_FOUND, ERR_PAYMENT_NOT_FOUND, ERR_PAYMENT_ALREADY_REGISTERED, ERR_PAYMENT_CANCELLED, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, normalizeRole, type WorkspaceRole } from "@/lib/permissions"
+import { logAudit } from "@/lib/audit"
 
 async function getWorkspaceContext() {
   const { userId } = await auth()
@@ -10,13 +12,15 @@ async function getWorkspaceContext() {
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
 
   const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
 
-  return { workspaceId, clerkId: userId }
+  const role: WorkspaceRole = user?.workspace ? "owner" : normalizeRole(user?.memberships?.[0]?.role ?? "doctor")
+
+  return { workspaceId, clerkId: userId, role }
 }
 
 // ─── createCharge ────────────────────────────────────────────
@@ -34,7 +38,8 @@ interface CreateChargeInput {
 }
 
 export const createCharge = safeAction(async (input: CreateChargeInput) => {
-  const { workspaceId, clerkId } = await getWorkspaceContext()
+  const { workspaceId, clerkId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   const {
     patientId,
@@ -119,6 +124,16 @@ export const createCharge = safeAction(async (input: CreateChargeInput) => {
       where: { id: charge.id },
       include: { payments: { orderBy: { installmentNumber: "asc" } }, patient: { select: { id: true, name: true } } },
     })
+
+    logAudit({
+      workspaceId,
+      userId: clerkId,
+      action: "charge.created",
+      entityType: "Charge",
+      entityId: charge.id,
+      details: { totalAmount, discount, installments, patientId },
+    }).catch(() => {})
+
     return created!
   })
 })
@@ -133,7 +148,8 @@ interface RecordPaymentInput {
 }
 
 export const recordPayment = safeAction(async (paymentId: string, input: RecordPaymentInput) => {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, clerkId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   const { paidAmount, paymentMethod, paidAt, notes } = input
 
@@ -183,6 +199,15 @@ export const recordPayment = safeAction(async (paymentId: string, input: RecordP
       data: { status: chargeStatus },
     })
 
+    logAudit({
+      workspaceId,
+      userId: clerkId,
+      action: "payment.recorded",
+      entityType: "Payment",
+      entityId: paymentId,
+      details: { paidAmount, paymentMethod, chargeId: payment.chargeId },
+    }).catch(() => {})
+
     return { success: true }
   })
 })
@@ -199,7 +224,8 @@ interface GetChargesInput {
 }
 
 export async function getCharges(input: GetChargesInput = {}) {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.view")
 
   const { status, patientId, startDate, endDate, page = 1, pageSize = 20 } = input
 
@@ -268,7 +294,8 @@ export async function getCharges(input: GetChargesInput = {}) {
 // ─── getCharge ───────────────────────────────────────────────
 
 export async function getCharge(chargeId: string) {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.view")
 
   const charge = await db.charge.findUnique({
     where: { id: chargeId },
@@ -312,7 +339,8 @@ export async function getPatientBalance(patientId: string) {
 // ─── getReceivablesSummary ───────────────────────────────────
 
 export async function getReceivablesSummary() {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.view")
 
   // Update overdue first
   const now = new Date()
@@ -387,7 +415,8 @@ export async function getReceivablesSummary() {
 // ─── cancelCharge ────────────────────────────────────────────
 
 export const cancelCharge = safeAction(async (chargeId: string) => {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, clerkId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   return db.$transaction(async (tx) => {
     const charge = await tx.charge.findUnique({
@@ -414,6 +443,14 @@ export const cancelCharge = safeAction(async (chargeId: string) => {
       where: { id: chargeId },
       data: { status: "cancelled" },
     })
+
+    logAudit({
+      workspaceId,
+      userId: clerkId,
+      action: "charge.cancelled",
+      entityType: "Charge",
+      entityId: chargeId,
+    }).catch(() => {})
 
     return { success: true }
   })

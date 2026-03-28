@@ -14,7 +14,7 @@
 
 ## Clinical Models
 
-- **Prescription**: medications (JSON), notes, source (manual/memed), status (draft/signed/sent/cancelled), type (simple/special_control/antimicrobial/manipulated), validUntil. ICP-Brasil + Memed fields
+- **Prescription**: medications (JSON), notes, source, status (draft/signed/sent/cancelled/expired), type (simple/special_control/antimicrobial/manipulated), validUntil, sentVia, cancelReason. ICP-Brasil digital signature fields
 - **MedicalCertificate**: type (atestado/declaracao_comparecimento/encaminhamento/laudo), content, days?, cid?. ICP-Brasil fields
 - **TreatmentPlan**: name, procedures, totalSessions, completedSessions, status
 - **ClinicalImage**: url, bodyRegion, category (before/after/progress/general), pairedImageId (before/after link)
@@ -56,9 +56,31 @@
 - **UsageRecord**: period, metric, value
 - **Notification**: type, title, body, read
 - **DpoRequest**: LGPD data subject requests
-- **MemedPrescriber**: per-user Memed registration
 - **SignatureConfig**: digital signing config (ICP-Brasil)
 - **BookingConfig**: public booking page config
+
+## Prescription Models
+
+- **PrescriptionTemplate**: name, description, specialty, items (JSON), notes, isShared, usageCount, createdBy. Per workspace
+- **DrugInteraction**: drug1, drug2, severity (mild/moderate/severe/contraindicated), description, recommendation, source. @@unique([drug1, drug2])
+
+## Migration Models
+
+- **MigrationSession**: source, status, mapping (JSON), importedCount, errorLog
+
+## Gateway Models
+
+- **GatewayConfig**: provider (asaas/stripe), apiKey (encrypted)
+- **GatewayWebhookLog**: provider, eventType, payload, processedAt
+
+## Clinical Image Models
+
+- **ClinicalImage**: url, bodyRegion, category (before/after/progress/general), pairedImageId (before/after link), description, tags
+
+## Commission Models
+
+- **CommissionRule**: professionalId, procedureName, type (percentage/fixed), value
+- **CommissionEntry**: professionalId, appointmentId, amount, status (pending/paid), paidAt
 
 ## Key Constraints
 

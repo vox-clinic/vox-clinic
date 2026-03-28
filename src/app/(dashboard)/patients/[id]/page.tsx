@@ -3,8 +3,9 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, FileText, ChevronLeft, Phone, Mail, Calendar, Shield, Tag } from "lucide-react"
+import { AlertTriangle, FileText, ChevronLeft, Phone, Mail, Calendar, Shield, Tag, FilePen } from "lucide-react"
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import { PatientTabs } from "./patient-tabs"
 import { ExportButton } from "./export-button"
 import { DeactivateButton } from "./deactivate-button"
@@ -19,7 +20,12 @@ export default async function PatientPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const patient = await getPatient(id)
+  let patient: Awaited<ReturnType<typeof getPatient>>
+  try {
+    patient = await getPatient(id)
+  } catch {
+    notFound()
+  }
 
   // Fetch workspace custom fields for display
   const { userId } = await auth()
@@ -129,6 +135,12 @@ export default async function PatientPage({
             <div title="Criar nova prescricao de medicamentos para este paciente">
               <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} patientCpf={patient.document} patientPhone={patient.phone} />
             </div>
+            <Link href={`/patients/${patient.id}/prescricao`} title="Abrir editor completo de prescricao com pre-visualizacao">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <FilePen className="size-3.5" />
+                Editor de Prescricao
+              </Button>
+            </Link>
             <div title="Gerar atestado, declaracao de comparecimento, encaminhamento ou laudo">
               <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
             </div>

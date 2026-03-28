@@ -8,6 +8,7 @@ import type { Prisma } from "@prisma/client"
 import { readProcedures, readCustomFields, readAnamnesisTemplate, readCategories, toJsonValue } from "@/lib/json-helpers"
 import type { WorkspaceConfig, Procedure, CustomField, AnamnesisQuestion, Category } from "@/types"
 import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, normalizeRole, type WorkspaceRole } from "@/lib/permissions"
 import { cached, invalidate } from "@/lib/cache"
 
 async function getAuthenticatedUser() {
@@ -15,10 +16,14 @@ async function getAuthenticatedUser() {
   if (!userId) throw new ActionError(ERR_UNAUTHORIZED)
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
   if (!user) throw new ActionError(ERR_USER_NOT_FOUND)
   return user
+}
+
+function getUserRole(user: Awaited<ReturnType<typeof getAuthenticatedUser>>): WorkspaceRole {
+  return user.workspace ? "owner" : normalizeRole(user.memberships?.[0]?.role ?? "doctor")
 }
 
 export async function getWorkspace() {
@@ -64,6 +69,7 @@ export const updateWorkspace = safeAction(async (data: {
   const user = await getAuthenticatedUser()
   const workspaceId = user.workspace?.id ?? user.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new ActionError(ERR_WORKSPACE_NOT_CONFIGURED)
+  requirePermission(getUserRole(user), "settings.edit")
 
   const { clinicName, ...workspaceFields } = data
 

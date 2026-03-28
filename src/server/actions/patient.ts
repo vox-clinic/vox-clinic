@@ -8,6 +8,8 @@ import { logAudit } from "@/lib/audit"
 import { unstable_cache, revalidateTag } from "next/cache"
 import { getWorkspaceIdCached } from "@/lib/workspace-cache"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, type WorkspaceRole } from "@/lib/permissions"
+import { requireWorkspaceRole } from "@/lib/auth-context"
 
 async function getWorkspaceContext() {
   const { userId } = await auth()
@@ -17,6 +19,12 @@ async function getWorkspaceContext() {
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
 
   return { workspaceId, clerkId: userId }
+}
+
+/** Resolve the current user's role (used for permission checks on mutations). */
+async function getRole(): Promise<WorkspaceRole> {
+  const ctx = await requireWorkspaceRole()
+  return ctx.role
 }
 
 async function getWorkspaceId() {
@@ -243,6 +251,7 @@ export const updatePatient = safeAction(async (
   }
 ) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+  requirePermission(await getRole(), "patients.edit")
 
   const existing = await db.patient.findFirst({
     where: { id: patientId, workspaceId },
@@ -279,6 +288,7 @@ export const updatePatient = safeAction(async (
 
 export const createPatient = safeAction(async (formData: FormData) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+  requirePermission(await getRole(), "patients.create")
 
   const name = formData.get("name") as string
   const document = formData.get("document") as string | null
@@ -375,6 +385,7 @@ export const createPatient = safeAction(async (formData: FormData) => {
 
 export const deactivatePatient = safeAction(async (patientId: string) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+  requirePermission(await getRole(), "patients.delete")
 
   const existing = await db.patient.findFirst({
     where: { id: patientId, workspaceId },
@@ -420,6 +431,7 @@ export async function getAudioPlaybackUrl(audioPath: string) {
 
 export const mergePatients = safeAction(async (keepId: string, mergeId: string) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+  requirePermission(await getRole(), "patients.delete")
 
   if (keepId === mergeId) throw new ActionError("Não pode mesclar paciente consigo mesmo")
 
@@ -527,6 +539,7 @@ export const mergePatients = safeAction(async (keepId: string, mergeId: string) 
 
 export const grantWhatsAppConsent = safeAction(async (patientId: string) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+  requirePermission(await getRole(), "patients.edit")
 
   const existing = await db.patient.findFirst({
     where: { id: patientId, workspaceId },
@@ -566,6 +579,7 @@ export const grantWhatsAppConsent = safeAction(async (patientId: string) => {
 
 export const revokeWhatsAppConsent = safeAction(async (patientId: string) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
+  requirePermission(await getRole(), "patients.edit")
 
   const existing = await db.patient.findFirst({
     where: { id: patientId, workspaceId },

@@ -82,7 +82,7 @@ export function NavSidebar({ clinicName, role = "owner" }: { clinicName?: string
   const visibleActionNav = actionNav.filter(isVisible)
 
   return (
-    <aside aria-label="Navegacao principal" className="hidden md:flex w-56 flex-col border-r border-border/40 bg-sidebar">
+    <aside data-testid="nav-sidebar" aria-label="Navegacao principal" className="hidden md:flex w-56 flex-col border-r border-border/40 bg-sidebar">
       <nav className="flex flex-col gap-0.5 px-3 pt-5">
         <p className="px-3 pb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
           Menu

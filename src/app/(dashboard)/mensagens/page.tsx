@@ -329,7 +329,7 @@ function ChatView({
     setSending(true)
     try {
       const result = await sendTextMessage(conversation.id, conversation.contactPhone, trimmed)
-      if (result.success) {
+      if (!('error' in result)) {
         setText("")
         // Refresh messages
         const msgs = await fetchMessages(conversation.id)

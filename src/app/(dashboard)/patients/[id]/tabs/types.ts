@@ -92,7 +92,9 @@ export type PrescriptionItem = {
   createdAt: string
   source?: string | null
   signedPdfUrl?: string | null
-  memedStatus?: string | null
+  sentVia?: string[]
+  status: string
+  type: string
 }
 
 export type ClinicalImageItem = {

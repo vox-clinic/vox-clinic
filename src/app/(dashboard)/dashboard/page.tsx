@@ -65,7 +65,7 @@ export default async function DashboardPage() {
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"
 
   return (
-    <div className="space-y-6">
+    <div data-testid="page-dashboard" className="space-y-6">
       {/* ─── Hero Greeting ─── */}
       <div data-tour="hero-card" className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-vox-primary/[0.05] via-card to-vox-primary/[0.02] p-5 sm:p-6">
         <div className="pointer-events-none absolute -right-20 -top-20 size-56 rounded-full bg-vox-primary/[0.06] blur-3xl" />
@@ -90,7 +90,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ─── Stat Cards ─── */}
-      <div data-tour="stats-grid" className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div data-tour="stats-grid" data-testid="section-stats" className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           <CardContent className="pt-5 pb-4">
@@ -161,7 +161,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ─── Quick Actions Row ─── */}
-      <div data-tour="quick-actions" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div data-tour="quick-actions" data-testid="section-quick-actions" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { href: "/appointments/new", label: "Nova Consulta", icon: Stethoscope, accent: true },
           { href: "/patients/new/voice", label: "Cadastro por Voz", icon: Mic },
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {data.todayAppointments.length === 0 ? (
-              <div className="text-center py-8">
+              <div data-testid="empty-today-appointments" className="text-center py-8">
                 <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted/50">
                   <CalendarDays className="size-6 text-muted-foreground/40" />
                 </div>
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-0.5">
+              <div data-testid="section-upcoming-appointments" className="space-y-0.5">
                 {data.todayAppointments.map((apt) => (
                   <Link
                     key={apt.id}

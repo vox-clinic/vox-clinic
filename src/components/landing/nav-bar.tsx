@@ -20,7 +20,7 @@ export function NavBar({ isAuthenticated = false, dashboardUrl = "/dashboard" }:
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/70 backdrop-blur-xl border-b border-border/40">
+    <nav data-testid="nav-bar" className="sticky top-0 z-50 bg-background/70 backdrop-blur-xl border-b border-border/40">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex h-16 items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">

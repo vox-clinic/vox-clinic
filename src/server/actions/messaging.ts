@@ -43,17 +43,17 @@ export async function getMessagingConfig() {
   }
 }
 
-export async function updateMessagingConfig(data: {
+export const updateMessagingConfig = safeAction(async (data: {
   whatsappApiKey?: string
   whatsappPhone?: string
   twilioAccountSid?: string
   twilioAuthToken?: string
   twilioPhone?: string
-}) {
+}) => {
   const { workspaceId } = await getAuthContext()
 
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId } })
-  if (!workspace) throw new Error(ERR_WORKSPACE_NOT_FOUND)
+  if (!workspace) throw new ActionError(ERR_WORKSPACE_NOT_FOUND)
 
   const existing = (workspace.categories as any) ?? {}
   const messaging = { ...(existing.messaging ?? {}), ...data }
@@ -66,7 +66,7 @@ export async function updateMessagingConfig(data: {
   })
 
   return { success: true }
-}
+})
 
 export const sendAppointmentMessage = safeAction(async ({ appointmentId, channel }: SendReminderParams) => {
   const { user, workspaceId } = await getAuthContext()

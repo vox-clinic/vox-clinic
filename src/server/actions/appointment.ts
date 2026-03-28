@@ -8,6 +8,8 @@ import { checkAppointmentLimit } from "@/lib/plan-enforcement"
 import { getWorkspaceIdCached } from "@/lib/workspace-cache"
 import { invalidate } from "@/lib/cache"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ERR_PATIENT_NOT_FOUND, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, type WorkspaceRole } from "@/lib/permissions"
+import { requireWorkspaceRole } from "@/lib/auth-context"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -17,6 +19,12 @@ async function getWorkspaceId() {
   if (!cached) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
 
   return cached
+}
+
+/** Resolve the current user's role (used for permission checks on mutations). */
+async function getRole(): Promise<WorkspaceRole> {
+  const ctx = await requireWorkspaceRole()
+  return ctx.role
 }
 
 export async function getAppointments(page: number = 1, status?: string) {
@@ -225,6 +233,7 @@ export const scheduleAppointment = safeAction(async (data: {
   if (!userId) throw new ActionError(ERR_UNAUTHORIZED)
   const workspaceId = await getWorkspaceIdCached(userId)
   if (!workspaceId) throw new ActionError(ERR_WORKSPACE_NOT_CONFIGURED)
+  requirePermission(await getRole(), "appointments.create")
 
   // Validate agenda belongs to workspace
   const agenda = await db.agenda.findFirst({
@@ -334,6 +343,7 @@ export const updateAppointmentStatus = safeAction(async (appointmentId: string, 
   if (!userId) throw new ActionError(ERR_UNAUTHORIZED)
   const workspaceId = await getWorkspaceIdCached(userId)
   if (!workspaceId) throw new ActionError(ERR_WORKSPACE_NOT_CONFIGURED)
+  requirePermission(await getRole(), "appointments.edit")
 
   const validStatuses = ["scheduled", "completed", "cancelled", "no_show"]
   if (!validStatuses.includes(status)) {
@@ -407,6 +417,7 @@ export const rescheduleAppointment = safeAction(async (appointmentId: string, ne
   if (!userId) throw new ActionError(ERR_UNAUTHORIZED)
   const workspaceId = await getWorkspaceIdCached(userId)
   if (!workspaceId) throw new ActionError(ERR_WORKSPACE_NOT_CONFIGURED)
+  requirePermission(await getRole(), "appointments.edit")
 
   const existing = await db.appointment.findFirst({
     where: { id: appointmentId, workspaceId },
@@ -468,6 +479,7 @@ export const deleteAppointment = safeAction(async (appointmentId: string) => {
   if (!userId) throw new ActionError(ERR_UNAUTHORIZED)
   const workspaceId = await getWorkspaceIdCached(userId)
   if (!workspaceId) throw new ActionError(ERR_WORKSPACE_NOT_CONFIGURED)
+  requirePermission(await getRole(), "appointments.edit")
 
   const existing = await db.appointment.findFirst({
     where: { id: appointmentId, workspaceId },
@@ -502,6 +514,7 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
   occurrences: number
 }) => {
   const workspaceId = await getWorkspaceId()
+  requirePermission(await getRole(), "appointments.create")
 
   if (data.occurrences < 2 || data.occurrences > 52) {
     throw new ActionError("Número de ocorrências deve ser entre 2 e 52")

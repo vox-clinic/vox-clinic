@@ -1,4 +1,10 @@
-# Memed Digital Prescription Integration — Feature Document
+# ⚠️ DEPRECATED — Memed integration foi removida. Prescrição agora é 100% nativa.
+
+> Este documento é mantido apenas para referência histórica. Ver `docs/features/prescricao-avancada.md` para a implementação atual.
+
+---
+
+# (HISTÓRICO) Memed Digital Prescription Integration — Feature Document
 
 ## 1. Overview
 

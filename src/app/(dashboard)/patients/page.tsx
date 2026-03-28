@@ -12,7 +12,7 @@ export default async function PatientsPage() {
   ])
 
   return (
-    <div className="space-y-5">
+    <div data-testid="page-patients" className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2.5">

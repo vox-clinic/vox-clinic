@@ -312,37 +312,39 @@ export async function calculateCommissions(appointmentId: string) {
     })
   }
 
-  // Upsert entries (one per member+procedure per appointment)
-  for (const entry of entries) {
-    await db.commissionEntry.upsert({
-      where: {
-        appointmentId_memberId_procedureName: {
-          appointmentId,
-          memberId,
-          procedureName: entry.procedureName,
+  // Upsert entries atomically (one per member+procedure per appointment)
+  await db.$transaction(
+    entries.map((entry) =>
+      db.commissionEntry.upsert({
+        where: {
+          appointmentId_memberId_procedureName: {
+            appointmentId,
+            memberId,
+            procedureName: entry.procedureName,
+          },
         },
-      },
-      create: {
-        workspaceId,
-        memberId,
-        appointmentId,
-        ruleId: entry.ruleId,
-        procedureName: entry.procedureName,
-        baseAmount: entry.baseAmount,
-        percentage: entry.percentage,
-        fixedAmount: entry.fixedAmount,
-        amount: entry.amount,
-        status: "pending",
-      },
-      update: {
-        ruleId: entry.ruleId,
-        baseAmount: entry.baseAmount,
-        percentage: entry.percentage,
-        fixedAmount: entry.fixedAmount,
-        amount: entry.amount,
-      },
-    })
-  }
+        create: {
+          workspaceId,
+          memberId,
+          appointmentId,
+          ruleId: entry.ruleId,
+          procedureName: entry.procedureName,
+          baseAmount: entry.baseAmount,
+          percentage: entry.percentage,
+          fixedAmount: entry.fixedAmount,
+          amount: entry.amount,
+          status: "pending",
+        },
+        update: {
+          ruleId: entry.ruleId,
+          baseAmount: entry.baseAmount,
+          percentage: entry.percentage,
+          fixedAmount: entry.fixedAmount,
+          amount: entry.amount,
+        },
+      })
+    )
+  )
 
   return {
     entries: entries.map((e) => ({

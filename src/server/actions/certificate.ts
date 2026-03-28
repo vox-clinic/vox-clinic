@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
 import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_CERTIFICATE_NOT_FOUND, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, normalizeRole, type WorkspaceRole } from "@/lib/permissions"
 
 async function getAuthContext() {
   const { userId } = await auth()
@@ -11,13 +12,15 @@ async function getAuthContext() {
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
   if (!user) throw new Error(ERR_USER_NOT_FOUND)
   const workspaceId = user.workspace?.id ?? user.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
 
-  return { userId, user, workspaceId }
+  const role: WorkspaceRole = user.workspace ? "owner" : normalizeRole(user.memberships?.[0]?.role ?? "doctor")
+
+  return { userId, user, workspaceId, role }
 }
 
 function generateCertificateContent(
@@ -57,7 +60,8 @@ export const createCertificate = safeAction(async (data: {
   endTime?: string
   content?: string
 }) => {
-  const { userId, workspaceId } = await getAuthContext()
+  const { userId, workspaceId, role } = await getAuthContext()
+  requirePermission(role, "clinical.certificates")
 
   const validTypes = ["atestado", "declaracao_comparecimento", "encaminhamento", "laudo"]
   if (!validTypes.includes(data.type)) throw new ActionError("Tipo de documento inválido")
@@ -144,6 +148,7 @@ export async function getPatientCertificates(patientId: string) {
   const certificates = await db.medicalCertificate.findMany({
     where: { patientId, workspaceId },
     orderBy: { createdAt: "desc" },
+    take: 100,
   })
 
   return certificates.map((c) => ({
@@ -158,7 +163,8 @@ export async function getPatientCertificates(patientId: string) {
 }
 
 export const deleteCertificate = safeAction(async (id: string) => {
-  const { userId, workspaceId } = await getAuthContext()
+  const { userId, workspaceId, role } = await getAuthContext()
+  requirePermission(role, "clinical.certificates")
 
   const certificate = await db.medicalCertificate.findFirst({
     where: { id, workspaceId },

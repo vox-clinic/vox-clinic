@@ -61,7 +61,6 @@ model Workspace {
   tissGuides          TissGuide[]
   formTemplates       FormTemplate[]
   formResponses       FormResponse[]
-  memedPrescribers    MemedPrescriber[]
   waitlistEntries     WaitlistEntry[]
   commissionRules     CommissionRule[]
   commissionEntries   CommissionEntry[]
@@ -235,6 +234,7 @@ model TreatmentPlan {
   @@index([patientId])
   @@index([workspaceId])
   @@index([workspaceId, status])
+  @@index([workspaceId, patientId])
 }
 
 model Notification {
@@ -409,7 +409,7 @@ model Prescription {
   appointmentId String?
   medications   Json // [{ name, dosage, frequency, duration, notes, activeIngredient?, concentration?, pharmaceuticalForm?, quantity?, route?, anvisaCode?, isContinuousUse?, controlType?, order? }]
   notes         String?
-  source        String  @default("manual") // "manual" | "memed"
+  source        String  @default("manual")
 
   // Prescription metadata
   status      String    @default("draft") // "draft" | "signed" | "sent" | "cancelled" | "expired"
@@ -420,14 +420,8 @@ model Prescription {
   cancelledAt DateTime?
   cancelReason String?
 
-  // Memed digital prescription fields
-  memedPrescriptionId String? // UUID from Memed
-  memedStatus         String? // "signed" | "pending"
-  signedPdfUrl        String? // Signed PDF URL (Memed or ICP-Brasil)
-  memedDigitalLink    String? // Link for patient
-  memedPayload        Json? // Full event payload
-
   // ICP-Brasil digital signature fields
+  signedPdfUrl       String? // Signed PDF URL (ICP-Brasil)
   signedAt           DateTime? // When the document was digitally signed
   signatureProvider  String? // "a1_server" | "birdid" | "vidaas" | "webpki"
   certificateSerial  String? // Certificate serial number
@@ -441,7 +435,7 @@ model Prescription {
   @@index([patientId])
   @@index([workspaceId])
   @@index([workspaceId, status])
-  @@index([memedPrescriptionId])
+  @@index([workspaceId, patientId])
 }
 
 model MedicalCertificate {
@@ -465,9 +459,11 @@ model MedicalCertificate {
   verificationToken  String?   @unique // Public token for verification page
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([patientId])
   @@index([workspaceId])
+  @@index([workspaceId, patientId])
 }
 
 model UsageRecord {
@@ -649,6 +645,7 @@ model ExpenseCategory {
   color       String? // hex color
   isDefault   Boolean   @default(false)
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   expenses    Expense[]
 
   @@unique([workspaceId, name])
@@ -902,28 +899,6 @@ model FormResponse {
 }
 
 // ============================================================
-// Memed — Digital Prescription Integration
-// ============================================================
-
-model MemedPrescriber {
-  id              String    @id @default(cuid())
-  workspaceId     String
-  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  userId          String // clerkId
-  memedExternalId String
-  memedToken      String // encrypted via src/lib/crypto.ts
-  boardCode       String // CRM, CRO, COREN, CRN, etc.
-  boardNumber     String
-  boardState      String // UF (e.g. SP, RJ, MG)
-  status          String    @default("pending") // pending | active | inactive
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@unique([workspaceId, userId])
-  @@index([workspaceId])
-}
-
-// ============================================================
 // ICP-Brasil Digital Signature Configuration
 // ============================================================
 
@@ -1040,6 +1015,7 @@ model InventoryCategory {
   icon        String?
   color       String?
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   items InventoryItem[]
 
@@ -1169,6 +1145,23 @@ model ClinicalImage {
 // MEDICATION DATABASE (ANVISA)
 // ============================================================
 
+model PrescriptionTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  specialty   String?
+  items       Json     // Array of medication items [{name, dosage, frequency, duration, instructions}]
+  notes       String?
+  isShared    Boolean  @default(false)
+  usageCount  Int      @default(0)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId])
+}
+
 model MedicationDatabase {
   id                 String   @id @default(cuid())
   anvisaCode         String   @unique // Registro ANVISA
@@ -1186,6 +1179,20 @@ model MedicationDatabase {
   @@index([name])
   @@index([activeIngredient])
   @@index([controlType])
+}
+
+model DrugInteraction {
+  id          String   @id @default(cuid())
+  drug1       String   // active ingredient name (normalized lowercase)
+  drug2       String   // active ingredient name (normalized lowercase)
+  severity    String   // "grave", "moderada", "leve"
+  description String   // pt-BR description of the interaction
+  source      String?  // "ANVISA", "UpToDate", "manual"
+  createdAt   DateTime @default(now())
+
+  @@unique([drug1, drug2])
+  @@index([drug1])
+  @@index([drug2])
 }
 
 model MedicationFavorite {

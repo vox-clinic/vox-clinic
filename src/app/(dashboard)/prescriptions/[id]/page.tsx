@@ -1,7 +1,12 @@
 import { getPrescription } from "@/server/actions/prescription"
 import { PrintButton } from "./print-button"
+import { GeneratePdfButton } from "./generate-pdf-button"
+import { SendWhatsAppButton } from "./send-whatsapp-button"
+import { SendEmailButton } from "./send-email-button"
+import { PrescriptionActions } from "./prescription-actions"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { notFound } from "next/navigation"
 
 function formatDateLong(date: Date): string {
   return date.toLocaleDateString("pt-BR", {
@@ -17,7 +22,12 @@ export default async function PrescriptionPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const prescription = await getPrescription(id)
+  let prescription: Awaited<ReturnType<typeof getPrescription>>
+  try {
+    prescription = await getPrescription(id)
+  } catch {
+    notFound()
+  }
 
   const createdDate = new Date(prescription.createdAt)
   const today = formatDateLong(createdDate)
@@ -33,7 +43,29 @@ export default async function PrescriptionPage({
           <ArrowLeft className="size-4" />
           Voltar
         </Link>
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          {prescription.patientPhone && prescription.patientWhatsappConsent && (
+            <SendWhatsAppButton prescriptionId={id} />
+          )}
+          {prescription.patientEmail && (
+            <SendEmailButton prescriptionId={id} />
+          )}
+          <GeneratePdfButton prescriptionId={id} />
+          <PrintButton />
+        </div>
+      </div>
+
+      {/* Status / Actions bar - hidden on print */}
+      <div className="print:hidden mb-6">
+        <PrescriptionActions
+          prescriptionId={id}
+          status={prescription.status}
+          type={prescription.type}
+          validUntil={prescription.validUntil}
+          signedAt={prescription.signedAt}
+          cancelledAt={prescription.cancelledAt}
+          cancelReason={prescription.cancelReason}
+        />
       </div>
 
       {/* Prescription — A4 page simulation */}

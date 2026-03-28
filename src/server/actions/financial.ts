@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { readProcedures, normalizeProcedureNames, toJsonValue } from "@/lib/json-helpers"
 import type { Procedure } from "@/types"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_APPOINTMENT_NOT_FOUND, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, normalizeRole, type WorkspaceRole } from "@/lib/permissions"
 
 export async function getFinancialData(period: "month" | "year", date: string) {
   const { userId } = await auth()
@@ -12,10 +13,13 @@ export async function getFinancialData(period: "month" | "year", date: string) {
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
   const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
+
+  const role: WorkspaceRole = user?.workspace ? "owner" : normalizeRole(user?.memberships?.[0]?.role ?? "doctor")
+  requirePermission(role, "financial.view")
 
   const baseDate = new Date(date)
 
@@ -115,10 +119,13 @@ export const updateAppointmentPrice = safeAction(async (appointmentId: string, p
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
   const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
+
+  const priceRole: WorkspaceRole = user?.workspace ? "owner" : normalizeRole(user?.memberships?.[0]?.role ?? "doctor")
+  requirePermission(priceRole, "financial.edit")
 
   const appointment = await db.appointment.findUnique({
     where: { id: appointmentId },
@@ -143,10 +150,13 @@ export const updateProcedurePrice = safeAction(async (procedureId: string, price
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
   const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
+
+  const procRole: WorkspaceRole = user?.workspace ? "owner" : normalizeRole(user?.memberships?.[0]?.role ?? "doctor")
+  requirePermission(procRole, "financial.edit")
 
   const MAX_RETRIES = 3
 

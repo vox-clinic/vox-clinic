@@ -1,16 +1,16 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Pill, Plus, Trash2, Loader2, Sparkles } from "lucide-react"
+import { Pill, Plus, Trash2, Loader2, AlertTriangle, AlertCircle, Info } from "lucide-react"
 import { createPrescription } from "@/server/actions/prescription"
+import { checkDrugInteractions, type DrugInteractionResult } from "@/server/actions/drug-interaction"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
 import { useRouter } from "next/navigation"
-import { MemedPrescriptionPanel } from "@/components/memed-prescription-panel"
 
 interface Medication {
   name: string
@@ -31,153 +31,29 @@ const emptyMedication: Medication = {
 export function CreatePrescriptionButton({
   patientId,
   patientName,
-  patientCpf,
-  patientPhone,
 }: {
   patientId: string
   patientName: string
   patientCpf?: string | null
   patientPhone?: string | null
 }) {
-  const [mode, setMode] = useState<"closed" | "chooser" | "manual" | "memed">("closed")
-  const [memedConfigured, setMemedConfigured] = useState<boolean | null>(null)
-  const router = useRouter()
+  const [open, setOpen] = useState(false)
 
-  // Check Memed status on first open
-  useEffect(() => {
-    if (mode !== "closed" && memedConfigured === null) {
-      import("@/server/actions/memed")
-        .then(({ getMemedPrescriberStatus }) => getMemedPrescriberStatus())
-        .then((result) => {
-          setMemedConfigured(
-            result.isConfigured === true &&
-            result.prescriber != null &&
-            result.prescriber.status === "active"
-          )
-        })
-        .catch(() => setMemedConfigured(false))
-    }
-  }, [mode, memedConfigured])
-
-  const handleOpen = () => {
-    if (memedConfigured === true) {
-      // Memed configured — show chooser
-      setMode("chooser")
-    } else if (memedConfigured === false) {
-      // Memed not configured — go straight to manual
-      setMode("manual")
-    } else {
-      // Still loading — show chooser (will resolve)
-      setMode("chooser")
-    }
-  }
-
-  if (mode === "closed") {
+  if (!open) {
     return (
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={handleOpen}>
+      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
         <Pill className="size-3.5" />
         Prescrição
       </Button>
     )
   }
 
-  // Memed panel
-  if (mode === "memed") {
-    return (
-      <>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={handleOpen}>
-          <Pill className="size-3.5" />
-          Prescricao
-        </Button>
-        <MemedPrescriptionPanel
-          open={true}
-          onClose={() => setMode("closed")}
-          patient={{
-            id: patientId,
-            name: patientName,
-            cpf: patientCpf ?? undefined,
-            phone: patientPhone ?? undefined,
-          }}
-          onPrescriptionCreated={(prescriptionId) => {
-            setMode("closed")
-            window.open(`/prescriptions/${prescriptionId}`, "_blank")
-            router.refresh()
-          }}
-        />
-      </>
-    )
-  }
-
-  // Manual mode
-  if (mode === "manual") {
-    return (
-      <CreatePrescriptionModal
-        patientId={patientId}
-        patientName={patientName}
-        onClose={() => setMode("closed")}
-      />
-    )
-  }
-
-  // Chooser mode — show both options
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setMode("closed")}>
-      <div
-        className="w-full max-w-sm rounded-2xl bg-card border shadow-lg p-5 space-y-4 mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div>
-          <h3 className="text-base font-semibold">Nova Prescricao</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Paciente: <strong>{patientName}</strong>
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          {memedConfigured === null ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : memedConfigured ? (
-            <Button
-              onClick={() => setMode("memed")}
-              className="w-full rounded-xl bg-vox-primary text-white hover:bg-vox-primary/90 gap-2 h-12 justify-start px-4"
-            >
-              <div className="flex size-8 items-center justify-center rounded-lg bg-white/20">
-                <Sparkles className="size-4" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-medium">Prescricao Memed</div>
-                <div className="text-[10px] opacity-80">Base completa + assinatura digital</div>
-              </div>
-            </Button>
-          ) : null}
-
-          <Button
-            variant="outline"
-            onClick={() => setMode("manual")}
-            className="w-full rounded-xl gap-2 h-12 justify-start px-4"
-          >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-muted">
-              <Pill className="size-4 text-muted-foreground" />
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-medium">Prescricao Manual</div>
-              <div className="text-[10px] text-muted-foreground">Formulario livre</div>
-            </div>
-          </Button>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setMode("closed")}
-          className="w-full text-muted-foreground"
-        >
-          Cancelar
-        </Button>
-      </div>
-    </div>
+    <CreatePrescriptionModal
+      patientId={patientId}
+      patientName={patientName}
+      onClose={() => setOpen(false)}
+    />
   )
 }
 
@@ -193,7 +69,51 @@ function CreatePrescriptionModal({
   const [medications, setMedications] = useState<Medication[]>([{ ...emptyMedication }])
   const [notes, setNotes] = useState("")
   const [saving, startSave] = useTransition()
+  const [interactions, setInteractions] = useState<DrugInteractionResult[]>([])
+  const [checkingInteractions, setCheckingInteractions] = useState(false)
+  const [acknowledgedInteractions, setAcknowledgedInteractions] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
+
+  const hasGraveInteraction = interactions.some((i) => i.severity === "grave")
+
+  // Check drug interactions when medications change (debounced)
+  const checkInteractions = useCallback(async (meds: Medication[]) => {
+    const names = meds.map((m) => m.name.trim()).filter(Boolean)
+    if (names.length < 2) {
+      setInteractions([])
+      return
+    }
+
+    setCheckingInteractions(true)
+    try {
+      const result = await checkDrugInteractions(names)
+      if ("error" in result) {
+        // Silently fail — don't block the prescription flow
+        setInteractions([])
+        return
+      }
+      setInteractions(result.interactions)
+      // Reset acknowledgment when interactions change
+      if (result.interactions.some((i) => i.severity === "grave")) {
+        setAcknowledgedInteractions(false)
+      }
+    } catch {
+      setInteractions([])
+    } finally {
+      setCheckingInteractions(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      checkInteractions(medications)
+    }, 800)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [medications, checkInteractions])
 
   const updateMedication = (index: number, field: keyof Medication, value: string) => {
     setMedications((prev) =>
@@ -333,6 +253,61 @@ function CreatePrescriptionModal({
             rows={3}
           />
         </div>
+
+        {/* Drug interaction alerts */}
+        {(interactions.length > 0 || checkingInteractions) && (
+          <div className="space-y-2">
+            {checkingInteractions && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                <Loader2 className="size-3 animate-spin" />
+                Verificando interacoes medicamentosas...
+              </div>
+            )}
+            {interactions.map((ix, idx) => {
+              const isGrave = ix.severity === "grave"
+              const isModerada = ix.severity === "moderada"
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-2 rounded-xl border p-3 text-xs ${
+                    isGrave
+                      ? "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+                      : isModerada
+                        ? "border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300"
+                        : "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
+                  }`}
+                >
+                  {isGrave ? (
+                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                  ) : isModerada ? (
+                    <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                  ) : (
+                    <Info className="size-4 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <span className="font-semibold">
+                      {isGrave ? "Interacao grave" : isModerada ? "Interacao moderada" : "Interacao leve"}:
+                    </span>{" "}
+                    {ix.drug1} + {ix.drug2} — {ix.description}
+                  </div>
+                </div>
+              )
+            })}
+            {hasGraveInteraction && (
+              <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-red-300 bg-red-50/50 p-3 dark:border-red-800 dark:bg-red-950/20">
+                <input
+                  type="checkbox"
+                  checked={acknowledgedInteractions}
+                  onChange={(e) => setAcknowledgedInteractions(e.target.checked)}
+                  className="size-4 rounded accent-red-600"
+                />
+                <span className="text-xs font-medium text-red-800 dark:text-red-300">
+                  Ciente das interacoes graves detectadas
+                </span>
+              </label>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">

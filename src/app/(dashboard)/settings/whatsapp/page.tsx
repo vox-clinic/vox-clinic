@@ -85,7 +85,7 @@ export default function WhatsAppSetupPage() {
               setError(null)
               try {
                 const result = await saveWhatsAppConfig(setupData as SetupData)
-                if (!result.success) {
+                if ('error' in result) {
                   setError(result.error || "Erro ao salvar configuracao")
                   return
                 }

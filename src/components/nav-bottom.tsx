@@ -69,6 +69,7 @@ export function NavBottom({ role = "owner" }: { role?: WorkspaceRole }) {
   return (
     <nav
       data-nav-bottom
+      data-testid="nav-bottom"
       aria-label="Navegacao principal"
       className="fixed bottom-0 left-0 w-full border-t border-border/50 bg-background/85 backdrop-blur-2xl z-50 md:hidden"
     >

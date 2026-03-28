@@ -1,5 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 
+// Mock env before anything else
+vi.mock("@/lib/env", () => ({
+  env: {
+    DATABASE_URL: "postgresql://test",
+    DIRECT_URL: "postgresql://test",
+    ANTHROPIC_API_KEY: "test",
+    OPENAI_API_KEY: "test",
+    NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
+    SUPABASE_SERVICE_ROLE_KEY: "test",
+  },
+}))
+
 // Mocks must be imported before the modules under test
 import { mockDb } from "@/test/mocks/db"
 import { mockAuth } from "@/test/mocks/auth"

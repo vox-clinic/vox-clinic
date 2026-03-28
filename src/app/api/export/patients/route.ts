@@ -58,7 +58,7 @@ export async function GET() {
         : "",
     }))
 
-    const buffer = generateXlsx(rows, "Pacientes")
+    const buffer = await generateXlsx(rows, "Pacientes")
 
     const headers: Record<string, string> = {
       "Content-Type":

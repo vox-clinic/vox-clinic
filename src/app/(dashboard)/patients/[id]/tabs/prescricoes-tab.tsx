@@ -3,7 +3,6 @@
 import React, { useState } from "react"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import {
   Loader2,
   Pill,
@@ -12,9 +11,28 @@ import {
   Trash2,
   Download,
   ShieldCheck,
-  Sparkles,
+  MessageCircle,
+  Mail,
 } from "lucide-react"
-import { getPatientPrescriptions, deletePrescription } from "@/server/actions/prescription"
+import { Badge } from "@/components/ui/badge"
+
+const statusBadgeConfig: Record<string, { label: string; className: string }> = {
+  draft: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
+  signed: { label: "Assinada", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  sent: { label: "Enviada", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+  cancelled: { label: "Cancelada", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  expired: { label: "Expirada", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
+}
+
+function PrescriptionStatusBadgeSmall({ status }: { status: string }) {
+  const config = statusBadgeConfig[status] ?? statusBadgeConfig.draft
+  return (
+    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${config.className}`}>
+      {config.label}
+    </Badge>
+  )
+}
+import { getPatientPrescriptions, deletePrescription, sendPrescriptionWhatsApp, sendPrescriptionEmail } from "@/server/actions/prescription"
 import { getPatientCertificates, deleteCertificate } from "@/server/actions/certificate"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
@@ -33,6 +51,7 @@ export default function PrescricoesTab({ patientId }: { patientId: string }) {
   const [certificates, setCertificates] = useState<CertificateItem[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [sending, setSending] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void }>({ open: false, title: "", description: "", onConfirm: () => {} })
 
   const showConfirm = (title: string, description: string, onConfirm: () => void) => {
@@ -89,6 +108,34 @@ export default function PrescricoesTab({ patientId }: { patientId: string }) {
     })
   }
 
+  async function handleSendWhatsApp(id: string) {
+    setSending(`wa-${id}`)
+    try {
+      const result = await sendPrescriptionWhatsApp(id)
+      if ('error' in result) { toast.error(result.error); return }
+      toast.success("Prescrição enviada via WhatsApp!")
+      loadData()
+    } catch (err) {
+      toast.error(friendlyError(err, "Erro ao enviar via WhatsApp"))
+    } finally {
+      setSending(null)
+    }
+  }
+
+  async function handleSendEmail(id: string) {
+    setSending(`email-${id}`)
+    try {
+      const result = await sendPrescriptionEmail(id)
+      if ('error' in result) { toast.error(result.error); return }
+      toast.success("Prescrição enviada por email!")
+      loadData()
+    } catch (err) {
+      toast.error(friendlyError(err, "Erro ao enviar por email"))
+    } finally {
+      setSending(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -128,27 +175,31 @@ export default function PrescricoesTab({ patientId }: { patientId: string }) {
             {prescriptions.map((p) => (
               <Card key={p.id} className="group overflow-hidden">
                 <CardContent className="flex items-center gap-3 py-3">
-                  <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${p.source === "memed" ? "bg-emerald-500/10" : "bg-vox-primary/10"}`}>
-                    {p.source === "memed" ? (
-                      <Sparkles className="size-4 text-emerald-600" />
-                    ) : (
-                      <Pill className="size-4 text-vox-primary" />
-                    )}
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-vox-primary/10">
+                    <Pill className="size-4 text-vox-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs font-medium">
                         {p.medications.length} medicamento{p.medications.length !== 1 ? "s" : ""}
                       </p>
-                      {p.source === "memed" && (
-                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[9px] px-1.5 py-0">
-                          Memed
-                        </Badge>
-                      )}
+                      <PrescriptionStatusBadgeSmall status={p.status} />
                       {p.signedPdfUrl && (
                         <span className="inline-flex items-center gap-0.5 text-[9px] text-vox-success">
                           <ShieldCheck className="size-2.5" />
                           Assinada digitalmente
+                        </span>
+                      )}
+                      {p.sentVia?.includes("whatsapp") && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+                          <MessageCircle className="size-2.5" />
+                          WhatsApp
+                        </span>
+                      )}
+                      {p.sentVia?.includes("email") && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                          <Mail className="size-2.5" />
+                          Email
                         </span>
                       )}
                     </div>
@@ -158,6 +209,22 @@ export default function PrescricoesTab({ patientId }: { patientId: string }) {
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleSendWhatsApp(p.id)}
+                      disabled={sending === `wa-${p.id}`}
+                      className="flex size-7 items-center justify-center rounded-lg hover:bg-green-50 text-muted-foreground hover:text-green-600 transition-colors"
+                      title="Enviar via WhatsApp"
+                    >
+                      {sending === `wa-${p.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <MessageCircle className="size-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => handleSendEmail(p.id)}
+                      disabled={sending === `email-${p.id}`}
+                      className="flex size-7 items-center justify-center rounded-lg hover:bg-blue-50 text-muted-foreground hover:text-blue-600 transition-colors"
+                      title="Enviar por email"
+                    >
+                      {sending === `email-${p.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Mail className="size-3.5" />}
+                    </button>
                     {p.signedPdfUrl && (
                       <a
                         href={p.signedPdfUrl}

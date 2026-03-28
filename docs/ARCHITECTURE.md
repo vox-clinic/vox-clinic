@@ -20,7 +20,7 @@
   - `/certificates/[id]` — Print-friendly certificate (atestado/declaracao/encaminhamento/laudo)
   - `/financial` — Revenue, expenses, receivables, cash flow, NFS-e, TISS, inventory, price table
   - `/teleconsulta/[id]` — Video room (Daily.co)
-  - `/settings` — Workspace config (procedures, agendas, booking, forms, Memed, gateway)
+  - `/settings` — Workspace config (procedures, agendas, booking, forms, gateway)
   - `/settings/tiss` — TISS billing + operadoras
   - `/settings/form-builder/[id]` — Visual form builder
   - `/settings/whatsapp` — WhatsApp Business setup wizard
@@ -59,28 +59,55 @@ All mutations use `"use server"` directive. Auth via `auth()` from Clerk, worksp
 
 | File | Functions |
 |------|-----------|
-| `workspace.ts` | generateWorkspace, getWorkspacePreview, getWorkspace, updateWorkspace |
-| `voice.ts` | processVoiceRegistration, confirmPatientRegistration, checkDuplicatePatient |
-| `consultation.ts` | processConsultation, getRecordingForReview, confirmConsultation |
-| `patient.ts` | getPatients, getPatient, updatePatient, createPatient, searchPatients, mergePatients, deactivatePatient |
-| `appointment.ts` | getAppointmentsByDateRange, scheduleAppointment, scheduleRecurringAppointments, checkAppointmentConflicts, updateAppointmentStatus, rescheduleAppointment, deleteAppointment |
-| `prescription.ts` | createPrescription, getPrescription, getPatientPrescriptions, deletePrescription |
-| `certificate.ts` | createCertificate, getCertificate, getPatientCertificates, deleteCertificate |
-| `agenda.ts` | getAgendas, createAgenda, updateAgenda, deleteAgenda |
+| `admin.ts` | getAdminDashboard, getAdminWorkspaces, getAdminWorkspaceDetail, toggleWorkspaceStatus, getAdminUsers |
+| `agenda.ts` | getAgendas, getDefaultAgendaId, getDefaultAgendaIdForWorkspace, createAgenda, updateAgenda, deleteAgenda |
+| `appointment.ts` | getAppointments, getAppointmentsByDateRange, checkAppointmentConflicts, scheduleAppointment, updateAppointmentStatus, rescheduleAppointment, deleteAppointment, scheduleRecurringAppointments |
+| `audit.ts` | getAuditLogs |
+| `billing.ts` | createCheckoutSession, createPortalSession, getWorkspaceUsage, getBillingInfo |
 | `blocked-slot.ts` | getBlockedSlots, createBlockedSlot, updateBlockedSlot, deleteBlockedSlot |
-| `financial.ts` | getFinancialData, updateAppointmentPrice, updateProcedurePrice |
-| `nfse.ts` | emitNfse, getNfseList, cancelNfse, refreshNfseStatus |
-| `gateway.ts` | createGatewayCharge, checkGatewayStatus, cancelGatewayCharge |
-| `tiss.ts` | createTissGuide, getTissGuides, updateTissGuideStatus, generateTissBatch |
-| `inventory.ts` | getInventoryItems, createInventoryItem, recordMovement, getMovements |
-| `team.ts` | getTeamMembers, inviteTeamMember, updateMemberRole, removeMember |
-| `whatsapp.ts` | getWhatsAppConfig, saveWhatsAppConfig, fetchConversations, sendTextMessage |
-| `memed.ts` | registerMemedPrescriber, getMemedToken, syncMemedPrescription |
-| `medication.ts` | searchMedications, getMedicationFavorites, upsertMedicationFavorite |
-| `forms.ts` | Form template and response operations |
-| `admin.ts` | requireSuperAdmin, getAdminDashboard, getAdminWorkspaces |
-| `reports.ts` | getReportsData, getNpsSurveys |
+| `booking-config.ts` | getBookingConfig, toggleBooking, updateBookingConfig, regenerateBookingToken |
+| `cashflow.ts` | getCashFlowData, getCashFlowProjection |
+| `certificate.ts` | createCertificate, getCertificate, getPatientCertificates, deleteCertificate |
+| `clinical-image.ts` | getPatientImages, uploadImage, updateImage, deleteImage, pairImages, unpairImage, getImageCount, getClinicalImageSignedUrl |
+| `commission.ts` | getCommissionRules, createCommissionRule, updateCommissionRule, deleteCommissionRule, calculateCommissions, getCommissionReport, getCommissionEntries, markCommissionsPaid |
+| `consultation.ts` | processConsultation, getRecordingForReview, confirmConsultation |
 | `dashboard.ts` | getDashboardData |
+| `document.ts` | getPatientDocuments, uploadPatientDocument, getDocumentSignedUrl, deletePatientDocument |
+| `drug-interaction.ts` | checkDrugInteractions |
+| `expense.ts` | seedDefaultCategories, getExpenseCategories, createExpenseCategory, createExpense, updateExpense, deleteExpense, payExpense, getExpenses |
+| `export.ts` | exportPatientData |
+| `financial.ts` | getFinancialData, updateAppointmentPrice, updateProcedurePrice, getWorkspaceProcedures |
+| `form-response.ts` | getFormTemplates, getPatientFormResponses, getAppointmentFormResponses, createFormResponse, saveDraftFormResponse, completeFormResponse, submitFormResponse, deleteFormResponse |
+| `form-template.ts` | getFormTemplates, getFormTemplate, createFormTemplate, updateFormTemplate, duplicateFormTemplate, deleteFormTemplate, importFromLibrary |
+| `gateway.ts` | createGatewayCharge, checkGatewayStatus, cancelGatewayCharge, recordGatewayPayment |
+| `gateway-config.ts` | getGatewayConfig, saveGatewayConfig, testGatewayConnection |
+| `import.ts` | importPatients |
+| `inventory.ts` | getInventoryCategories, createInventoryCategory, getInventoryItems, getInventoryItem, createInventoryItem, updateInventoryItem, deactivateInventoryItem, recordMovement, getMovements, getInventorySummary, getLowStockItems |
+| `medication.ts` | searchMedications, getMedicationFavorites, upsertMedicationFavorite, removeMedicationFavorite |
+| `messaging.ts` | getMessagingConfig, updateMessagingConfig, sendAppointmentMessage |
+| `migration.ts` | startMigrationAction, confirmMigrationAction, cancelMigrationAction, getMigrationHistoryAction, getAutoColumnMapping |
+| `nfse.ts` | emitNfse, getNfseList, searchAppointmentsForNfse, getNfseByAppointment, cancelNfse, refreshNfseStatus |
+| `nfse-config.ts` | getNfseConfig, saveNfseConfig, uploadNfseCertificate, testNfseConnection |
+| `notification.ts` | getNotifications, getUnreadCount, markAsRead, markAllAsRead, generateUpcomingNotifications |
+| `operadora.ts` | getOperadoras, createOperadora, updateOperadora, deleteOperadora |
+| `patient.ts` | searchPatients, getRecentPatients, getPatients, getPatient, updatePatient, createPatient, deactivatePatient, getAudioPlaybackUrl, mergePatients, grantWhatsAppConsent, revokeWhatsAppConsent, getDistinctInsurances, getAllPatientTags |
+| `prescription.ts` | createPrescription, updatePrescription, getPrescription, getPatientPrescriptions, signPrescription, cancelPrescription, updatePrescriptionType, deletePrescription, generatePrescriptionPdfAction, sendPrescriptionWhatsApp, sendPrescriptionEmail |
+| `prescription-template.ts` | getTemplates, createTemplate, applyTemplate, deleteTemplate, saveAsTemplate |
+| `receipt.ts` | generateReceiptData |
+| `receivable.ts` | createCharge, recordPayment, getCharges, getCharge, getPatientBalance, getReceivablesSummary, cancelCharge |
+| `recording.ts` | getRecordingStatus |
+| `reminder.ts` | sendAppointmentReminder, sendBulkReminders |
+| `reports.ts` | getReportsData, getNpsSurveys |
+| `team.ts` | getTeamMembers, inviteTeamMember, cancelInvite, updateMemberRole, removeMember, acceptInvite |
+| `teleconsulta.ts` | createTeleconsultaRoom, recordTeleconsultaConsent, getPatientJoinInfo, endTeleconsulta, getTeleconsultaInfo |
+| `tiss.ts` | createTissGuide, getTissGuides, getTissGuide, updateTissGuideStatus, generateTissBatch, searchAppointmentsForTiss |
+| `tiss-config.ts` | getTissConfig, saveTissConfig |
+| `tour.ts` | getTourState, updateTourStep, completeTour, resetTour |
+| `treatment.ts` | getTreatmentPlans, createTreatmentPlan, addSessionToTreatment, updateTreatmentPlanStatus, deleteTreatmentPlan |
+| `voice.ts` | processVoiceRegistration, confirmPatientRegistration, checkDuplicatePatient |
+| `waitlist.ts` | getWaitlistEntries, getWaitlistCount, addToWaitlist, updateWaitlistEntry, cancelWaitlistEntry, findMatchesForSlot, scheduleFromWaitlist |
+| `whatsapp.ts` | getWhatsAppConfig, saveWhatsAppConfig, disconnectWhatsApp, fetchConversations, fetchMessages, sendTextMessage, sendTemplateMessage, markConversationAsRead, fetchTemplates, checkWhatsAppHealth |
+| `workspace.ts` | getWorkspace, updateWorkspace, generateWorkspace, getWorkspacePreview |
 
 ## Key Components
 
@@ -89,12 +116,16 @@ All mutations use `"use server"` directive. Auth via `auth()` from Clerk, worksp
 | `record-button.tsx` | Audio recording with LGPD consent |
 | `command-palette.tsx` | Ctrl+K global search |
 | `notification-bell.tsx` | In-app notifications |
-| `create-prescription-dialog.tsx` | Prescription creation (Manual/Memed) |
+| `create-prescription-dialog.tsx` | Prescription creation (nativa) |
 | `create-certificate-dialog.tsx` | Medical certificate creation |
 | `medication-autocomplete.tsx` | ANVISA medication search with favorites |
+| `prescription-template-picker.tsx` | Template picker para prescrições |
 | `cid-autocomplete.tsx` | CID-10 code search |
 | `form-renderer.tsx` | Dynamic form renderer (11 field types) |
-| `memed-prescription-panel.tsx` | Memed digital prescription embed |
+| `teleconsulta-badge.tsx` | Teleconsulta status badge |
+| `confirm-dialog.tsx` | Reusable confirmation dialog |
+| `breadcrumb.tsx` | Breadcrumb navigation |
+| `theme-toggle.tsx` | Dark/light theme toggle |
 | `nav-sidebar.tsx` / `nav-bottom.tsx` | Navigation (desktop/mobile, RBAC filtered) |
 
 ## Calendar Components (`src/app/(dashboard)/calendar/`)
@@ -123,5 +154,4 @@ Decomposed modular architecture:
 | Payment | `src/lib/gateway/` | Asaas gateway (charges, PIX, boleto) |
 | TISS | `src/lib/tiss/` | ANS billing XML generation |
 | WhatsApp | `src/lib/whatsapp/` | Meta Cloud API |
-| Memed | `src/lib/memed/client.ts` | Digital prescription |
 | Inngest | `src/inngest/` | Background job processing |

@@ -77,6 +77,29 @@ export function hasPermission(role: WorkspaceRole, permission: Permission): bool
 }
 
 /**
+ * Throws if the role lacks the given permission.
+ * Import this in server actions after resolving the user's role.
+ * PermissionError is caught by safeAction and returned as { error }.
+ */
+export function requirePermission(role: WorkspaceRole, permission: Permission): void {
+  if (!hasPermission(role, permission)) {
+    throw new PermissionError()
+  }
+}
+
+/**
+ * Custom error class for permission failures.
+ * safeAction can be extended to catch this, or server actions can
+ * import ActionError separately and re-throw.
+ */
+export class PermissionError extends Error {
+  constructor(message = "Sem permissão para esta ação.") {
+    super(message)
+    this.name = "PermissionError"
+  }
+}
+
+/**
  * Normalize legacy role values to current WorkspaceRole.
  * Legacy "member" role maps to "doctor" for backward compatibility.
  */

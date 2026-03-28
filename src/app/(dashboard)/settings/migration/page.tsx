@@ -375,31 +375,45 @@ export default function MigrationPage() {
           },
         })
       } else if (ext === "xlsx" || ext === "xls") {
-        const XLSX = await import("xlsx")
+        const ExcelJS = await import("exceljs")
         const buffer = await f.arrayBuffer()
-        const wb = XLSX.read(buffer, { type: "array" })
-        const sheetName = wb.SheetNames[0]
-        if (!sheetName) {
+        const wb = new ExcelJS.Workbook()
+        await wb.xlsx.load(buffer)
+        const ws = wb.worksheets[0]
+        if (!ws || ws.rowCount === 0) {
           setParseError("Arquivo Excel vazio.")
           setIsParsing(false)
           return
         }
-        const data = XLSX.utils.sheet_to_json<Record<string, any>>(wb.Sheets[sheetName], {
-          defval: "",
-          raw: false,
-          dateNF: "yyyy-mm-dd",
-        })
-        // Ensure all values are strings (XLSX may return Date objects or numbers)
-        const stringData = data.map((row) => {
-          const clean: Record<string, string> = {}
-          for (const [k, v] of Object.entries(row)) {
-            clean[k] = v == null ? "" : typeof v === "object" ? (v instanceof Date ? v.toISOString() : JSON.stringify(v)) : String(v)
-          }
-          return clean
-        })
-        const h = stringData.length > 0 ? Object.keys(stringData[0]) : []
 
-        if (h.length === 0 || stringData.length === 0) {
+        // Extract headers from first row
+        const headerRow = ws.getRow(1)
+        const h: string[] = []
+        headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+          h[colNumber - 1] = cell.text ?? String(cell.value ?? "")
+        })
+
+        if (h.length === 0) {
+          setParseError("Planilha vazia ou sem dados validos.")
+          setIsParsing(false)
+          return
+        }
+
+        // Extract data rows (skip header)
+        const stringData: Record<string, string>[] = []
+        for (let rowNum = 2; rowNum <= ws.rowCount; rowNum++) {
+          const row = ws.getRow(rowNum)
+          if (row.actualCellCount === 0) continue
+          const clean: Record<string, string> = {}
+          for (let colIdx = 0; colIdx < h.length; colIdx++) {
+            const cell = row.getCell(colIdx + 1)
+            const v = cell.value
+            clean[h[colIdx]] = v == null ? "" : v instanceof Date ? v.toISOString() : typeof v === "object" ? JSON.stringify(v) : String(v)
+          }
+          stringData.push(clean)
+        }
+
+        if (stringData.length === 0) {
           setParseError("Planilha vazia ou sem dados validos.")
           setIsParsing(false)
           return

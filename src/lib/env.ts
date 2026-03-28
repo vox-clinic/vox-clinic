@@ -72,22 +72,6 @@ const envSchema = z.object({
     .string()
     .optional()
     .default(''),
-  MEMED_API_KEY: z
-    .string()
-    .optional()
-    .default(''),
-  MEMED_SECRET_KEY: z
-    .string()
-    .optional()
-    .default(''),
-  MEMED_API_URL: z
-    .string()
-    .optional()
-    .default('https://integrations.api.memed.com.br/v1'),
-  MEMED_SCRIPT_URL: z
-    .string()
-    .optional()
-    .default('https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js'),
   UPSTASH_REDIS_REST_URL: z
     .string()
     .optional()

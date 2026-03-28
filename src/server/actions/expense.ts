@@ -3,6 +3,8 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_EXPENSE_NOT_FOUND, ActionError, safeAction } from "@/lib/error-messages"
+import { requirePermission, normalizeRole, type WorkspaceRole } from "@/lib/permissions"
+import { logAudit } from "@/lib/audit"
 
 // ─── Auth helper (inline, not shared — Vercel bundler constraint) ────────────
 
@@ -12,12 +14,14 @@ async function getWorkspaceContext() {
 
   const user = await db.user.findUnique({
     where: { clerkId: userId },
-    include: { workspace: true, memberships: { select: { workspaceId: true }, take: 1 } },
+    include: { workspace: true, memberships: { select: { workspaceId: true, role: true }, take: 1 } },
   })
   const workspaceId = user?.workspace?.id ?? user?.memberships?.[0]?.workspaceId
   if (!workspaceId) throw new Error(ERR_WORKSPACE_NOT_CONFIGURED)
 
-  return { userId, workspaceId }
+  const role: WorkspaceRole = user?.workspace ? "owner" : normalizeRole(user?.memberships?.[0]?.role ?? "doctor")
+
+  return { userId, workspaceId, role }
 }
 
 // ─── Expense Categories ──────────────────────────────────────────────────────
@@ -60,12 +64,13 @@ export async function getExpenseCategories() {
   })
 }
 
-export async function createExpenseCategory(data: {
+export const createExpenseCategory = safeAction(async (data: {
   name: string
   icon?: string
   color?: string
-}) {
-  const { workspaceId } = await getWorkspaceContext()
+}) => {
+  const { workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   return db.expenseCategory.create({
     data: {
@@ -75,7 +80,7 @@ export async function createExpenseCategory(data: {
       color: data.color ?? null,
     },
   })
-}
+})
 
 // ─── Expenses ────────────────────────────────────────────────────────────────
 
@@ -89,7 +94,8 @@ export const createExpense = safeAction(async (data: {
   recurrenceEnd?: string | null // ISO string
   notes?: string
 }) => {
-  const { userId, workspaceId } = await getWorkspaceContext()
+  const { userId, workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   if (!data.description?.trim()) throw new ActionError("Descricao da despesa e obrigatoria.")
   if (!data.amount || data.amount <= 0) throw new ActionError("Valor da despesa deve ser maior que zero.")
@@ -164,6 +170,15 @@ export const createExpense = safeAction(async (data: {
       }
     }
 
+    logAudit({
+      workspaceId,
+      userId,
+      action: "expense.created",
+      entityType: "Expense",
+      entityId: parent.id,
+      details: { amount: data.amount, description: data.description, recurrence: data.recurrence },
+    }).catch(() => {})
+
     return parent
   })
 })
@@ -211,7 +226,8 @@ export const updateExpense = safeAction(async (
     status?: string
   }
 ) => {
-  const { workspaceId } = await getWorkspaceContext()
+  const { userId, workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   if (data.description !== undefined && !data.description.trim()) throw new ActionError("Descricao da despesa e obrigatoria.")
   if (data.amount !== undefined && data.amount <= 0) throw new ActionError("Valor da despesa deve ser maior que zero.")
@@ -221,7 +237,7 @@ export const updateExpense = safeAction(async (
     throw new ActionError(ERR_EXPENSE_NOT_FOUND)
   }
 
-  return db.expense.update({
+  const updated = await db.expense.update({
     where: { id },
     data: {
       ...(data.description !== undefined && { description: data.description }),
@@ -234,10 +250,21 @@ export const updateExpense = safeAction(async (
     },
     include: { category: true },
   })
+
+  logAudit({
+    workspaceId,
+    userId,
+    action: "expense.updated",
+    entityType: "Expense",
+    entityId: id,
+  }).catch(() => {})
+
+  return updated
 })
 
 export const deleteExpense = safeAction(async (id: string, deleteRecurrence = false) => {
-  const { workspaceId } = await getWorkspaceContext()
+  const { userId, workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   const expense = await db.expense.findUnique({ where: { id } })
   if (!expense || expense.workspaceId !== workspaceId) {
@@ -270,6 +297,15 @@ export const deleteExpense = safeAction(async (id: string, deleteRecurrence = fa
     await db.expense.delete({ where: { id } })
   }
 
+  logAudit({
+    workspaceId,
+    userId,
+    action: "expense.deleted",
+    entityType: "Expense",
+    entityId: id,
+    details: { deleteRecurrence },
+  }).catch(() => {})
+
   return { success: true }
 })
 
@@ -281,7 +317,8 @@ export const payExpense = safeAction(async (
     paidAt?: string // ISO string
   }
 ) => {
-  const { workspaceId } = await getWorkspaceContext()
+  const { userId, workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.edit")
 
   if (!data.paidAmount || data.paidAmount <= 0) throw new ActionError("Valor do pagamento deve ser maior que zero.")
 
@@ -290,7 +327,7 @@ export const payExpense = safeAction(async (
     throw new ActionError(ERR_EXPENSE_NOT_FOUND)
   }
 
-  return db.expense.update({
+  const updated = await db.expense.update({
     where: { id },
     data: {
       paidAmount: data.paidAmount,
@@ -300,6 +337,17 @@ export const payExpense = safeAction(async (
     },
     include: { category: true },
   })
+
+  logAudit({
+    workspaceId,
+    userId,
+    action: "expense.paid",
+    entityType: "Expense",
+    entityId: id,
+    details: { paidAmount: data.paidAmount, paymentMethod: data.paymentMethod },
+  }).catch(() => {})
+
+  return updated
 })
 
 export async function getExpenses(params?: {
@@ -310,7 +358,8 @@ export async function getExpenses(params?: {
   page?: number
   pageSize?: number
 }) {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, role } = await getWorkspaceContext()
+  requirePermission(role, "financial.view")
 
   const page = params?.page ?? 1
   const pageSize = params?.pageSize ?? 50

@@ -2,6 +2,7 @@ import { getCertificate } from "@/server/actions/certificate"
 import { PrintButton } from "./print-button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { notFound } from "next/navigation"
 
 function formatDateLong(date: Date): string {
   return date.toLocaleDateString("pt-BR", {
@@ -31,7 +32,12 @@ export default async function CertificatePage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const certificate = await getCertificate(id)
+  let certificate: Awaited<ReturnType<typeof getCertificate>>
+  try {
+    certificate = await getCertificate(id)
+  } catch {
+    notFound()
+  }
 
   const today = formatDateLong(new Date())
   const title = typeLabels[certificate.type] ?? "Documento"

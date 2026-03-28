@@ -1,6 +1,8 @@
 // Mensagens de erro user-friendly em pt-BR
 // Centraliza todas as mensagens para consistência e facilidade de manutenção
 
+import { PermissionError } from "@/lib/permissions"
+
 /**
  * Error class for expected/business-logic errors in server actions.
  *
@@ -59,7 +61,7 @@ export function safeAction<Args extends unknown[], Return extends Record<string,
     try {
       return await fn(...args)
     } catch (err) {
-      if (err instanceof ActionError) {
+      if (err instanceof ActionError || err instanceof PermissionError) {
         return { error: err.message }
       }
       // Capture unexpected errors in Sentry (if configured)
@@ -188,13 +190,6 @@ export const ERR_TELECONSULTA_ROOM_FAILED = "Erro ao criar a sala de teleconsult
 export const ERR_TELECONSULTA_NOT_READY = "A teleconsulta ainda não está disponível. Tente novamente mais perto do horário agendado."
 export const ERR_TELECONSULTA_EXPIRED = "O horário desta teleconsulta já expirou."
 export const ERR_TELECONSULTA_ROOM_NOT_CONFIGURED = "A sala de vídeo não está configurada para esta consulta."
-
-// ============================================================
-// MEMED — Prescricao Digital
-// ============================================================
-export const ERR_MEMED_NOT_CONFIGURED = "Memed nao configurado. Defina MEMED_API_KEY e MEMED_SECRET_KEY nas variaveis de ambiente."
-export const ERR_MEMED_REGISTRATION_FAILED = "Erro ao registrar prescritor no Memed. Verifique os dados e tente novamente."
-export const ERR_MEMED_PRESCRIBER_NOT_FOUND = "Prescritor Memed nao encontrado. Registre-se primeiro nas configuracoes."
 
 // ============================================================
 // LISTA DE ESPERA

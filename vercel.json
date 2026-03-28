@@ -12,6 +12,10 @@
     {
       "path": "/api/nps/send",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/notifications/generate",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

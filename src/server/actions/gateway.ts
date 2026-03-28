@@ -15,6 +15,7 @@ import {
   ActionError,
   safeAction,
 } from "@/lib/error-messages"
+import { logAudit } from "@/lib/audit"
 
 async function getWorkspaceContext() {
   const { userId } = await auth()
@@ -38,7 +39,7 @@ async function getWorkspaceContext() {
 
 export const createGatewayCharge = safeAction(
   async (paymentId: string, method: GatewayPaymentMethod, installmentCount?: number) => {
-    const { workspaceId } = await getWorkspaceContext()
+    const { workspaceId, clerkId } = await getWorkspaceContext()
 
     // 1. Load gateway config
     const config = await db.gatewayConfig.findUnique({
@@ -124,21 +125,19 @@ export const createGatewayCharge = safeAction(
     })
 
     // 6. Audit log
-    await db.auditLog.create({
-      data: {
-        workspaceId,
-        userId: (await auth()).userId!,
-        action: "gateway.charge_created",
-        entityType: "Payment",
-        entityId: paymentId,
-        details: {
-          provider: config.provider,
-          method,
-          chargeId: result.chargeId,
-          amount: payment.amount,
-        },
+    logAudit({
+      workspaceId,
+      userId: clerkId,
+      action: "gateway.charge_created",
+      entityType: "Payment",
+      entityId: paymentId,
+      details: {
+        provider: config.provider,
+        method,
+        chargeId: result.chargeId,
+        amount: payment.amount,
       },
-    })
+    }).catch(() => {})
 
     return {
       chargeId: result.chargeId,
@@ -208,7 +207,7 @@ export const checkGatewayStatus = safeAction(async (paymentId: string) => {
 // ─── cancelGatewayCharge ──────────────────────────────────────
 
 export const cancelGatewayCharge = safeAction(async (paymentId: string) => {
-  const { workspaceId } = await getWorkspaceContext()
+  const { workspaceId, clerkId } = await getWorkspaceContext()
 
   const payment = await db.payment.findUnique({
     where: { id: paymentId },
@@ -252,19 +251,17 @@ export const cancelGatewayCharge = safeAction(async (paymentId: string) => {
   })
 
   // Audit log
-  await db.auditLog.create({
-    data: {
-      workspaceId,
-      userId: (await auth()).userId!,
-      action: "gateway.charge_cancelled",
-      entityType: "Payment",
-      entityId: paymentId,
-      details: {
-        provider: config.provider,
-        chargeId: payment.gatewayChargeId,
-      },
+  logAudit({
+    workspaceId,
+    userId: clerkId,
+    action: "gateway.charge_cancelled",
+    entityType: "Payment",
+    entityId: paymentId,
+    details: {
+      provider: config.provider,
+      chargeId: payment.gatewayChargeId,
     },
-  })
+  }).catch(() => {})
 
   return { success: true }
 })
@@ -336,6 +333,18 @@ export async function recordGatewayPayment(
       where: { id: payment.chargeId },
       data: { status: chargeStatus },
     })
+
+    // Audit log for gateway payment
+    if (payment.workspaceId) {
+      logAudit({
+        workspaceId: payment.workspaceId,
+        userId: "system",
+        action: "gateway.payment_received",
+        entityType: "Payment",
+        entityId: paymentId,
+        details: { paidAmount, paymentMethod, method },
+      }).catch(() => {})
+    }
 
     // Create notification for the professional
     if (payment.workspaceId) {

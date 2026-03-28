@@ -33,7 +33,7 @@ export default async function AppointmentsPage({
     })
 
   return (
-    <div className="space-y-6">
+    <div data-testid="page-appointments" className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <ClipboardList className="size-5 text-vox-primary" />
@@ -54,16 +54,16 @@ export default async function AppointmentsPage({
       <AppointmentsFilter currentStatus={status} />
 
       {data.appointments.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
+        <div data-testid="empty-appointments" className="text-center py-16 text-muted-foreground">
           <ClipboardList className="size-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Nenhum atendimento encontrado.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div data-testid="appointment-list" className="space-y-3">
           {data.appointments.map((apt) => {
             const sc = statusConfig[apt.status] ?? statusConfig.completed
             return (
-              <Card key={apt.id} className="rounded-2xl">
+              <Card key={apt.id} data-testid="appointment-item" className="rounded-2xl">
                 <CardContent className="flex items-start justify-between gap-4 py-4">
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
