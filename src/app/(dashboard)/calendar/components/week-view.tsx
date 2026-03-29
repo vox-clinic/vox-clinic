@@ -18,14 +18,15 @@ import { Ban } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { AppointmentItem } from "../types"
 import type { BlockedSlotItem } from "@/server/actions/blocked-slot"
-import { HOURS, DAY_NAMES, STATUS_CONFIG, formatTime, isToday, buildAppointmentIndex, getBlockedSlotsForHour, calculateOverlapLayout, agendaColorBg } from "../helpers"
+import { HOURS, DAY_NAMES, formatTime, isToday, getBlockedSlotsForHour, agendaColorBg } from "../helpers"
 import { NowLine } from "./now-line"
 import { AppointmentPopover } from "./appointment-popover"
 import { BlockedSlotPopover } from "./blocked-slot-popover"
 
-const ROW_HEIGHT = 72
+const ROW_HEIGHT = 88
 const SNAP_MINUTES = 15
-const SLOTS_PER_HOUR = 60 / SNAP_MINUTES // 4
+const DEFAULT_DURATION_MIN = 30
+const MIN_CARD_HEIGHT = 22
 
 function snapToQuarter(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES
@@ -35,6 +36,97 @@ function formatHourMinute(hour: number, minute: number): string {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
 }
 
+// ─── Overlap calculation for a full day column ───
+
+interface PositionedAppointment {
+  appointment: AppointmentItem
+  startMin: number  // minutes from midnight
+  endMin: number
+  column: number
+  totalColumns: number
+}
+
+function layoutDayAppointments(appointments: AppointmentItem[]): PositionedAppointment[] {
+  if (appointments.length === 0) return []
+
+  const items = appointments.map((a) => {
+    const d = new Date(a.date)
+    const startMin = d.getHours() * 60 + d.getMinutes()
+    return {
+      appointment: a,
+      startMin,
+      endMin: startMin + DEFAULT_DURATION_MIN,
+      column: 0,
+      totalColumns: 1,
+    }
+  }).sort((a, b) => a.startMin - b.startMin || a.appointment.id.localeCompare(b.appointment.id))
+
+  // Greedy column assignment
+  const columns: number[][] = [] // each column tracks end times
+
+  for (const item of items) {
+    let placed = false
+    for (let c = 0; c < columns.length; c++) {
+      const lastEnd = columns[c][columns[c].length - 1]
+      if (item.startMin >= lastEnd) {
+        columns[c].push(item.endMin)
+        item.column = c
+        placed = true
+        break
+      }
+    }
+    if (!placed) {
+      item.column = columns.length
+      columns.push([item.endMin])
+    }
+  }
+
+  // Expand totalColumns for overlapping groups
+  for (let i = 0; i < items.length; i++) {
+    let maxCol = items[i].column
+    for (let j = 0; j < items.length; j++) {
+      if (i === j) continue
+      // Check overlap
+      if (items[i].startMin < items[j].endMin && items[i].endMin > items[j].startMin) {
+        maxCol = Math.max(maxCol, items[j].column)
+      }
+    }
+    items[i].totalColumns = Math.max(items[i].totalColumns, maxCol + 1)
+  }
+
+  // Normalize totalColumns within each overlap group
+  for (let i = 0; i < items.length; i++) {
+    const overlapping = items.filter(
+      (j) => j.startMin < items[i].endMin && j.endMin > items[i].startMin
+    )
+    const groupMax = Math.max(...overlapping.map((x) => x.totalColumns))
+    for (const o of overlapping) o.totalColumns = groupMax
+  }
+
+  return items
+}
+
+// ─── Build per-day index ───
+
+function buildDayColumnIndex(appointments: AppointmentItem[]): Map<string, PositionedAppointment[]> {
+  const byDay = new Map<string, AppointmentItem[]>()
+  for (const a of appointments) {
+    const d = new Date(a.date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    const existing = byDay.get(key)
+    if (existing) existing.push(a)
+    else byDay.set(key, [a])
+  }
+
+  const result = new Map<string, PositionedAppointment[]>()
+  for (const [key, appts] of byDay) {
+    result.set(key, layoutDayAppointments(appts))
+  }
+  return result
+}
+
+// ─── Components ───
+
 function DraggableAppointment({ appointment, children }: { appointment: AppointmentItem; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: appointment.id,
@@ -42,7 +134,7 @@ function DraggableAppointment({ appointment, children }: { appointment: Appointm
   })
 
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} className={isDragging ? "opacity-50" : ""}>
+    <div ref={setNodeRef} {...listeners} {...attributes} className={isDragging ? "opacity-30 pointer-events-none" : ""}>
       {children}
     </div>
   )
@@ -59,12 +151,11 @@ function DroppableCell({ id, children, className, ghostMinute }: {
   return (
     <div ref={setNodeRef} className={`relative ${className ?? ""} ${isOver ? "bg-vox-primary/10 ring-1 ring-vox-primary/30" : ""}`}>
       {children}
-      {/* Ghost indicator showing exact drop time */}
       {isOver && ghostMinute !== null && ghostMinute !== undefined && (() => {
         const hour = parseInt(id.substring(id.lastIndexOf("-") + 1), 10)
         return (
           <div
-            className="absolute left-0 right-0 h-[2px] bg-vox-primary pointer-events-none z-20"
+            className="absolute left-0 right-0 h-[2px] bg-vox-primary pointer-events-none z-30"
             style={{ top: `${(ghostMinute / 60) * ROW_HEIGHT}px` }}
           >
             <div className="absolute -left-0.5 -top-[4px] size-[10px] rounded-full bg-vox-primary shadow-sm shadow-vox-primary/40" />
@@ -76,6 +167,13 @@ function DroppableCell({ id, children, className, ghostMinute }: {
       })()}
     </div>
   )
+}
+
+// Status styling
+const STATUS_OPACITY: Record<string, string> = {
+  completed: "opacity-60",
+  cancelled: "opacity-40 line-through",
+  no_show: "opacity-50",
 }
 
 function WeekViewInner({
@@ -113,7 +211,8 @@ function WeekViewInner({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
-  const appointmentIndex = useMemo(() => buildAppointmentIndex(appointments), [appointments])
+  // Build positioned appointments per day
+  const dayColumnIndex = useMemo(() => buildDayColumnIndex(appointments), [appointments])
 
   useEffect(() => {
     const container = weekGridRef.current
@@ -127,7 +226,6 @@ function WeekViewInner({
     setActiveDragId(event.active.id as string)
   }
 
-  // Calculate minute precision from pointer position within the cell
   const calculateMinuteFromPointer = useCallback((event: DragMoveEvent | DragEndEvent) => {
     const { over, activatorEvent, delta } = event
     if (!over || !gridRef.current) return null
@@ -136,7 +234,6 @@ function WeekViewInner({
     const lastDash = droppableId.lastIndexOf("-")
     const hour = parseInt(droppableId.substring(lastDash + 1), 10)
 
-    // Find the droppable cell element
     const cellElement = gridRef.current.querySelector(`[data-cell-id="${droppableId}"]`)
     if (!cellElement) return { hour, minute: 0, dateIso: droppableId.substring(0, lastDash) }
 
@@ -148,7 +245,7 @@ function WeekViewInner({
 
     const rawMinutes = (clampedY / ROW_HEIGHT) * 60
     const snappedMinutes = snapToQuarter(rawMinutes)
-    const finalMinutes = Math.min(snappedMinutes, 45) // max :45
+    const finalMinutes = Math.min(snappedMinutes, 45)
 
     return {
       hour,
@@ -184,7 +281,6 @@ function WeekViewInner({
     if (!over || !dragId) return
 
     try {
-      // Use the precise minute from the last drag move
       const result = calculateMinuteFromPointer(event)
       const hour = result?.hour ?? dropHourRef.current
       const minute = result?.minute ?? dropMinuteRef.current
@@ -204,8 +300,9 @@ function WeekViewInner({
     }
   }
 
-  // Track drag overlay time in state for reactive updates
   const [dragOverlayTime, setDragOverlayTime] = useState<string | null>(null)
+
+  const FIRST_HOUR = HOURS[0] // 7
 
   return (
     <DndContext
@@ -216,7 +313,7 @@ function WeekViewInner({
     >
       <Card className="rounded-2xl border border-border/40 overflow-hidden shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]">
         <div ref={weekGridRef} className="overflow-y-auto overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 max-h-[calc(100vh-220px)]" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(128,128,128,0.2) transparent" }}>
-          {/* Day headers — must match grid-cols and min-w of time grid exactly */}
+          {/* Day headers */}
           <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 min-w-[700px] bg-muted/20 sticky top-0 z-20 backdrop-blur-sm bg-background/95">
             <div className="py-3" />
             {weekDays.map((d) => {
@@ -226,7 +323,7 @@ function WeekViewInner({
                   key={d.toISOString()}
                   className={`flex flex-col items-center gap-1 py-3 border-l border-border/10 ${today ? "bg-vox-primary/5" : ""}`}
                 >
-                  <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">{DAY_NAMES[d.getDay()]}</span>
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{DAY_NAMES[d.getDay()]}</span>
                   <span className={`flex size-8 items-center justify-center rounded-full text-sm font-bold transition-all ${
                     today ? "bg-vox-primary text-white shadow-sm shadow-vox-primary/30" : "text-foreground"
                   }`}>
@@ -247,85 +344,93 @@ function WeekViewInner({
             )}
             {HOURS.map((hour) => (
               <div key={hour} className="contents">
-                <div className="flex items-start justify-end pr-3 pt-2 text-[10px] font-medium text-muted-foreground/60 h-[72px] border-b border-border/[0.06] tabular-nums">
+                {/* Time label */}
+                <div className="flex items-start justify-end pr-3 pt-2 text-[10px] font-medium text-muted-foreground h-[88px] border-b border-border/[0.06] tabular-nums">
                   {String(hour).padStart(2, "0")}:00
                 </div>
+
+                {/* Day cells */}
                 {weekDays.map((d) => {
-                  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}-${hour}`
-                  const dayAppts = appointmentIndex.get(key) || []
+                  const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
                   const hourBlocked = getBlockedSlotsForHour(blockedSlots, d, hour)
                   const cellId = `${d.toISOString()}-${hour}`
+
+                  // Get positioned appointments that start in this hour
+                  const dayAppts = dayColumnIndex.get(dayKey) || []
+                  const hourAppts = dayAppts.filter((pa) => {
+                    const startHour = Math.floor(pa.startMin / 60)
+                    return startHour === hour
+                  })
+
                   return (
                     <DroppableCell
                       key={cellId}
                       id={cellId}
                       ghostMinute={overCellId === cellId ? ghostMinute : null}
-                      className={`h-[72px] border-b border-l border-border/[0.06] px-1 py-1 transition-colors hover:bg-muted/20 overflow-hidden min-w-0 ${isToday(d) ? "bg-vox-primary/[0.015]" : ""} ${hourBlocked.length > 0 ? "bg-muted/30" : ""}`}
+                      className={`h-[88px] border-b border-l border-border/[0.06] transition-colors hover:bg-muted/20 min-w-0 ${isToday(d) ? "bg-vox-primary/[0.015]" : ""} ${hourBlocked.length > 0 ? "bg-muted/30" : ""}`}
                     >
-                      {/* data attribute for pointer position calculation */}
                       <div data-cell-id={cellId} className="absolute inset-0 pointer-events-none" />
-                      {hourBlocked.length > 0 && dayAppts.length === 0 && (
+
+                      {/* Blocked slots */}
+                      {hourBlocked.length > 0 && hourAppts.length === 0 && (
                         <div
-                          className="relative z-[1] flex items-center gap-1 truncate rounded-lg px-2 py-1.5 text-[10px] font-medium leading-tight bg-muted/40 border-l-[3px] border-muted-foreground/20 text-muted-foreground/70 cursor-pointer hover:bg-muted/60 transition-colors"
+                          className="absolute inset-x-1 top-1 z-[1] flex items-center gap-1 truncate rounded-lg px-2 py-1.5 text-[10px] font-medium leading-tight bg-muted/50 border border-border/30 border-l-[3px] border-l-muted-foreground/30 text-muted-foreground cursor-pointer hover:bg-muted/70 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedBlockedSlot({ slot: hourBlocked[0], position: { top: e.clientY, left: e.clientX } })
                           }}
                         >
-                          <Ban className="size-2.5 shrink-0 opacity-50" />
+                          <Ban className="size-2.5 shrink-0 opacity-60" />
                           {hourBlocked[0].title}
                         </div>
                       )}
-                      {dayAppts.length > 0 && (() => {
-                        const overlapLayout = calculateOverlapLayout(dayAppts)
-                        const hasOverlap = dayAppts.some((a) => {
-                          const pos = overlapLayout.get(a.id)
-                          return pos && pos.totalColumns > 1
-                        })
+
+                      {/* Appointment cards — absolutely positioned by minute */}
+                      {hourAppts.map((pa) => {
+                        const a = pa.appointment
+                        const agendaColor = a.agenda?.color || "#14B8A6"
+                        const minuteInHour = pa.startMin % 60
+                        const topPx = (minuteInHour / 60) * ROW_HEIGHT
+                        const durationMin = pa.endMin - pa.startMin
+                        const heightPx = Math.max(MIN_CARD_HEIGHT, (durationMin / 60) * ROW_HEIGHT - 2)
+                        const widthPct = 100 / pa.totalColumns
+                        const leftPct = pa.column * widthPct
+                        const statusClass = STATUS_OPACITY[a.status] ?? ""
+
                         return (
-                          <div className={`z-[1] ${hasOverlap ? "relative h-[calc(100%-4px)]" : ""}`}>
-                            {dayAppts.map((a) => {
-                              const pos = overlapLayout.get(a.id) || { column: 0, totalColumns: 1 }
-                              const agendaColor = a.agenda?.color || "#14B8A6"
-                              return (
-                                <DraggableAppointment key={a.id} appointment={a}>
-                                  <div
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setSelectedAppointment({
-                                        appointment: a,
-                                        position: { top: e.clientY, left: e.clientX },
-                                      })
-                                    }}
-                                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium leading-tight cursor-grab active:cursor-grabbing transition-all hover:shadow-md hover:scale-[1.02] border-l-[3px] backdrop-blur-sm overflow-hidden ${hasOverlap ? "absolute top-0 bottom-0" : ""}`}
-                                    style={{
-                                      borderLeftColor: agendaColor,
-                                      backgroundColor: agendaColorBg(a.agenda?.color, 0.1),
-                                      color: agendaColor,
-                                      ...(hasOverlap
-                                        ? {
-                                            left: `${(pos.column / pos.totalColumns) * 100}%`,
-                                            width: `${(1 / pos.totalColumns) * 100}%`,
-                                          }
-                                        : { marginBottom: "2px" }),
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-bold tabular-nums text-[10px] opacity-70">{formatTime(a.date)}</span>
-                                      <span className="truncate">{a.patient.name}</span>
-                                    </div>
-                                    {a.procedures.length > 0 && (
-                                      <div className="text-[9px] opacity-60 truncate mt-0.5">
-                                        {(a.procedures as any[]).map((p) => typeof p === "string" ? p : p?.name).join(", ")}
-                                      </div>
-                                    )}
-                                  </div>
-                                </DraggableAppointment>
-                              )
-                            })}
-                          </div>
+                          <DraggableAppointment key={a.id} appointment={a}>
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedAppointment({
+                                  appointment: a,
+                                  position: { top: e.clientY, left: e.clientX },
+                                })
+                              }}
+                              className={`absolute z-[2] rounded-md px-1.5 py-1 text-[11px] font-medium leading-tight cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md border-l-[3px] overflow-hidden ${statusClass}`}
+                              style={{
+                                top: `${topPx}px`,
+                                height: `${heightPx}px`,
+                                left: `calc(${leftPct}% + 2px)`,
+                                width: `calc(${widthPct}% - 4px)`,
+                                borderLeftColor: agendaColor,
+                                backgroundColor: agendaColorBg(a.agenda?.color, 0.20),
+                                color: agendaColor,
+                              }}
+                            >
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="font-bold tabular-nums text-[10px] opacity-80 shrink-0">{formatTime(a.date)}</span>
+                                <span className="truncate">{a.patient.name}</span>
+                              </div>
+                              {heightPx >= 34 && a.procedures.length > 0 && (
+                                <div className="text-[9px] opacity-60 truncate mt-px">
+                                  {(a.procedures as any[]).map((p) => typeof p === "string" ? p : p?.name).join(", ")}
+                                </div>
+                              )}
+                            </div>
+                          </DraggableAppointment>
                         )
-                      })()}
+                      })}
                     </DroppableCell>
                   )
                 })}
@@ -357,7 +462,7 @@ function WeekViewInner({
         />
       )}
 
-      {/* Drag overlay with target time */}
+      {/* Drag overlay */}
       <DragOverlay>
         {activeDragId ? (() => {
           const a = appointments.find((ap) => ap.id === activeDragId)
