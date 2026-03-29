@@ -116,6 +116,7 @@ export function NavBottom({ role = "owner" }: { role?: WorkspaceRole }) {
         {showMore && (
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
+              aria-label="Mais opcoes"
               className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 active:scale-95 ${
                 isMoreActive ? "text-vox-primary" : "text-muted-foreground"
               }`}

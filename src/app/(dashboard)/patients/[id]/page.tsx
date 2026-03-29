@@ -78,7 +78,7 @@ export default async function PatientPage({
               <h1 className="text-xl font-semibold tracking-tight">
                 {patient.name}
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 {patient.document && (
                   <span className="font-mono">CPF: {patient.document}</span>
                 )}
@@ -98,6 +98,10 @@ export default async function PatientPage({
                   <span className="flex items-center gap-1">
                     <Calendar className="size-3" />
                     {formatDate(patient.birthDate)}
+                    {(() => {
+                      const age = Math.floor((Date.now() - new Date(patient.birthDate!).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                      return <span className="text-muted-foreground/80">({age} anos)</span>
+                    })()}
                   </span>
                 )}
                 {patient.insurance && (
@@ -130,37 +134,72 @@ export default async function PatientPage({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <div title="Criar nova prescricao de medicamentos para este paciente">
-              <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} patientCpf={patient.document} patientPhone={patient.phone} />
+          {/* Actions — collapsed on mobile */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Desktop: show all buttons */}
+            <div className="hidden sm:flex items-center gap-2 flex-wrap">
+              <div title="Criar nova prescricao de medicamentos para este paciente">
+                <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} patientCpf={patient.document} patientPhone={patient.phone} />
+              </div>
+              <Link href={`/patients/${patient.id}/prescricao`} title="Abrir editor completo de prescricao com pre-visualizacao">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <FilePen className="size-3.5" />
+                  Editor de Prescricao
+                </Button>
+              </Link>
+              <div title="Gerar atestado, declaracao de comparecimento, encaminhamento ou laudo">
+                <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
+              </div>
+              <Link href={`/patients/${patient.id}/report`} target="_blank" title="Abrir relatorio completo para impressao (Ctrl+P)">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <FileText className="size-3.5" />
+                  Relatorio
+                </Button>
+              </Link>
+              <MoreActionsDropdown>
+                <div title="Exportar todos os dados deste paciente em CSV (LGPD)" className="w-full">
+                  <ExportButton patientId={patient.id} patientName={patient.name} />
+                </div>
+                <div title="Mesclar outro paciente duplicado neste registro. Transfere consultas, gravacoes e documentos." className="w-full">
+                  <MergeDialog patientId={patient.id} patientName={patient.name} />
+                </div>
+                <div title="Desativar paciente (soft delete — historico preservado por 20 anos conforme CFM)" className="w-full">
+                  <DeactivateButton patientId={patient.id} />
+                </div>
+              </MoreActionsDropdown>
             </div>
-            <Link href={`/patients/${patient.id}/prescricao`} title="Abrir editor completo de prescricao com pre-visualizacao">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <FilePen className="size-3.5" />
-                Editor de Prescricao
-              </Button>
-            </Link>
-            <div title="Gerar atestado, declaracao de comparecimento, encaminhamento ou laudo">
-              <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
+            {/* Mobile: single dropdown with all actions */}
+            <div className="sm:hidden">
+              <MoreActionsDropdown label="Acoes">
+                <div className="w-full">
+                  <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} patientCpf={patient.document} patientPhone={patient.phone} />
+                </div>
+                <Link href={`/patients/${patient.id}/prescricao`} className="w-full">
+                  <Button variant="ghost" size="sm" className="gap-1.5 w-full justify-start">
+                    <FilePen className="size-3.5" />
+                    Editor de Prescricao
+                  </Button>
+                </Link>
+                <div className="w-full">
+                  <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
+                </div>
+                <Link href={`/patients/${patient.id}/report`} target="_blank" className="w-full">
+                  <Button variant="ghost" size="sm" className="gap-1.5 w-full justify-start">
+                    <FileText className="size-3.5" />
+                    Relatorio
+                  </Button>
+                </Link>
+                <div className="w-full border-t border-border/40 pt-1 mt-1">
+                  <ExportButton patientId={patient.id} patientName={patient.name} />
+                </div>
+                <div className="w-full">
+                  <MergeDialog patientId={patient.id} patientName={patient.name} />
+                </div>
+                <div className="w-full">
+                  <DeactivateButton patientId={patient.id} />
+                </div>
+              </MoreActionsDropdown>
             </div>
-            <Link href={`/patients/${patient.id}/report`} target="_blank" title="Abrir relatorio completo para impressao (Ctrl+P)">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <FileText className="size-3.5" />
-                Relatorio
-              </Button>
-            </Link>
-            <MoreActionsDropdown>
-              <div title="Exportar todos os dados deste paciente em CSV (LGPD)" className="w-full">
-                <ExportButton patientId={patient.id} patientName={patient.name} />
-              </div>
-              <div title="Mesclar outro paciente duplicado neste registro. Transfere consultas, gravacoes e documentos." className="w-full">
-                <MergeDialog patientId={patient.id} patientName={patient.name} />
-              </div>
-              <div title="Desativar paciente (soft delete — historico preservado por 20 anos conforme CFM)" className="w-full">
-                <DeactivateButton patientId={patient.id} />
-              </div>
-            </MoreActionsDropdown>
           </div>
         </div>
       </div>

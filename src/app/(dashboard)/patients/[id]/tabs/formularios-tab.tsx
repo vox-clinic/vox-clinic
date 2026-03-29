@@ -18,6 +18,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import {
+  Dialog as FormDialog,
+  DialogContent as FormDialogContent,
+  DialogHeader as FormDialogHeader,
+  DialogTitle as FormDialogTitle,
+} from "@/components/ui/dialog"
+import {
   FileText,
   Plus,
   Loader2,
@@ -553,38 +559,38 @@ export default function FormulariosTab({
         </DialogContent>
       </Dialog>
 
-      {/* ─── Fill form sheet ─── */}
-      <Sheet open={fillSheetOpen} onOpenChange={setFillSheetOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
+      {/* ─── Fill form dialog (full-screen mobile, wide desktop) ─── */}
+      <FormDialog open={fillSheetOpen} onOpenChange={setFillSheetOpen}>
+        <FormDialogContent className="max-w-3xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <FormDialogHeader className="sticky top-0 z-10 bg-card border-b px-6 py-4">
+            <FormDialogTitle className="flex items-center gap-2">
               {activeTemplate?.name}
               {isReadOnly && (
                 <Badge variant="outline" className="text-xs bg-vox-success/10 text-vox-success">
                   Preenchido
                 </Badge>
               )}
-            </SheetTitle>
-          </SheetHeader>
+            </FormDialogTitle>
+          </FormDialogHeader>
 
-          {/* Linked appointment info */}
-          {activeResponse?.appointment && (
-            <div className="rounded-xl border bg-muted/30 p-3 mt-4 flex items-center gap-2">
-              <Calendar className="size-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                Vinculado a consulta de{" "}
-                {new Date(activeResponse.appointment.date).toLocaleDateString("pt-BR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          )}
+          <div className="px-6 py-4 space-y-4">
+            {/* Linked appointment info */}
+            {activeResponse?.appointment && (
+              <div className="rounded-xl border bg-muted/30 p-3 flex items-center gap-2">
+                <Calendar className="size-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Vinculado a consulta de{" "}
+                  {new Date(activeResponse.appointment.date).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            )}
 
-          <div className="mt-4">
             {activeTemplate && (
               <FormRenderer
                 fields={activeTemplate.fields as FormField[]}
@@ -596,9 +602,9 @@ export default function FormulariosTab({
             )}
           </div>
 
-          {/* Action buttons */}
+          {/* Sticky action buttons */}
           {!isReadOnly && (
-            <div className="flex gap-2 pt-6 border-t mt-6">
+            <div className="sticky bottom-0 bg-card border-t px-6 py-4 flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -623,8 +629,8 @@ export default function FormulariosTab({
               </Button>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </FormDialogContent>
+      </FormDialog>
 
       {/* ─── Confirm dialog ─── */}
       <ConfirmDialog

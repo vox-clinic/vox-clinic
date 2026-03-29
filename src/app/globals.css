@@ -173,6 +173,11 @@
       display: none;
     }
   }
+
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
 }
 
 @layer base {

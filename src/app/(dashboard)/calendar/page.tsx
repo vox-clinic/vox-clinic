@@ -339,13 +339,13 @@ export default function CalendarPage() {
       {/* ─── Header ─── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={navigatePrev} className="flex size-8 items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground">
+          <button onClick={navigatePrev} className="flex size-11 items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground">
             <ChevronLeft className="size-4" />
           </button>
           <h1 className="text-base font-semibold tracking-tight min-w-[200px] text-center">
             {getTitle()}
           </h1>
-          <button onClick={navigateNext} className="flex size-8 items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground">
+          <button onClick={navigateNext} className="flex size-11 items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground">
             <ChevronRight className="size-4" />
           </button>
           <Button variant="outline" size="sm" onClick={goToday} className="ml-1 text-[11px] h-7 px-2.5">
@@ -381,7 +381,7 @@ export default function CalendarPage() {
                 }`}
               >
                 <Icon className="size-3.5" />
-                <span className="hidden sm:inline">{label}</span>
+                <span className="hidden sm:inline">{label}</span><span className="sm:hidden text-[9px]">{label.slice(0, 3)}</span>
               </button>
             ))}
           </div>
@@ -534,6 +534,23 @@ export default function CalendarPage() {
           onDelete={(id) => setDeleteTarget(id)}
           onShowSchedule={() => setShowScheduleForm(true)}
         />
+      )}
+
+      {!loading && appointments.length === 0 && blockedSlots.length === 0 && (
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <div className="mx-auto mb-1 flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+            <CalendarDays className="size-6 text-muted-foreground/40" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">Sem consultas neste periodo</p>
+          <p className="text-xs text-muted-foreground/70">Agende uma consulta para comecar</p>
+          <button
+            onClick={() => { setScheduleDefaultDate(""); setShowScheduleForm(true) }}
+            className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-vox-primary hover:text-vox-primary/80 rounded-lg px-3 py-1.5 hover:bg-vox-primary/5 transition-colors"
+          >
+            <Plus className="size-3" />
+            Agendar consulta
+          </button>
+        </div>
       )}
 
       {/* ─── Delete Dialog ─── */}

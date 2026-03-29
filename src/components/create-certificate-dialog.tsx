@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileText, Loader2 } from "lucide-react"
 import { createCertificate } from "@/server/actions/certificate"
 import { toast } from "sonner"
@@ -29,25 +31,32 @@ export function CreateCertificateButton({
 }) {
   const [open, setOpen] = useState(false)
 
-  if (!open) {
-    return (
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={<Button variant="outline" size="sm" className="gap-1.5" />}
+      >
         <FileText className="size-3.5" />
         Atestado
-      </Button>
-    )
-  }
-
-  return (
-    <CreateCertificateModal
-      patientId={patientId}
-      patientName={patientName}
-      onClose={() => setOpen(false)}
-    />
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Documento</DialogTitle>
+          <DialogDescription>
+            Paciente: <strong>{patientName}</strong>
+          </DialogDescription>
+        </DialogHeader>
+        <CreateCertificateForm
+          patientId={patientId}
+          patientName={patientName}
+          onClose={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function CreateCertificateModal({
+function CreateCertificateForm({
   patientId,
   patientName,
   onClose,
@@ -100,33 +109,22 @@ function CreateCertificateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-card border shadow-lg p-5 space-y-4 mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div>
-          <h3 className="text-base font-semibold">Novo Documento</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Paciente: <strong>{patientName}</strong>
-          </p>
-        </div>
-
+    <div className="space-y-4">
         {/* Type selector */}
         <div className="space-y-1.5">
           <Label htmlFor="cert-type">Tipo de documento</Label>
-          <select
-            id="cert-type"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="h-10 w-full rounded-xl border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            {typeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <Select value={type} onValueChange={(val) => { if (val) setType(val) }}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {typeOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Atestado fields */}
@@ -218,7 +216,6 @@ function CreateCertificateModal({
             Criar e imprimir
           </Button>
         </div>
-      </div>
     </div>
   )
 }

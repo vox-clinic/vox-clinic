@@ -153,20 +153,22 @@ export default function FinancialPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex rounded-xl bg-muted/50 p-0.5 w-fit overflow-x-auto">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              activeTab === tab.key
-                ? "bg-background shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="relative">
+        <div className="flex rounded-xl bg-muted/50 p-0.5 w-fit overflow-x-auto scrollbar-hide mask-fade-x">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                activeTab === tab.key
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -315,7 +317,7 @@ export default function FinancialPage() {
                                 </p>
                               )}
                             </div>
-                            <span className="text-sm font-semibold shrink-0 ml-2">
+                            <span className="text-sm font-semibold shrink-0 ml-2 text-right tabular-nums">
                               {tx.price != null ? formatBRL(tx.price) : (
                                 <span className="text-muted-foreground text-xs">--</span>
                               )}

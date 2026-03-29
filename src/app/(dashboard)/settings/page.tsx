@@ -24,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { getWorkspace, updateWorkspace } from "@/server/actions/workspace"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
@@ -175,6 +174,68 @@ export default function SettingsPage() {
     }
   }
 
+  const [activeSection, setActiveSection] = useState("clinica")
+
+  type SettingsNavItem = {
+    key: string
+    label: string
+    icon: any
+    href?: string
+  }
+
+  type SettingsNavGroup = {
+    title: string
+    items: SettingsNavItem[]
+  }
+
+  const settingsNav: SettingsNavGroup[] = [
+    {
+      title: "Clinica",
+      items: [
+        { key: "clinica", label: "Dados da Clinica", icon: Building2 },
+        { key: "procedimentos", label: "Procedimentos", icon: ListChecks },
+        { key: "campos", label: "Campos Customizados", icon: FormInput },
+        { key: "aparencia", label: "Aparencia", icon: Palette },
+      ],
+    },
+    {
+      title: "Equipe",
+      items: [
+        { key: "equipe", label: "Membros", icon: Users },
+        { key: "comissoes", label: "Comissoes", icon: Percent },
+      ],
+    },
+    {
+      title: "Agendamento",
+      items: [
+        { key: "agendas", label: "Agendas", icon: CalendarDays },
+        { key: "booking", label: "Agendamento Online", icon: Globe },
+      ],
+    },
+    {
+      title: "Comunicacao",
+      items: [
+        { key: "mensagens", label: "Mensagens", icon: MessageSquare },
+        { key: "formularios", label: "Formularios", icon: FileText },
+      ],
+    },
+    {
+      title: "Financeiro",
+      items: [
+        { key: "gateway", label: "Pagamento", icon: Zap },
+        { key: "fiscal", label: "Fiscal (NFS-e)", icon: Receipt },
+        { key: "tiss", label: "TISS", icon: Stethoscope, href: "/settings/tiss" },
+      ],
+    },
+    {
+      title: "Sistema",
+      items: [
+        { key: "plano", label: "Plano", icon: CreditCard },
+        { key: "auditoria", label: "Auditoria", icon: ClipboardList, href: "/settings/audit" },
+      ],
+    },
+  ]
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -291,155 +352,96 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ─── Tabbed Sections ─── */}
-      <Tabs defaultValue="clinica">
-        <TabsList
-          variant="line"
-          className="flex w-full justify-start gap-0 border-b border-border/50 pb-px"
-        >
-          <TabsTrigger value="clinica" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Building2 className="size-4" />
-            Clínica
-          </TabsTrigger>
-          <TabsTrigger value="procedimentos" className="gap-2 px-4 py-2.5 text-[13px]">
-            <ListChecks className="size-4" />
-            Procedimentos
-          </TabsTrigger>
-          <TabsTrigger value="campos" className="gap-2 px-4 py-2.5 text-[13px]">
-            <FormInput className="size-4" />
-            Campos
-          </TabsTrigger>
-          <TabsTrigger value="formularios" className="gap-2 px-4 py-2.5 text-[13px]">
-            <FileText className="size-4" />
-            Formularios
-          </TabsTrigger>
-          <TabsTrigger value="equipe" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Users className="size-4" />
-            Equipe
-          </TabsTrigger>
-          <TabsTrigger value="agendas" className="gap-2 px-4 py-2.5 text-[13px]">
-            <CalendarDays className="size-4" />
-            Agendas
-          </TabsTrigger>
-          <TabsTrigger value="booking" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Globe className="size-4" />
-            Online
-          </TabsTrigger>
-          <TabsTrigger value="mensagens" className="gap-2 px-4 py-2.5 text-[13px]">
-            <MessageSquare className="size-4" />
-            Mensagens
-          </TabsTrigger>
-          <TabsTrigger value="aparencia" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Palette className="size-4" />
-            Aparencia
-          </TabsTrigger>
-          <TabsTrigger value="comissoes" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Percent className="size-4" />
-            Comissoes
-          </TabsTrigger>
-          <TabsTrigger value="gateway" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Zap className="size-4" />
-            Pagamento
-          </TabsTrigger>
-          <TabsTrigger value="fiscal" className="gap-2 px-4 py-2.5 text-[13px]">
-            <Receipt className="size-4" />
-            Fiscal
-          </TabsTrigger>
-          <TabsTrigger value="plano" className="gap-2 px-4 py-2.5 text-[13px]">
-            <CreditCard className="size-4" />
-            Plano
-          </TabsTrigger>
-          <Link
-            href="/settings/tiss"
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Stethoscope className="size-4" />
-            TISS
-          </Link>
-          <Link
-            href="/settings/audit"
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ClipboardList className="size-4" />
-            Auditoria
-          </Link>
-        </TabsList>
+      {/* ─── Settings Navigation + Content ─── */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <nav className="md:w-56 shrink-0">
+          {/* Mobile: horizontal scroll with active indicator */}
+          <div className="flex md:hidden overflow-x-auto gap-1 pb-2 scrollbar-hide">
+            {settingsNav.flatMap(group => group.items).map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setActiveSection(item.key)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                  activeSection === item.key
+                    ? "bg-vox-primary/10 text-vox-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                <item.icon className="size-3.5" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {/* Desktop: grouped sidebar */}
+          <div className="hidden md:flex flex-col gap-4">
+            {settingsNav.map((group) => (
+              <div key={group.title}>
+                <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                  {group.title}
+                </p>
+                <div className="flex flex-col gap-0.5">
+                  {group.items.map((item) => {
+                    if (item.href) {
+                      return (
+                        <Link
+                          key={item.key}
+                          href={item.href}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                        >
+                          <item.icon className="size-4" />
+                          {item.label}
+                        </Link>
+                      )
+                    }
+                    const isActive = activeSection === item.key
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => setActiveSection(item.key)}
+                        className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                          isActive
+                            ? "bg-vox-primary/10 text-vox-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {isActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-vox-primary" />
+                        )}
+                        <item.icon className="size-4" />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </nav>
 
-        {/* ─── Tab: Clinica ─── */}
-        <TabsContent value="clinica" className="animate-fade-in space-y-4 pt-4">
-          <ClinicaSection
-            clinicName={clinicName}
-            onClinicNameChange={setClinicName}
-            profLabel={profLabel}
-          />
-        </TabsContent>
-
-        {/* ─── Tab: Procedimentos ─── */}
-        <TabsContent value="procedimentos" className="animate-fade-in space-y-4 pt-4">
-          <ProcedimentosSection
-            procedures={procedures}
-            onProceduresChange={setProcedures}
-          />
-        </TabsContent>
-
-        {/* ─── Tab: Campos Customizados ─── */}
-        <TabsContent value="campos" className="animate-fade-in space-y-4 pt-4">
-          <CamposSection
-            customFields={customFields}
-            onCustomFieldsChange={setCustomFields}
-          />
-        </TabsContent>
-
-        {/* ─── Tab: Formularios ─── */}
-        <TabsContent value="formularios" className="animate-fade-in space-y-4 pt-4">
-          <FormulariosSection />
-        </TabsContent>
-
-        {/* ─── Tab: Equipe ─── */}
-        <TabsContent value="equipe" className="animate-fade-in space-y-4 pt-4">
-          <TeamSection clinicName={clinicName} />
-        </TabsContent>
-
-        {/* ─── Tab: Agendas ─── */}
-        <TabsContent value="agendas" className="animate-fade-in space-y-4 pt-4">
-          <AgendasSection />
-        </TabsContent>
-
-        {/* ─── Tab: Booking Online ─── */}
-        <TabsContent value="booking" className="animate-fade-in space-y-4 pt-4">
-          <BookingSection />
-        </TabsContent>
-
-        {/* ─── Tab: Mensagens ─── */}
-        <TabsContent value="mensagens" className="animate-fade-in space-y-4 pt-4">
-          <MessagingSection />
-        </TabsContent>
-
-        {/* ─── Tab: Aparencia ─── */}
-        <TabsContent value="aparencia" className="animate-fade-in space-y-4 pt-4">
-          <AparenciaSection />
-        </TabsContent>
-
-        {/* ─── Tab: Comissoes ─── */}
-        <TabsContent value="comissoes" className="animate-fade-in space-y-4 pt-4">
-          <ComissoesSection />
-        </TabsContent>
-
-        {/* ─── Tab: Gateway de Pagamento ─── */}
-        <TabsContent value="gateway" className="animate-fade-in space-y-4 pt-4">
-          <GatewaySection />
-        </TabsContent>
-
-        {/* ─── Tab: Fiscal (NFS-e) ─── */}
-        <TabsContent value="fiscal" className="animate-fade-in space-y-4 pt-4">
-          <FiscalTab />
-        </TabsContent>
-
-        {/* ─── Tab: Plano (Billing) ─── */}
-        <TabsContent value="plano" className="animate-fade-in space-y-4 pt-4">
-          <PlanoSection />
-        </TabsContent>
-      </Tabs>
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 space-y-4">
+          {activeSection === "clinica" && (
+            <ClinicaSection clinicName={clinicName} onClinicNameChange={setClinicName} profLabel={profLabel} />
+          )}
+          {activeSection === "procedimentos" && (
+            <ProcedimentosSection procedures={procedures} onProceduresChange={setProcedures} />
+          )}
+          {activeSection === "campos" && (
+            <CamposSection customFields={customFields} onCustomFieldsChange={setCustomFields} />
+          )}
+          {activeSection === "formularios" && <FormulariosSection />}
+          {activeSection === "equipe" && <TeamSection clinicName={clinicName} />}
+          {activeSection === "agendas" && <AgendasSection />}
+          {activeSection === "booking" && <BookingSection />}
+          {activeSection === "mensagens" && <MessagingSection />}
+          {activeSection === "aparencia" && <AparenciaSection />}
+          {activeSection === "comissoes" && <ComissoesSection />}
+          {activeSection === "gateway" && <GatewaySection />}
+          {activeSection === "fiscal" && <FiscalTab />}
+          {activeSection === "plano" && <PlanoSection />}
+        </div>
+      </div>
 
       {/* ─── Sticky Save Bar (mobile + unsaved changes) ─── */}
       {hasChanges && (

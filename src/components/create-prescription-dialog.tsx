@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Pill, Plus, Trash2, Loader2, AlertTriangle, AlertCircle, Info } from "lucide-react"
 import { createPrescription } from "@/server/actions/prescription"
 import { checkDrugInteractions, type DrugInteractionResult } from "@/server/actions/drug-interaction"
@@ -39,25 +40,32 @@ export function CreatePrescriptionButton({
 }) {
   const [open, setOpen] = useState(false)
 
-  if (!open) {
-    return (
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={<Button variant="outline" size="sm" className="gap-1.5" />}
+      >
         <Pill className="size-3.5" />
         Prescrição
-      </Button>
-    )
-  }
-
-  return (
-    <CreatePrescriptionModal
-      patientId={patientId}
-      patientName={patientName}
-      onClose={() => setOpen(false)}
-    />
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nova Prescrição</DialogTitle>
+          <DialogDescription>
+            Paciente: <strong>{patientName}</strong>
+          </DialogDescription>
+        </DialogHeader>
+        <CreatePrescriptionForm
+          patientId={patientId}
+          patientName={patientName}
+          onClose={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function CreatePrescriptionModal({
+function CreatePrescriptionForm({
   patientId,
   patientName,
   onClose,
@@ -156,18 +164,7 @@ function CreatePrescriptionModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card border shadow-lg p-5 space-y-4 mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div>
-          <h3 className="text-base font-semibold">Nova Prescrição</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Paciente: <strong>{patientName}</strong>
-          </p>
-        </div>
-
+    <div className="space-y-4">
         {/* Medications */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Medicamentos</Label>
@@ -183,6 +180,7 @@ function CreatePrescriptionModal({
                     size="icon-sm"
                     onClick={() => removeMedication(index)}
                     className="text-muted-foreground hover:text-destructive"
+                    aria-label="Remover medicamento"
                   >
                     <Trash2 className="size-3.5" />
                   </Button>
@@ -324,7 +322,6 @@ function CreatePrescriptionModal({
             Criar e imprimir
           </Button>
         </div>
-      </div>
     </div>
   )
 }

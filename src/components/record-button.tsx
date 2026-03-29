@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Mic, Square, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 interface RecordButtonProps {
   onRecordingComplete: (audioBlob: Blob) => void
@@ -204,37 +206,30 @@ export function RecordButton({
       )}
     >
       {/* LGPD Consent Modal */}
-      {showConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-xl bg-background p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold">Consentimento para Gravação</h3>
-            <p className="text-sm text-muted-foreground">
+      <Dialog open={showConsent} onOpenChange={(open) => !open && handleConsentDecline()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Consentimento para Gravação</DialogTitle>
+            <DialogDescription>
               De acordo com a LGPD (Lei 13.709/2018), este audio sera gravado,
               transcrito e processado por inteligencia artificial para extrair dados
-              clinicos. O audio sera armazenado de forma segura e nao sera
-              compartilhado com terceiros.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Ao prosseguir, você confirma que obteve o consentimento do paciente
-              para esta gravacao.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleConsentDecline}
-                className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors active:scale-[0.98]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConsentAccept}
-                className="flex-1 rounded-xl bg-vox-primary px-4 py-2 text-sm font-medium text-white hover:bg-vox-primary/90 transition-colors active:scale-[0.98]"
-              >
-                Concordo e Gravar
-              </button>
-            </div>
+              clinicos.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Ao prosseguir, você confirma que obteve o consentimento do paciente
+            para esta gravacao.
+          </p>
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={handleConsentDecline}>
+              Cancelar
+            </Button>
+            <Button className="flex-1 bg-vox-primary hover:bg-vox-primary/90" onClick={handleConsentAccept}>
+              Concordo e Gravar
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Waveform bars */}
       {isRecording && (

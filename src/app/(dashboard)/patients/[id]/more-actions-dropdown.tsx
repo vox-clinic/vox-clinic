@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
 
-export function MoreActionsDropdown({ children }: { children: React.ReactNode }) {
+export function MoreActionsDropdown({ children, label }: { children: React.ReactNode; label?: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -28,7 +28,7 @@ export function MoreActionsDropdown({ children }: { children: React.ReactNode })
         className="gap-1.5"
         onClick={() => setOpen(!open)}
       >
-        Mais
+        {label ?? "Mais"}
         <ChevronDown className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </Button>
       {open && (

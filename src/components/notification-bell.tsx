@@ -71,6 +71,17 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [open])
 
+  // Close on Escape
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) {
+        setOpen(false)
+      }
+    }
+    if (open) document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open])
+
   async function handleMarkAsRead(id: string) {
     await markAsRead(id)
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n))
@@ -111,7 +122,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-80 rounded-xl border border-border/60 bg-popover shadow-lg z-50 overflow-hidden animate-fade-in">
+        <div role="menu" className="absolute right-0 top-full mt-2 w-[calc(100vw-1rem)] sm:w-80 max-w-80 rounded-xl border border-border/60 bg-popover shadow-lg z-50 overflow-hidden animate-fade-in">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
             <h3 className="text-sm font-semibold">Notificacoes</h3>
@@ -141,6 +152,7 @@ export function NotificationBell() {
                 return (
                   <button
                     key={n.id}
+                    role="menuitem"
                     onClick={() => !n.read && handleMarkAsRead(n.id)}
                     className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors border-b border-border/20 last:border-0 ${
                       n.read ? "opacity-60" : "bg-vox-primary/[0.02] hover:bg-accent"

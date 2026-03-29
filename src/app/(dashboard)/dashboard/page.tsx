@@ -91,73 +91,81 @@ export default async function DashboardPage() {
 
       {/* ─── Stat Cards ─── */}
       <div data-tour="stats-grid" data-testid="section-stats" className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Pacientes</p>
-                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.totalPatients}</p>
+        <Link href="/patients">
+          <Card className="group relative overflow-hidden transition-shadow hover:shadow-md cursor-pointer">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Pacientes</p>
+                  <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.totalPatients}</p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] transition-colors group-hover:bg-vox-primary/[0.12]">
+                  <Users className="size-[18px] text-vox-primary" />
+                </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] transition-colors group-hover:bg-vox-primary/[0.12]">
-                <Users className="size-[18px] text-vox-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-success/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Este mes</p>
-                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.monthlyAppointments}</p>
-                {monthlyTrend !== 0 && (
-                  <div className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${monthlyTrend > 0 ? "text-vox-success bg-vox-success/10" : "text-vox-error bg-vox-error/10"}`}>
-                    {monthlyTrend > 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                    {monthlyTrend > 0 ? "+" : ""}{monthlyTrend}%
-                  </div>
-                )}
+        <Link href="/appointments">
+          <Card className="group relative overflow-hidden transition-shadow hover:shadow-md cursor-pointer">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-success/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Este mes</p>
+                  <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.monthlyAppointments}</p>
+                  {monthlyTrend !== 0 && (
+                    <div className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${monthlyTrend > 0 ? "text-vox-success bg-vox-success/10" : "text-vox-error bg-vox-error/10"}`}>
+                      {monthlyTrend > 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                      {monthlyTrend > 0 ? "+" : ""}{monthlyTrend}%
+                    </div>
+                  )}
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-xl bg-vox-success/[0.08] transition-colors group-hover:bg-vox-success/[0.12]">
+                  <Stethoscope className="size-[18px] text-vox-success" />
+                </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-success/[0.08] transition-colors group-hover:bg-vox-success/[0.12]">
-                <Stethoscope className="size-[18px] text-vox-success" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-warning/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Agendados</p>
-                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.scheduledAppointments}</p>
-                <p className="text-[11px] text-muted-foreground/60 mt-1">proximas consultas</p>
+        <Link href="/calendar">
+          <Card className="group relative overflow-hidden transition-shadow hover:shadow-md cursor-pointer">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-warning/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Agendados</p>
+                  <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.scheduledAppointments}</p>
+                  <p className="text-[11px] text-muted-foreground/60 mt-1">proximas consultas</p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-xl bg-vox-warning/[0.08] transition-colors group-hover:bg-vox-warning/[0.12]">
+                  <CalendarCheck className="size-[18px] text-vox-warning" />
+                </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-warning/[0.08] transition-colors group-hover:bg-vox-warning/[0.12]">
-                <CalendarCheck className="size-[18px] text-vox-warning" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Gravacoes</p>
-                <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.totalRecordings}</p>
-                <p className="text-[11px] text-muted-foreground/60 mt-1">audios salvos</p>
+        <Link href="/appointments">
+          <Card className="group relative overflow-hidden transition-shadow hover:shadow-md cursor-pointer">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-vox-primary/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">Gravacoes</p>
+                  <p className="text-[28px] font-bold mt-1 tabular-nums leading-none tracking-tight">{data.totalRecordings}</p>
+                  <p className="text-[11px] text-muted-foreground/60 mt-1">audios salvos</p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] transition-colors group-hover:bg-vox-primary/[0.12]">
+                  <AudioLines className="size-[18px] text-vox-primary" />
+                </div>
               </div>
-              <div className="flex size-10 items-center justify-center rounded-xl bg-vox-primary/[0.08] transition-colors group-hover:bg-vox-primary/[0.12]">
-                <AudioLines className="size-[18px] text-vox-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* ─── Quick Actions Row ─── */}
@@ -189,7 +197,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ─── Main Content Grid ─── */}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Today's Agenda */}
         <Card>
           <CardHeader className="flex-row items-center justify-between pb-3">
@@ -226,7 +234,7 @@ export default async function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div data-testid="section-upcoming-appointments" className="space-y-0.5">
+              <div data-testid="section-upcoming-appointments" className="space-y-1">
                 {data.todayAppointments.map((apt) => (
                   <Link
                     key={apt.id}
@@ -276,11 +284,24 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {data.recentAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum atendimento registrado.
-              </p>
+              <div className="text-center py-8">
+                <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+                  <CalendarDays className="size-6 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Nenhum atendimento registrado
+                </p>
+                <Link
+                  href="/appointments/new"
+                  aria-label="Registrar primeiro atendimento"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-vox-primary hover:text-vox-primary/80 rounded-lg px-3 py-1.5 hover:bg-vox-primary/5 transition-colors focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2 outline-none"
+                >
+                  <Stethoscope className="size-3" />
+                  Registrar atendimento
+                </Link>
+              </div>
             ) : (
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {data.recentAppointments.map((apt) => (
                   <Link
                     key={apt.id}
@@ -325,7 +346,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ─── Bottom Row: Search + Recent Patients ─── */}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Quick Search */}
         <Card>
           <CardHeader className="pb-3">
@@ -365,9 +386,16 @@ export default async function DashboardPage() {
                 <p className="text-sm text-muted-foreground">
                   Nenhum paciente cadastrado.
                 </p>
+                <Link
+                  href="/patients/new"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-vox-primary hover:text-vox-primary/80 rounded-lg px-3 py-1.5 hover:bg-vox-primary/5 transition-colors"
+                >
+                  <UserPlus className="size-3" />
+                  Cadastrar paciente
+                </Link>
               </div>
             ) : (
-              <ul className="space-y-0.5">
+              <ul className="space-y-1">
                 {data.recentPatients.map((patient) => (
                   <li key={patient.id}>
                     <Link
