@@ -1,10 +1,7 @@
 name: Daily Deploy
 
 on:
-  schedule:
-    # Every day at 06:00 UTC (03:00 BRT)
-    - cron: "0 6 * * *"
-  workflow_dispatch: # Manual trigger when needed
+  workflow_dispatch: # Manual trigger only
 
 concurrency:
   group: daily-deploy
