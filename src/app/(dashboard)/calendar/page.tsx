@@ -39,6 +39,7 @@ import {
   getBlockedSlots,
   createBlockedSlot,
   deleteBlockedSlot,
+  updateBlockedSlot,
   type BlockedSlotItem,
 } from "@/server/actions/blocked-slot"
 import { getAgendas } from "@/server/actions/agenda"
@@ -354,6 +355,17 @@ export default function CalendarPage() {
     }
   }
 
+  async function handleUpdateBlockedSlot(id: string, data: { title?: string; startDate?: string; endDate?: string; allDay?: boolean; recurring?: string | null }) {
+    try {
+      const result = await updateBlockedSlot(id, data)
+      if ('error' in result) { toast.error(result.error); return }
+      reloadData()
+      toast.success("Bloqueio atualizado")
+    } catch (err) {
+      toast.error(friendlyError(err, "Erro ao atualizar bloqueio"))
+    }
+  }
+
   const weekDays = view === "week" ? getWeekDays(getMonday(currentDate)) : []
 
   return (
@@ -518,6 +530,8 @@ export default function CalendarPage() {
           onReschedule={handleReschedule}
           onStatusChange={handleStatusChange}
           onDelete={(id) => setDeleteTarget(id)}
+          onDeleteBlockedSlot={handleDeleteBlockedSlot}
+          onUpdateBlockedSlot={handleUpdateBlockedSlot}
         />
       )}
 
@@ -529,6 +543,7 @@ export default function CalendarPage() {
           onStatusChange={handleStatusChange}
           onDelete={(id) => setDeleteTarget(id)}
           onDeleteBlockedSlot={handleDeleteBlockedSlot}
+          onUpdateBlockedSlot={handleUpdateBlockedSlot}
         />
       )}
 
@@ -542,6 +557,8 @@ export default function CalendarPage() {
           onSelectDay={setSelectedDay}
           onStatusChange={handleStatusChange}
           onDelete={(id) => setDeleteTarget(id)}
+          onDeleteBlockedSlot={handleDeleteBlockedSlot}
+          onUpdateBlockedSlot={handleUpdateBlockedSlot}
           onScheduleForDay={(day) => {
             setScheduleDefaultDate(`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`)
             setShowScheduleForm(true)

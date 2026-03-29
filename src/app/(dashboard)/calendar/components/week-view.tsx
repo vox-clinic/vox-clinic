@@ -21,6 +21,7 @@ import type { BlockedSlotItem } from "@/server/actions/blocked-slot"
 import { HOURS, DAY_NAMES, STATUS_CONFIG, formatTime, isToday, buildAppointmentIndex, getBlockedSlotsForHour, calculateOverlapLayout, agendaColorBg } from "../helpers"
 import { NowLine } from "./now-line"
 import { AppointmentPopover } from "./appointment-popover"
+import { BlockedSlotPopover } from "./blocked-slot-popover"
 
 const ROW_HEIGHT = 72
 const SNAP_MINUTES = 15
@@ -84,6 +85,8 @@ function WeekViewInner({
   onReschedule,
   onStatusChange,
   onDelete,
+  onDeleteBlockedSlot,
+  onUpdateBlockedSlot,
 }: {
   weekDays: Date[]
   appointments: AppointmentItem[]
@@ -91,6 +94,8 @@ function WeekViewInner({
   onReschedule: (appointmentId: string, newDate: string, forceSchedule?: boolean) => Promise<void>
   onStatusChange: (id: string, status: string) => void
   onDelete: (id: string) => void
+  onDeleteBlockedSlot: (id: string) => void
+  onUpdateBlockedSlot: (id: string, data: { title?: string; startDate?: string; endDate?: string; allDay?: boolean; recurring?: string | null }) => Promise<void>
 }) {
   const router = useRouter()
   const weekGridRef = useRef<HTMLDivElement>(null)
@@ -99,6 +104,7 @@ function WeekViewInner({
   const [ghostMinute, setGhostMinute] = useState<number | null>(null)
   const [overCellId, setOverCellId] = useState<string | null>(null)
   const [selectedAppointment, setSelectedAppointment] = useState<{ appointment: AppointmentItem; position: { top: number; left: number } } | null>(null)
+  const [selectedBlockedSlot, setSelectedBlockedSlot] = useState<{ slot: BlockedSlotItem; position: { top: number; left: number } } | null>(null)
   const dropMinuteRef = useRef<number>(0)
   const dropHourRef = useRef<number>(0)
   const dropDateRef = useRef<string>("")
@@ -259,7 +265,13 @@ function WeekViewInner({
                       {/* data attribute for pointer position calculation */}
                       <div data-cell-id={cellId} className="absolute inset-0 pointer-events-none" />
                       {hourBlocked.length > 0 && dayAppts.length === 0 && (
-                        <div className="relative z-[1] flex items-center gap-1 truncate rounded-lg px-2 py-1.5 text-[10px] font-medium leading-tight bg-muted/40 border-l-[3px] border-muted-foreground/20 text-muted-foreground/70">
+                        <div
+                          className="relative z-[1] flex items-center gap-1 truncate rounded-lg px-2 py-1.5 text-[10px] font-medium leading-tight bg-muted/40 border-l-[3px] border-muted-foreground/20 text-muted-foreground/70 cursor-pointer hover:bg-muted/60 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedBlockedSlot({ slot: hourBlocked[0], position: { top: e.clientY, left: e.clientX } })
+                          }}
+                        >
                           <Ban className="size-2.5 shrink-0 opacity-50" />
                           {hourBlocked[0].title}
                         </div>
@@ -331,6 +343,17 @@ function WeekViewInner({
           onClose={() => setSelectedAppointment(null)}
           onStatusChange={onStatusChange}
           onDelete={onDelete}
+        />
+      )}
+
+      {/* Blocked slot popover */}
+      {selectedBlockedSlot && (
+        <BlockedSlotPopover
+          slot={selectedBlockedSlot.slot}
+          position={selectedBlockedSlot.position}
+          onUpdate={onUpdateBlockedSlot}
+          onDelete={(id) => { onDeleteBlockedSlot(id); setSelectedBlockedSlot(null) }}
+          onClose={() => setSelectedBlockedSlot(null)}
         />
       )}
 
