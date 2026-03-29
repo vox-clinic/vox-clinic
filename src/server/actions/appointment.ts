@@ -384,6 +384,11 @@ export const scheduleAppointment = safeAction(async (data: {
     action: "appointment.scheduled",
     entityType: "Appointment",
     entityId: appointment.id,
+    details: {
+      patientName: appointment.patient?.name,
+      date: appointment.date.toISOString(),
+      type: data.type || "presencial",
+    },
   })
 
   revalidateTag("dashboard", "max")
@@ -493,6 +498,7 @@ export const updateAppointmentStatus = safeAction(async (appointmentId: string, 
 
   const existing = await db.appointment.findFirst({
     where: { id: appointmentId, workspaceId },
+    include: { patient: { select: { name: true } } },
   })
   if (!existing) throw new ActionError(ERR_APPOINTMENT_NOT_FOUND)
 
@@ -507,6 +513,11 @@ export const updateAppointmentStatus = safeAction(async (appointmentId: string, 
     action: `appointment.${status}`,
     entityType: "Appointment",
     entityId: appointmentId,
+    details: {
+      patientName: existing.patient?.name,
+      previousStatus: existing.status,
+      newStatus: status,
+    },
   })
 
   // Waitlist hook: when appointment is cancelled, find matching waitlist entries and notify staff
@@ -562,6 +573,7 @@ export const rescheduleAppointment = safeAction(async (appointmentId: string, ne
 
   const existing = await db.appointment.findFirst({
     where: { id: appointmentId, workspaceId },
+    include: { patient: { select: { name: true } } },
   })
   if (!existing) throw new ActionError(ERR_APPOINTMENT_NOT_FOUND)
 
@@ -651,6 +663,11 @@ export const rescheduleAppointment = safeAction(async (appointmentId: string, ne
     action: "appointment.rescheduled",
     entityType: "Appointment",
     entityId: appointmentId,
+    details: {
+      patientName: existing.patient?.name,
+      oldDate: existing.date.toISOString(),
+      newDate: targetDate.toISOString(),
+    },
   })
 
   return { id: updated.id, date: updated.date.toISOString() }
@@ -665,6 +682,7 @@ export const deleteAppointment = safeAction(async (appointmentId: string) => {
 
   const existing = await db.appointment.findFirst({
     where: { id: appointmentId, workspaceId },
+    include: { patient: { select: { name: true } } },
   })
   if (!existing) throw new ActionError(ERR_APPOINTMENT_NOT_FOUND)
 
@@ -678,6 +696,10 @@ export const deleteAppointment = safeAction(async (appointmentId: string) => {
     action: "appointment.deleted",
     entityType: "Appointment",
     entityId: appointmentId,
+    details: {
+      patientName: existing.patient?.name,
+      date: existing.date.toISOString(),
+    },
   })
 
   revalidateTag("dashboard", "max")
@@ -694,6 +716,7 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
   procedures?: string[]
   recurrence: "weekly" | "biweekly"
   occurrences: number
+  forceSchedule?: boolean
 }) => {
   const workspaceId = await getWorkspaceId()
   requirePermission(await getRole(), "appointments.create")
@@ -745,14 +768,16 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
           date: { gte: new Date(date.getTime() - windowMs), lte: new Date(date.getTime() + windowMs) },
         },
       })
-      if (conflicts.length > 0) {
+      if (conflicts.length > 0 && !data.forceSchedule) {
         throw new ActionError(`CONFLICT:Conflito no horário ${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`)
       }
 
       // Check blocked slots (one-time + recurring weekly)
-      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, date, slotDuration)
-      if (blockedConflict) {
-        throw new ActionError(`CONFLICT:Horário bloqueado em ${date.toLocaleDateString("pt-BR")}: ${blockedConflict}`)
+      if (!data.forceSchedule) {
+        const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, date, slotDuration)
+        if (blockedConflict) {
+          throw new ActionError(`CONFLICT:Horário bloqueado em ${date.toLocaleDateString("pt-BR")}: ${blockedConflict}`)
+        }
       }
 
       results.push(await tx.appointment.create({

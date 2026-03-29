@@ -3,7 +3,13 @@
 import { useState, useEffect, memo } from "react"
 import { X, Search, Loader2, Repeat, Video, Building2, CalendarDays, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -133,17 +139,12 @@ function ScheduleFormInner({
   const step2Done = !!scheduleDate && !!scheduleTime
 
   return (
-    <Card className="rounded-2xl border border-border/40 shadow-lg p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-semibold">Agendar Nova Consulta</h2>
-          <p className="text-[12px] text-muted-foreground mt-0.5">Preencha os dados para agendar</p>
-        </div>
-        <button onClick={onCancel} className="p-1.5 rounded-lg hover:bg-muted/60 text-muted-foreground transition-colors" aria-label="Fechar">
-          <X className="size-4" />
-        </button>
-      </div>
+    <Dialog open onOpenChange={(open) => { if (!open) onCancel() }}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" showCloseButton>
+        <DialogHeader>
+          <DialogTitle>Agendar Nova Consulta</DialogTitle>
+          <DialogDescription>Preencha os dados para agendar</DialogDescription>
+        </DialogHeader>
 
       <div className="space-y-5">
         {/* ─── Step 1: Patient ─── */}
@@ -387,7 +388,7 @@ function ScheduleFormInner({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/30">
+      <div className="flex items-center justify-between pt-4 border-t border-border/30">
         <div className="text-[11px] text-muted-foreground">
           {!selectedPatient && "Selecione um paciente"}
           {selectedPatient && !scheduleDate && "Escolha uma data"}
@@ -406,7 +407,8 @@ function ScheduleFormInner({
           </Button>
         </div>
       </div>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }
 
