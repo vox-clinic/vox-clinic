@@ -76,7 +76,7 @@ describe("CommandPalette", () => {
     // Open palette via button click
     await user.click(screen.getByText("Buscar..."))
 
-    const input = screen.getByPlaceholderText("Buscar pacientes, paginas, acoes...")
+    const input = screen.getByPlaceholderText("Buscar pacientes, páginas, ações...")
     expect(input).toBeInTheDocument()
 
     await user.type(input, "test")
@@ -89,11 +89,11 @@ describe("CommandPalette", () => {
 
     await user.click(screen.getByText("Buscar..."))
 
-    expect(screen.getByText("Paginas")).toBeInTheDocument()
+    expect(screen.getByText("Páginas")).toBeInTheDocument()
     expect(screen.getByText("Dashboard")).toBeInTheDocument()
     expect(screen.getByText("Pacientes")).toBeInTheDocument()
     expect(screen.getByText("Agenda")).toBeInTheDocument()
-    expect(screen.getByText("Configuracoes")).toBeInTheDocument()
+    expect(screen.getByText("Configurações")).toBeInTheDocument()
   })
 
   it("action items render when palette is open", async () => {
@@ -102,7 +102,7 @@ describe("CommandPalette", () => {
 
     await user.click(screen.getByText("Buscar..."))
 
-    expect(screen.getByText("Acoes")).toBeInTheDocument()
+    expect(screen.getByText("Ações")).toBeInTheDocument()
     expect(screen.getByText("Nova Consulta")).toBeInTheDocument()
     expect(screen.getByText("Cadastro por Voz")).toBeInTheDocument()
     expect(screen.getByText("Novo Paciente (Manual)")).toBeInTheDocument()
@@ -135,7 +135,7 @@ describe("CommandPalette", () => {
     await user.click(screen.getByText("Buscar..."))
 
     expect(
-      screen.getByText("Digite para buscar pacientes, paginas ou acoes")
+      screen.getByText("Digite para buscar pacientes, páginas ou ações")
     ).toBeInTheDocument()
   })
 
@@ -144,12 +144,12 @@ describe("CommandPalette", () => {
     render(<CommandPalette />)
 
     await user.click(screen.getByText("Buscar..."))
-    const input = screen.getByPlaceholderText("Buscar pacientes, paginas, acoes...")
+    const input = screen.getByPlaceholderText("Buscar pacientes, páginas, ações...")
 
     await user.type(input, "config")
 
-    // Configuracoes should match via keywords
-    expect(screen.getByText("Configuracoes")).toBeInTheDocument()
+    // Configurações should match via keywords
+    expect(screen.getByText("Configurações")).toBeInTheDocument()
     // Dashboard should not match "config"
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument()
   })
