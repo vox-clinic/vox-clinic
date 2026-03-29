@@ -1,44 +1,50 @@
 "use client"
 
-import { Marquee } from "@/components/ui/marquee"
 import { BlurFade } from "@/components/ui/blur-fade"
+import { Marquee } from "@/components/ui/marquee"
 
 const testimonials = [
   {
     quote:
-      "Economizo 40 minutos por dia com a transcrição automática. Mudou minha rotina.",
-    name: "Dra. Ana Beatriz",
-    profession: "Dentista",
+      "Economizo 40 minutos por dia só com a transcrição automática. Minha rotina mudou completamente desde que comecei a usar.",
+    name: "Dra. Ana Beatriz Ferreira",
+    profession: "Dermatologista",
+    clinic: "Clínica Pele Viva",
   },
   {
     quote:
-      "O onboarding criou meu workspace perfeito em 2 minutos. Impressionante.",
-    name: "Dr. Carlos Mendes",
+      "O agendamento online reduziu as faltas em 60%. Os lembretes por WhatsApp são um diferencial enorme para os pacientes.",
+    name: "Dr. Carlos Eduardo Mendes",
     profession: "Nutricionista",
+    clinic: "NutriVida Consultoria",
   },
   {
     quote:
-      "Finalmente um sistema que entende vocabulário médico em português.",
-    name: "Dra. Juliana Costa",
-    profession: "Médica",
+      "Finalmente um sistema que entende vocabulário médico em português. A IA extrai CID, procedimentos e medicações sem eu digitar nada.",
+    name: "Dra. Juliana Costa Ribeiro",
+    profession: "Clínica Geral",
+    clinic: "Saúde Integrada",
   },
   {
     quote:
-      "A agenda com detecção de conflitos me salvou de várias confusões.",
-    name: "Dr. Rafael Lima",
-    profession: "Esteticista",
+      "A prescrição digital com assinatura ICP-Brasil simplificou muito meu fluxo. Antes eu perdia tempo com papel e carimbo.",
+    name: "Dr. Rafael Lima Santos",
+    profession: "Ortopedista",
+    clinic: "OrtoCenter",
   },
   {
     quote:
-      "Meus pacientes adoram receber lembretes pelo WhatsApp.",
+      "Migrei de outro sistema em uma tarde. O import por CSV trouxe todos os meus 2.000 pacientes sem perder nenhum dado.",
     name: "Dra. Fernanda Oliveira",
     profession: "Dentista",
+    clinic: "Odonto Excellence",
   },
   {
     quote:
-      "Os relatórios me ajudam a entender melhor o fluxo da clínica.",
-    name: "Dr. Pedro Santos",
-    profession: "Advogado",
+      "O financeiro integrado me dá uma visão clara de receita, inadimplência e comissões. Não preciso mais de planilha.",
+    name: "Dr. Pedro Henrique Santos",
+    profession: "Fisioterapeuta",
+    clinic: "FisioMove",
   },
 ]
 
@@ -46,6 +52,7 @@ function getInitials(name: string) {
   return name
     .replace(/^(Dra?\.\s*)/, "")
     .split(" ")
+    .slice(0, 2)
     .map((w) => w[0])
     .join("")
     .toUpperCase()
@@ -55,21 +62,27 @@ function TestimonialCard({
   quote,
   name,
   profession,
+  clinic,
 }: {
   quote: string
   name: string
   profession: string
+  clinic: string
 }) {
   return (
-    <div className="w-[300px] shrink-0 rounded-2xl border border-border/40 bg-card p-5 mx-2">
-      <p className="text-sm text-muted-foreground mb-4">&ldquo;{quote}&rdquo;</p>
+    <div className="w-[320px] shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm">
+      <p className="text-sm text-white/70 leading-relaxed line-clamp-3 mb-4">
+        &ldquo;{quote}&rdquo;
+      </p>
       <div className="flex items-center gap-3">
-        <div className="size-10 rounded-full bg-vox-primary/10 flex items-center justify-center text-vox-primary font-bold text-sm">
+        <div className="flex size-10 items-center justify-center rounded-full bg-vox-primary/10 text-sm font-bold text-vox-primary">
           {getInitials(name)}
         </div>
         <div>
-          <p className="text-sm font-medium">{name}</p>
-          <p className="text-xs text-muted-foreground">{profession}</p>
+          <p className="text-sm font-medium text-white">{name}</p>
+          <p className="text-xs text-white/50">
+            {profession} &middot; {clinic}
+          </p>
         </div>
       </div>
     </div>
@@ -77,28 +90,30 @@ function TestimonialCard({
 }
 
 const firstRow = testimonials.slice(0, 3)
-const secondRow = testimonials.slice(3)
+const secondRow = testimonials.slice(3, 6)
 
 export function TestimonialsSection() {
   return (
     <section className="py-20 md:py-28 overflow-hidden">
-      <BlurFade inView>
-        <h2 className="text-3xl md:text-4xl font-bold text-center max-w-5xl mx-auto px-4 mb-12">
-          O que dizem nossos usuários
-        </h2>
-      </BlurFade>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 mb-12">
+        <BlurFade inView>
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-3">
+            Usado por profissionais que valorizam seu tempo
+          </h2>
+          <p className="text-center text-gray-400 text-sm">
+            Veja o que dizem quem já transformou sua rotina com o VoxClinic.
+          </p>
+        </BlurFade>
+      </div>
 
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background to-transparent z-10" />
-
-        <Marquee pauseOnHover className="mb-4">
+      <div className="space-y-4">
+        <Marquee pauseOnHover className="[--duration:35s]">
           {firstRow.map((t) => (
             <TestimonialCard key={t.name} {...t} />
           ))}
         </Marquee>
 
-        <Marquee reverse pauseOnHover>
+        <Marquee pauseOnHover reverse className="[--duration:35s]">
           {secondRow.map((t) => (
             <TestimonialCard key={t.name} {...t} />
           ))}
