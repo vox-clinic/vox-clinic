@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { Fragment, useEffect, useState, useCallback } from "react"
 import { ChevronLeft, ChevronRight, FileText, Filter, User, Calendar, ChevronDown, ChevronUp, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -475,9 +475,8 @@ export default function AuditLogPage() {
                   </thead>
                   <tbody>
                     {logs.map((log) => (
-                      <>
+                      <Fragment key={log.id}>
                         <tr
-                          key={log.id}
                           className={`border-b last:border-0 cursor-pointer hover:bg-muted/30 transition-colors ${expandedLog === log.id ? "bg-muted/20" : ""}`}
                           onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
                         >
@@ -523,7 +522,7 @@ export default function AuditLogPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
