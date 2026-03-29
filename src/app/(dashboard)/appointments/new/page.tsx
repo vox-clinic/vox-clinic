@@ -2,7 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Loader2, ChevronRight, Mic, ArrowLeft, Sparkles, Users } from "lucide-react"
+import {
+  Search,
+  Loader2,
+  ChevronRight,
+  Mic,
+  ArrowLeft,
+  Sparkles,
+  Users,
+  Stethoscope,
+  ClipboardList,
+  FileText,
+  AlertTriangle,
+  Lightbulb,
+  Pill,
+} from "lucide-react"
 import { RecordButton } from "@/components/record-button"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -182,52 +196,80 @@ export default function NewAppointmentPage() {
   // Step 2: Recording
   if (step === "recording") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4">
-        {/* Patient badge */}
-        <div className="flex items-center gap-2 rounded-full border border-border/50 bg-card px-4 py-2 shadow-sm">
-          <div className="flex size-6 items-center justify-center rounded-full bg-vox-primary/10 text-[9px] font-bold text-vox-primary">
-            {selectedPatient ? getInitials(selectedPatient.name) : "?"}
+      <div className="max-w-2xl mx-auto space-y-5">
+        {/* Header with patient + back */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => { setSelectedPatient(null); setStep("select-patient") }}
+            className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-3.5" />
+            Trocar paciente
+          </button>
+          <div className="flex items-center gap-2 rounded-full border border-vox-primary/20 bg-vox-primary/5 px-3 py-1.5">
+            <div className="flex size-6 items-center justify-center rounded-full bg-vox-primary/10 text-[9px] font-bold text-vox-primary">
+              {selectedPatient ? getInitials(selectedPatient.name) : "?"}
+            </div>
+            <span className="text-[13px] font-medium">{selectedPatient?.name}</span>
           </div>
-          <span className="text-sm font-medium">{selectedPatient?.name}</span>
         </div>
 
-        <div className="text-center space-y-2">
-          <h1 className="text-xl font-semibold tracking-tight">Gravar Consulta</h1>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Fale sobre procedimentos, observações clínicas e recomendações.
-            Até 30 minutos de gravacao.
-          </p>
-        </div>
-
-        <RecordButton
-          onRecordingComplete={handleRecordingComplete}
-          maxDuration={1800}
-          size="lg"
-        />
-
-        <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
-          <p>Toque para iniciar a gravacao</p>
-          <p>Toque novamente para parar</p>
-        </div>
+        {/* Recording card */}
+        <Card className="relative overflow-hidden">
+          <div className="pointer-events-none absolute -right-16 -top-16 size-40 rounded-full bg-vox-primary/[0.06] blur-3xl hidden sm:block" />
+          <CardContent className="flex flex-col items-center py-8 relative">
+            <h1 className="text-lg font-semibold tracking-tight mb-1">Gravar Consulta</h1>
+            <p className="text-[13px] text-muted-foreground mb-5">
+              Toque para gravar, toque novamente para parar
+            </p>
+            <RecordButton
+              onRecordingComplete={handleRecordingComplete}
+              maxDuration={1800}
+              size="lg"
+            />
+            <p className="text-[11px] text-muted-foreground mt-4">Até 30 minutos de gravação</p>
+          </CardContent>
+        </Card>
 
         {error && (
-          <div className="rounded-xl border border-vox-error/30 bg-vox-error/5 px-4 py-3 text-sm text-vox-error max-w-md text-center">
+          <div className="rounded-xl border border-vox-error/30 bg-vox-error/5 px-4 py-3 text-sm text-vox-error text-center">
             {error}
           </div>
         )}
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setSelectedPatient(null)
-            setStep("select-patient")
-          }}
-          className="mt-2 gap-1.5"
-        >
-          <ArrowLeft className="size-3.5" />
-          Trocar Paciente
-        </Button>
+        {/* What to say — structured hints */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Lightbulb className="size-4 text-vox-primary" />
+              O que falar durante a consulta?
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { icon: Stethoscope, label: "Procedimentos realizados", example: "Fiz limpeza e aplicação de flúor" },
+                { icon: ClipboardList, label: "Observações clínicas", example: "Paciente apresenta gengivite leve" },
+                { icon: Pill, label: "Prescrições / Medicações", example: "Receitei amoxicilina 500mg" },
+                { icon: FileText, label: "Recomendações ao paciente", example: "Orientei escovação 3x ao dia" },
+                { icon: AlertTriangle, label: "Alertas / Alergias", example: "Alergia a dipirona confirmada" },
+                { icon: Mic, label: "Próximos passos", example: "Retorno em 30 dias para avaliação" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-start gap-2.5 rounded-xl bg-muted/30 px-3 py-2.5">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-vox-primary/[0.08] shrink-0 mt-0.5">
+                    <item.icon className="size-3.5 text-vox-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground italic truncate">
+                      &ldquo;{item.example}&rdquo;
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

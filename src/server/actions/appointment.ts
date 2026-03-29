@@ -694,6 +694,7 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
   procedures?: string[]
   recurrence: "weekly" | "biweekly"
   occurrences: number
+  forceSchedule?: boolean
 }) => {
   const workspaceId = await getWorkspaceId()
   requirePermission(await getRole(), "appointments.create")
@@ -745,14 +746,16 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
           date: { gte: new Date(date.getTime() - windowMs), lte: new Date(date.getTime() + windowMs) },
         },
       })
-      if (conflicts.length > 0) {
+      if (conflicts.length > 0 && !data.forceSchedule) {
         throw new ActionError(`CONFLICT:Conflito no horário ${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`)
       }
 
       // Check blocked slots (one-time + recurring weekly)
-      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, date, slotDuration)
-      if (blockedConflict) {
-        throw new ActionError(`CONFLICT:Horário bloqueado em ${date.toLocaleDateString("pt-BR")}: ${blockedConflict}`)
+      if (!data.forceSchedule) {
+        const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, date, slotDuration)
+        if (blockedConflict) {
+          throw new ActionError(`CONFLICT:Horário bloqueado em ${date.toLocaleDateString("pt-BR")}: ${blockedConflict}`)
+        }
       }
 
       results.push(await tx.appointment.create({

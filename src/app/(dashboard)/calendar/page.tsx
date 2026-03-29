@@ -274,6 +274,7 @@ export default function CalendarPage() {
           notes: data.notes,
           recurrence: data.recurrence,
           occurrences: data.occurrences,
+          forceSchedule,
         })
         if ('error' in result && result.error) {
           if (result.error.startsWith("CONFLICT:")) {

@@ -212,27 +212,75 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
     return new Date(date).toLocaleDateString("pt-BR")
   }
 
+  // Quick stats
+  const appointmentCount = patient.appointments?.length ?? 0
+  const recordingCount = patient.recordings?.length ?? 0
+  const lastAppointment = patient.appointments?.[0]
+  const lastAppointmentDate = lastAppointment ? new Date(lastAppointment.date).toLocaleDateString("pt-BR") : null
+
   return (
     <div className="space-y-4">
-      {balance && balance.total > 0 && (
-        <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
-          <AlertTriangle className="size-4 text-amber-600" />
-          <span className="text-amber-800">
-            Saldo devedor: <strong>R$ {(balance.total / 100).toFixed(2).replace(".", ",")}</strong>
-            {balance.overdue > 0 && (
-              <span className="text-red-600 ml-1">(R$ {(balance.overdue / 100).toFixed(2).replace(".", ",")} vencido)</span>
-            )}
-          </span>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="flex items-center gap-2.5 rounded-xl bg-muted/30 border border-border/30 px-3 py-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-vox-primary/10 shrink-0">
+            <User className="size-3.5 text-vox-primary" />
+          </div>
+          <div>
+            <p className="text-[16px] font-bold tabular-nums leading-none">{appointmentCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Consultas</p>
+          </div>
         </div>
-      )}
+        <div className="flex items-center gap-2.5 rounded-xl bg-muted/30 border border-border/30 px-3 py-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-vox-primary/10 shrink-0">
+            <Heart className="size-3.5 text-vox-primary" />
+          </div>
+          <div>
+            <p className="text-[12px] font-semibold leading-none">{lastAppointmentDate ?? "—"}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Última visita</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl bg-muted/30 border border-border/30 px-3 py-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-vox-primary/10 shrink-0">
+            <MessageSquare className="size-3.5 text-vox-primary" />
+          </div>
+          <div>
+            <p className="text-[16px] font-bold tabular-nums leading-none">{recordingCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Gravações</p>
+          </div>
+        </div>
+        {balance && balance.total > 0 ? (
+          <div className="flex items-center gap-2.5 rounded-xl bg-vox-warning/5 border border-vox-warning/20 px-3 py-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-vox-warning/10 shrink-0">
+              <AlertTriangle className="size-3.5 text-vox-warning" />
+            </div>
+            <div>
+              <p className="text-[12px] font-bold text-vox-warning leading-none">R$ {(balance.total / 100).toFixed(2).replace(".", ",")}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Saldo devedor</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 rounded-xl bg-muted/30 border border-border/30 px-3 py-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-vox-success/10 shrink-0">
+              <Shield className="size-3.5 text-vox-success" />
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold text-vox-success leading-none">Em dia</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Financeiro</p>
+            </div>
+          </div>
+        )}
+      </div>
+
     <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>Dados Pessoais</CardTitle>
+      <CardHeader className="flex-row items-center justify-between pb-3">
+        <CardTitle className="text-sm">Dados Pessoais</CardTitle>
         <Button
           variant="outline"
           size="sm"
           onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
           disabled={saving}
+          className="h-7 text-xs rounded-lg"
         >
           {saving ? "Salvando..." : isEditing ? "Salvar" : "Editar"}
         </Button>
@@ -277,33 +325,50 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
 
           return (
             <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {fieldsToShow.map((field) => {
-                  const IconComp = (field as any).icon
-                  return (
-                    <div key={field.id} className="space-y-1.5">
-                      <Label className={IconComp ? "flex items-center gap-1.5" : undefined}>
-                        {IconComp && <IconComp className="size-3.5" />}
-                        {field.label}
-                      </Label>
-                      {isEditing && !field.readOnly ? (
-                        field.editEl
-                      ) : (
-                        <p className="text-sm">{field.value || "-"}</p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+              {isEditing ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {fieldsToShow.map((field) => {
+                    const IconComp = (field as any).icon
+                    return (
+                      <div key={field.id} className="space-y-1.5">
+                        <Label className={IconComp ? "flex items-center gap-1.5" : undefined}>
+                          {IconComp && <IconComp className="size-3.5" />}
+                          {field.label}
+                        </Label>
+                        {field.readOnly ? (
+                          <p className="text-sm text-muted-foreground">{field.value || "—"}</p>
+                        ) : (
+                          field.editEl
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                  {fieldsToShow.map((field) => {
+                    const IconComp = (field as any).icon
+                    return (
+                      <div key={field.id} className="flex items-baseline gap-2 py-1 border-b border-border/20 last:border-0">
+                        <span className="text-[12px] text-muted-foreground shrink-0 flex items-center gap-1">
+                          {IconComp && <IconComp className="size-3" />}
+                          {field.label}
+                        </span>
+                        <span className="text-[13px] font-medium ml-auto text-right">{field.value || "—"}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               {!isEditing && hiddenCount > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowAllFields(!showAllFields)}
-                  className="text-xs text-vox-primary hover:text-vox-primary/80 transition-colors font-medium"
+                  className="text-[11px] text-vox-primary hover:text-vox-primary/80 transition-colors font-medium mt-1"
                 >
                   {showAllFields
                     ? "Ocultar campos vazios"
-                    : `Mostrar todos (${hiddenCount} campos ocultos)`}
+                    : `+ ${hiddenCount} campos`}
                 </button>
               )}
             </>
@@ -464,7 +529,7 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
                       )}
                     </Badge>
                   ))}
-                  {items.length === 0 && !isEditing && <span className="text-xs text-muted-foreground">-</span>}
+                  {items.length === 0 && !isEditing && <span className="text-[11px] text-muted-foreground/60 italic">Não informado</span>}
                 </div>
                 {isEditing && (
                   <div className="flex gap-2">
@@ -483,7 +548,7 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
                 {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             ) : (
-              <p className="text-sm">{(medicalHistory.bloodType as string) || "-"}</p>
+              <p className="text-sm">{(medicalHistory.bloodType as string) || <span className="text-muted-foreground/60 italic text-[11px]">Não informado</span>}</p>
             )}
           </div>
           <div className="space-y-1">
@@ -491,14 +556,17 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
             {isEditing ? (
               <Textarea value={(medicalHistory.notes as string) ?? ""} onChange={(e) => setMedicalHistory({ ...medicalHistory, notes: e.target.value || null })} placeholder="Observacoes gerais..." className="text-xs" rows={2} />
             ) : (
-              <p className="text-sm">{(medicalHistory.notes as string) || "-"}</p>
+              <p className="text-sm">{(medicalHistory.notes as string) || <span className="text-muted-foreground/60 italic text-[11px]">Nenhuma observação</span>}</p>
             )}
           </div>
         </div>
 
         {/* Alerts */}
-        <div className="rounded-lg border border-vox-error/30 bg-vox-error/5 p-3 space-y-1.5">
-          <p className="text-sm font-medium text-vox-error">Alertas</p>
+        <div className={`rounded-lg border p-3 space-y-1.5 ${alerts.length > 0 || isEditing ? "border-vox-error/30 bg-vox-error/5" : "border-border/30 bg-muted/20"}`}>
+          <p className={`text-sm font-medium flex items-center gap-1.5 ${alerts.length > 0 || isEditing ? "text-vox-error" : "text-muted-foreground"}`}>
+            <AlertTriangle className="size-3.5" />
+            Alertas
+          </p>
           {isEditing ? (
             <div className="space-y-2">
               <div className="flex flex-wrap gap-1.5">

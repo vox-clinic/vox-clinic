@@ -115,59 +115,54 @@ export default function DocumentosTab({ patientId }: { patientId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Upload area */}
-      <div
-        onClick={() => !uploading && fileInputRef.current?.click()}
-        className={cn(
-          "group flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all",
-          uploading
-            ? "border-vox-primary/30 bg-vox-primary/5"
-            : "border-border/50 hover:border-vox-primary/40 hover:bg-vox-primary/[0.02]"
-        )}
-      >
-        {uploading ? (
-          <Loader2 className="size-6 text-vox-primary animate-spin" />
-        ) : (
-          <Upload className="size-6 text-muted-foreground/50 group-hover:text-vox-primary transition-colors" />
-        )}
-        <div>
-          <p className="text-sm font-medium">{uploading ? "Enviando..." : "Enviar documento"}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Imagens, PDF ou Word — max 10MB
-          </p>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,.pdf,.doc,.docx"
-          onChange={handleUpload}
-          className="hidden"
-        />
-      </div>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx"
+        onChange={handleUpload}
+        className="hidden"
+      />
 
-      {/* Document grid */}
       {docs.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <div className="flex size-14 items-center justify-center rounded-full bg-muted/60">
-            <FileImage className="size-6 text-muted-foreground/50" />
-          </div>
+        <div
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          className={cn(
+            "group flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed py-12 text-center cursor-pointer transition-all",
+            uploading
+              ? "border-vox-primary/30 bg-vox-primary/5"
+              : "border-border/50 hover:border-vox-primary/40 hover:bg-vox-primary/[0.02]"
+          )}
+        >
+          {uploading ? (
+            <Loader2 className="size-8 text-vox-primary animate-spin" />
+          ) : (
+            <div className="flex size-14 items-center justify-center rounded-full bg-muted/60 group-hover:bg-vox-primary/10 transition-colors">
+              <Upload className="size-6 text-muted-foreground/50 group-hover:text-vox-primary transition-colors" />
+            </div>
+          )}
           <div>
-            <p className="text-sm font-medium">Nenhum documento anexado</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Envie imagens, PDFs ou documentos do paciente
+            <p className="text-sm font-medium">{uploading ? "Enviando..." : "Enviar documento"}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Arraste ou clique — Imagens, PDF ou Word — max 10MB
             </p>
           </div>
-          <Button
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-vox-primary text-white hover:bg-vox-primary/90 gap-1.5 mt-1"
-          >
-            <Upload className="size-3.5" />
-            Fazer upload
-          </Button>
         </div>
       ) : (
+        <>
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            disabled={uploading}
+            className="gap-1.5 rounded-xl text-xs"
+          >
+            {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {uploading ? "Enviando..." : "Enviar documento"}
+          </Button>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {docs.map((doc) => (
             <Card key={doc.id} className="group overflow-hidden">
@@ -208,6 +203,7 @@ export default function DocumentosTab({ patientId }: { patientId: string }) {
             </Card>
           ))}
         </div>
+        </>
       )}
       <ConfirmDialog
         open={confirmDialog.open}

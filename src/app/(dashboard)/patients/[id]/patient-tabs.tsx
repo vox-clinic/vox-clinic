@@ -3,6 +3,7 @@
 import { useState } from "react"
 import dynamic from "next/dynamic"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Calendar,
   FileText,
@@ -17,14 +18,23 @@ import type { PatientData, CustomFieldDef, AnamnesisQuestionDef } from "./tabs/t
 
 export type { PatientData, CustomFieldDef, AnamnesisQuestionDef }
 
-const ResumoTab = dynamic(() => import("./tabs/resumo-tab"), { ssr: false })
-const HistoricoTab = dynamic(() => import("./tabs/historico-tab"), { ssr: false })
-const TratamentosTab = dynamic(() => import("./tabs/tratamentos-tab"), { ssr: false })
-const PrescricoesTab = dynamic(() => import("./tabs/prescricoes-tab"), { ssr: false })
-const DocumentosTab = dynamic(() => import("./tabs/documentos-tab"), { ssr: false })
-const GravacoesTab = dynamic(() => import("./tabs/gravacoes-tab"), { ssr: false })
-const FormulariosTab = dynamic(() => import("./tabs/formularios-tab"), { ssr: false })
-const ImagensTab = dynamic(() => import("./tabs/imagens-tab"), { ssr: false })
+function TabSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-24 w-full rounded-xl" />
+      <Skeleton className="h-48 w-full rounded-xl" />
+    </div>
+  )
+}
+
+const ResumoTab = dynamic(() => import("./tabs/resumo-tab"), { ssr: false, loading: TabSkeleton })
+const HistoricoTab = dynamic(() => import("./tabs/historico-tab"), { ssr: false, loading: TabSkeleton })
+const TratamentosTab = dynamic(() => import("./tabs/tratamentos-tab"), { ssr: false, loading: TabSkeleton })
+const PrescricoesTab = dynamic(() => import("./tabs/prescricoes-tab"), { ssr: false, loading: TabSkeleton })
+const DocumentosTab = dynamic(() => import("./tabs/documentos-tab"), { ssr: false, loading: TabSkeleton })
+const GravacoesTab = dynamic(() => import("./tabs/gravacoes-tab"), { ssr: false, loading: TabSkeleton })
+const FormulariosTab = dynamic(() => import("./tabs/formularios-tab"), { ssr: false, loading: TabSkeleton })
+const ImagensTab = dynamic(() => import("./tabs/imagens-tab"), { ssr: false, loading: TabSkeleton })
 
 const tabs = [
   { id: "resumo" as const, label: "Resumo", icon: User },
@@ -50,12 +60,14 @@ export function PatientTabs({ patient, customFields, anamnesisTemplate }: { pati
           return (
             <button
               key={tab.id}
+              id={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`panel-${tab.id}`}
+              aria-label={tab.label}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+                "flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-1",
                 activeTab === tab.id
                   ? "bg-background shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -68,7 +80,7 @@ export function PatientTabs({ patient, customFields, anamnesisTemplate }: { pati
         })}
       </div>
 
-      <div role="tabpanel" id={`panel-${activeTab}`} aria-label={tabs.find(t => t.id === activeTab)?.label}>
+      <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
         {activeTab === "resumo" && <ResumoTab patient={patient} customFields={customFields} />}
         {activeTab === "historico" && <HistoricoTab appointments={patient.appointments} patientId={patient.id} />}
         {activeTab === "tratamentos" && <TratamentosTab patientId={patient.id} />}
