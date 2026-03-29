@@ -22,7 +22,6 @@ const ACTION_LABELS: Record<string, string> = {
   "patient.updated": "Paciente atualizado",
   "patient.deactivated": "Paciente desativado",
   "patient.merged": "Pacientes mesclados",
-  "patient.viewed": "Paciente visualizado",
   "patient.data_exported": "Dados exportados",
   "patient.whatsapp_consent_granted": "Consentimento WhatsApp concedido",
   "patient.whatsapp_consent_revoked": "Consentimento WhatsApp revogado",
@@ -213,6 +212,46 @@ function formatEntity(entityType: string) {
 function truncateId(id: string) {
   if (id.length <= 12) return id
   return id.slice(0, 12) + "..."
+}
+
+function formatDetails(log: AuditLog): string | null {
+  const d = log.details
+  if (!d) return null
+
+  const parts: string[] = []
+
+  // Financial info
+  if (typeof d.amount === "number") {
+    parts.push(`R$ ${(d.amount / 100).toFixed(2).replace(".", ",")}`)
+  }
+  if (typeof d.paidAmount === "number") {
+    parts.push(`R$ ${(d.paidAmount / 100).toFixed(2).replace(".", ",")}`)
+  }
+  if (typeof d.paymentMethod === "string") {
+    const methods: Record<string, string> = { pix: "PIX", credito: "Cartao credito", debito: "Cartao debito", dinheiro: "Dinheiro", boleto: "Boleto", transferencia: "Transferencia" }
+    parts.push(methods[d.paymentMethod] || d.paymentMethod)
+  }
+
+  // Description
+  if (typeof d.description === "string") parts.push(d.description)
+
+  // Patient/name info
+  if (typeof d.patientName === "string") parts.push(d.patientName)
+  if (typeof d.patientId === "string" && !d.patientName) parts.push(`Paciente ${truncateId(d.patientId as string)}`)
+
+  // Recurrence
+  if (typeof d.recurrence === "string") {
+    const rec: Record<string, string> = { monthly: "Mensal", weekly: "Semanal", yearly: "Anual" }
+    parts.push(rec[d.recurrence] || d.recurrence)
+  }
+
+  // Count
+  if (typeof d.count === "number") parts.push(`${d.count} itens`)
+
+  // Template
+  if (typeof d.templateId === "string") parts.push(`Template ${truncateId(d.templateId as string)}`)
+
+  return parts.length > 0 ? parts.join(" · ") : null
 }
 
 // Group actions by category for the filter dropdown
@@ -468,6 +507,7 @@ export default function AuditLogPage() {
                       <th className="text-left py-2 pr-4 font-medium">Data</th>
                       <th className="text-left py-2 pr-4 font-medium">Usuario</th>
                       <th className="text-left py-2 pr-4 font-medium">Acao</th>
+                      <th className="text-left py-2 pr-4 font-medium">Detalhes</th>
                       <th className="text-left py-2 pr-4 font-medium">Tipo</th>
                       <th className="text-left py-2 font-medium">ID</th>
                       <th className="w-8"></th>
@@ -494,6 +534,9 @@ export default function AuditLogPage() {
                               {formatAction(log.action)}
                             </Badge>
                           </td>
+                          <td className="py-2.5 pr-4 text-xs text-muted-foreground max-w-[200px] truncate">
+                            {formatDetails(log) || "—"}
+                          </td>
                           <td className="py-2.5 pr-4">
                             <Badge variant="outline" className="font-normal">
                               {formatEntity(log.entityType)}
@@ -512,7 +555,7 @@ export default function AuditLogPage() {
                         </tr>
                         {expandedLog === log.id && log.details && (
                           <tr key={`${log.id}-details`}>
-                            <td colSpan={6} className="py-3 px-4 bg-muted/10">
+                            <td colSpan={7} className="py-3 px-4 bg-muted/10">
                               <div className="text-xs space-y-1">
                                 <p className="font-medium text-muted-foreground mb-2">Detalhes</p>
                                 <pre className="bg-muted/30 p-3 rounded-xl overflow-x-auto text-xs font-mono max-h-48">

@@ -188,8 +188,6 @@ export async function getPatient(patientId: string) {
 
   if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
 
-  // Fire-and-forget audit log — non-blocking (CFM 1.821/2007 read access tracking)
-  logAudit({ workspaceId, userId: clerkId, action: "patient.viewed", entityType: "Patient", entityId: patientId }).catch(() => {})
 
   return {
     id: patient.id,
