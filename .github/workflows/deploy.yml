@@ -59,6 +59,11 @@ jobs:
     env:
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
       DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # Dummy env vars for Next.js build validation (not used at runtime in E2E)
+      ANTHROPIC_API_KEY: "sk-ant-ci-placeholder-key"
+      OPENAI_API_KEY: "sk-ci-placeholder-key"
+      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ci-placeholder"
     strategy:
       fail-fast: false
       matrix:
