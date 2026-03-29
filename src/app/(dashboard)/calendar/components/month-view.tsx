@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, memo } from "react"
+import { useMemo, memo, useState, useCallback } from "react"
 import { CalendarDays, Plus, Ban } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -8,6 +8,7 @@ import type { AppointmentItem } from "../types"
 import type { BlockedSlotItem } from "@/server/actions/blocked-slot"
 import { DAY_NAMES, MONTH_NAMES, STATUS_CONFIG, STATUS_DOT, formatTime, isToday, getMonthGrid, getBlockedSlotsForDate, buildDayIndex } from "../helpers"
 import { AppointmentCard } from "./appointment-card"
+import { BlockedSlotPopover } from "./blocked-slot-popover"
 
 function MonthViewInner({
   year,
@@ -18,6 +19,8 @@ function MonthViewInner({
   onSelectDay,
   onStatusChange,
   onDelete,
+  onDeleteBlockedSlot,
+  onUpdateBlockedSlot,
   onScheduleForDay,
 }: {
   year: number
@@ -28,15 +31,23 @@ function MonthViewInner({
   onSelectDay: (day: number | null) => void
   onStatusChange: (id: string, status: string) => void
   onDelete: (id: string) => void
+  onDeleteBlockedSlot: (id: string) => void
+  onUpdateBlockedSlot: (id: string, data: { title?: string; startDate?: string; endDate?: string; allDay?: boolean; recurring?: string | null }) => Promise<void>
   onScheduleForDay: (day: number) => void
 }) {
   const cells = useMemo(() => getMonthGrid(year, month), [year, month])
   const dayIndex = useMemo(() => buildDayIndex(appointments), [appointments])
+  const [selectedBlockedSlot, setSelectedBlockedSlot] = useState<{ slot: BlockedSlotItem; position: { top: number; left: number } } | null>(null)
 
   function getApptsForDay(day: number) {
     const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
     return dayIndex.get(key) || []
   }
+
+  const handleBlockedSlotClick = useCallback((e: React.MouseEvent, slot: BlockedSlotItem) => {
+    e.stopPropagation()
+    setSelectedBlockedSlot({ slot, position: { top: e.clientY, left: e.clientX } })
+  }, [])
 
   const selectedDayAppointments = selectedDay ? getApptsForDay(selectedDay) : []
 
@@ -77,7 +88,11 @@ function MonthViewInner({
                       <>
                         {visible.map((entry, i) =>
                           entry.type === "blocked" ? (
-                            <div key={`block-${entry.item.id}-${i}`} className="hidden sm:flex items-center gap-1 truncate text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground">
+                            <div
+                              key={`block-${entry.item.id}-${i}`}
+                              className="hidden sm:flex items-center gap-1 truncate text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground cursor-pointer hover:bg-muted/80 transition-colors"
+                              onClick={(e) => handleBlockedSlotClick(e, entry.item)}
+                            >
                               <Ban className="size-2.5 shrink-0" />
                               {entry.item.title}
                             </div>
@@ -129,6 +144,17 @@ function MonthViewInner({
             ))
           )}
         </div>
+      )}
+
+      {/* Blocked slot popover */}
+      {selectedBlockedSlot && (
+        <BlockedSlotPopover
+          slot={selectedBlockedSlot.slot}
+          position={selectedBlockedSlot.position}
+          onUpdate={onUpdateBlockedSlot}
+          onDelete={(id) => { onDeleteBlockedSlot(id); setSelectedBlockedSlot(null) }}
+          onClose={() => setSelectedBlockedSlot(null)}
+        />
       )}
     </>
   )

@@ -459,7 +459,7 @@ model MedicalCertificate {
   verificationToken  String?   @unique // Public token for verification page
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([patientId])
   @@index([workspaceId])
@@ -490,6 +490,15 @@ model Agenda {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // Scheduling rules
+  slotDuration      Int     @default(30)     // minutes: 15, 20, 30, 45, 60
+  bufferBefore      Int     @default(0)      // minutes: 0, 5, 10, 15, 30
+  bufferAfter       Int     @default(0)      // minutes: 0, 5, 10, 15, 30
+  conflictWindow    Int     @default(30)     // minutes — conflict detection window
+  operatingHours    Json    @default("null") // null = use BookingConfig defaults; or { 0: null, 1: { start: "08:00", end: "18:00" }, ... }
+  maxBookingsPerDay Int?                     // null = unlimited
+  minNoticeMinutes  Int     @default(0)      // minimum advance booking notice
 
   appointments    Appointment[]
   blockedSlots    BlockedSlot[]
@@ -645,7 +654,7 @@ model ExpenseCategory {
   color       String? // hex color
   isDefault   Boolean   @default(false)
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now()) @updatedAt
   expenses    Expense[]
 
   @@unique([workspaceId, name])

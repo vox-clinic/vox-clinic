@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { checkAgendaLimit } from "@/lib/plan-enforcement"
 import { getWorkspaceIdCached } from "@/lib/workspace-cache"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_AGENDA_NOT_FOUND, ActionError, safeAction } from "@/lib/error-messages"
+import { validateSchedulingRules, type OperatingHoursMap } from "@/lib/scheduling-rules"
 
 async function getWorkspaceId() {
   const { userId } = await auth()
@@ -34,6 +35,13 @@ export async function getAgendas() {
     isDefault: a.isDefault,
     isActive: a.isActive,
     appointmentCount: a._count.appointments,
+    slotDuration: a.slotDuration,
+    bufferBefore: a.bufferBefore,
+    bufferAfter: a.bufferAfter,
+    conflictWindow: a.conflictWindow,
+    operatingHours: a.operatingHours as OperatingHoursMap,
+    maxBookingsPerDay: a.maxBookingsPerDay,
+    minNoticeMinutes: a.minNoticeMinutes,
   }))
 }
 
@@ -111,9 +119,22 @@ export const createAgenda = safeAction(async (data: { name: string; color?: stri
   }
 })
 
+export interface UpdateAgendaData {
+  name?: string
+  color?: string
+  isActive?: boolean
+  slotDuration?: number
+  bufferBefore?: number
+  bufferAfter?: number
+  conflictWindow?: number
+  operatingHours?: OperatingHoursMap
+  maxBookingsPerDay?: number | null
+  minNoticeMinutes?: number
+}
+
 export const updateAgenda = safeAction(async (
   id: string,
-  data: { name?: string; color?: string; isActive?: boolean }
+  data: UpdateAgendaData
 ) => {
   const workspaceId = await getWorkspaceId()
 
@@ -127,12 +148,23 @@ export const updateAgenda = safeAction(async (
     throw new ActionError("Não é possível desativar a agenda padrão")
   }
 
+  // Validate scheduling rules
+  const validation = validateSchedulingRules(data)
+  if (validation !== true) throw new ActionError(validation)
+
   const updated = await db.agenda.update({
     where: { id },
     data: {
       ...(data.name !== undefined && { name: data.name.trim() }),
       ...(data.color !== undefined && { color: data.color }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.slotDuration !== undefined && { slotDuration: data.slotDuration }),
+      ...(data.bufferBefore !== undefined && { bufferBefore: data.bufferBefore }),
+      ...(data.bufferAfter !== undefined && { bufferAfter: data.bufferAfter }),
+      ...(data.conflictWindow !== undefined && { conflictWindow: data.conflictWindow }),
+      ...(data.operatingHours !== undefined && { operatingHours: data.operatingHours ?? "null" }),
+      ...(data.maxBookingsPerDay !== undefined && { maxBookingsPerDay: data.maxBookingsPerDay }),
+      ...(data.minNoticeMinutes !== undefined && { minNoticeMinutes: data.minNoticeMinutes }),
     },
   })
 
@@ -142,6 +174,13 @@ export const updateAgenda = safeAction(async (
     color: updated.color,
     isDefault: updated.isDefault,
     isActive: updated.isActive,
+    slotDuration: updated.slotDuration,
+    bufferBefore: updated.bufferBefore,
+    bufferAfter: updated.bufferAfter,
+    conflictWindow: updated.conflictWindow,
+    operatingHours: updated.operatingHours as OperatingHoursMap,
+    maxBookingsPerDay: updated.maxBookingsPerDay,
+    minNoticeMinutes: updated.minNoticeMinutes,
   }
 })
 

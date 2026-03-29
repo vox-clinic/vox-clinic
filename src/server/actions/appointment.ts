@@ -122,8 +122,16 @@ export async function checkAppointmentConflicts(date: string, agendaId?: string,
   const workspaceId = await getWorkspaceId()
   const targetDate = new Date(date)
 
-  // Check for appointments within ±30 minutes
-  const windowMs = 30 * 60 * 1000
+  // Use agenda's conflict window if available, otherwise default 30 min
+  let conflictMinutes = 30
+  if (agendaId) {
+    const agendaConfig = await db.agenda.findFirst({
+      where: { id: agendaId, workspaceId },
+      select: { conflictWindow: true },
+    })
+    if (agendaConfig) conflictMinutes = agendaConfig.conflictWindow
+  }
+  const windowMs = conflictMinutes * 60 * 1000
   const windowStart = new Date(targetDate.getTime() - windowMs)
   const windowEnd = new Date(targetDate.getTime() + windowMs)
 
@@ -294,9 +302,11 @@ export const scheduleAppointment = safeAction(async (data: {
     if (!planCheck.allowed) throw new ActionError(planCheck.reason!)
 
     if (!data.forceSchedule) {
-      const windowMs = 30 * 60 * 1000
-      const windowStart = new Date(targetDate.getTime() - windowMs)
-      const windowEnd = new Date(targetDate.getTime() + windowMs)
+      const windowMs = (agenda.conflictWindow ?? 30) * 60 * 1000
+      const bufferBeforeMs = (agenda.bufferBefore ?? 0) * 60 * 1000
+      const bufferAfterMs = (agenda.bufferAfter ?? 0) * 60 * 1000
+      const windowStart = new Date(targetDate.getTime() - windowMs - bufferBeforeMs)
+      const windowEnd = new Date(targetDate.getTime() + windowMs + bufferAfterMs)
 
       const conflicts = await tx.appointment.findMany({
         where: {
@@ -340,7 +350,7 @@ export const scheduleAppointment = safeAction(async (data: {
       }
 
       // Check blocked slots (one-time + recurring weekly)
-      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, targetDate, 30)
+      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, targetDate, agenda.slotDuration ?? 30)
       if (blockedConflict) {
         throw new ActionError(
           `CONFLICT:Horário bloqueado: ${blockedConflict}. Deseja agendar mesmo assim?`
@@ -555,6 +565,12 @@ export const rescheduleAppointment = safeAction(async (appointmentId: string, ne
   })
   if (!existing) throw new ActionError(ERR_APPOINTMENT_NOT_FOUND)
 
+  // Fetch agenda config for conflict rules
+  const agenda = await db.agenda.findFirst({
+    where: { id: existing.agendaId, workspaceId },
+    select: { conflictWindow: true, bufferBefore: true, bufferAfter: true, slotDuration: true },
+  })
+
   const targetDate = new Date(newDate)
 
   // Conflict check with advisory lock (same pattern as scheduleAppointment)
@@ -565,9 +581,11 @@ export const rescheduleAppointment = safeAction(async (appointmentId: string, ne
     await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
 
     if (!forceSchedule) {
-      const windowMs = 30 * 60 * 1000
-      const windowStart = new Date(targetDate.getTime() - windowMs)
-      const windowEnd = new Date(targetDate.getTime() + windowMs)
+      const windowMs = (agenda?.conflictWindow ?? 30) * 60 * 1000
+      const bufferBeforeMs = (agenda?.bufferBefore ?? 0) * 60 * 1000
+      const bufferAfterMs = (agenda?.bufferAfter ?? 0) * 60 * 1000
+      const windowStart = new Date(targetDate.getTime() - windowMs - bufferBeforeMs)
+      const windowEnd = new Date(targetDate.getTime() + windowMs + bufferAfterMs)
 
       const conflicts = await tx.appointment.findMany({
         where: {
@@ -613,7 +631,7 @@ export const rescheduleAppointment = safeAction(async (appointmentId: string, ne
       }
 
       // Check blocked slots (one-time + recurring weekly)
-      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, existing.agendaId!, targetDate, 30)
+      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, existing.agendaId!, targetDate, agenda?.slotDuration ?? 30)
       if (blockedConflict) {
         throw new ActionError(
           `CONFLICT:Horário bloqueado: ${blockedConflict}. Deseja reagendar mesmo assim?`
@@ -690,6 +708,12 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
   })
   if (!patient) throw new ActionError(ERR_PATIENT_NOT_FOUND)
 
+  // Fetch agenda config for conflict rules
+  const agendaConfig = await db.agenda.findFirst({
+    where: { id: data.agendaId, workspaceId },
+    select: { conflictWindow: true, bufferBefore: true, bufferAfter: true, slotDuration: true },
+  })
+
   const intervalDays = data.recurrence === "weekly" ? 7 : 14
   const baseDate = new Date(data.startDate)
 
@@ -698,6 +722,9 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
     const d = new Date(baseDate.getTime() + i * intervalDays * 24 * 60 * 60 * 1000)
     dates.push(d)
   }
+
+  const conflictWindowMin = agendaConfig?.conflictWindow ?? 30
+  const slotDuration = agendaConfig?.slotDuration ?? 30
 
   // Interactive transaction with advisory locks to prevent double-booking
   const appointments = await db.$transaction(async (tx) => {
@@ -709,7 +736,7 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
       const lockId = hashStringToInt(hourKey)
       await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock($1)`, lockId)
 
-      const windowMs = 30 * 60 * 1000
+      const windowMs = conflictWindowMin * 60 * 1000
       const conflicts = await tx.appointment.findMany({
         where: {
           workspaceId,
@@ -723,7 +750,7 @@ export const scheduleRecurringAppointments = safeAction(async (data: {
       }
 
       // Check blocked slots (one-time + recurring weekly)
-      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, date, 30)
+      const blockedConflict = await findBlockedSlotConflict(tx, workspaceId, data.agendaId, date, slotDuration)
       if (blockedConflict) {
         throw new ActionError(`CONFLICT:Horário bloqueado em ${date.toLocaleDateString("pt-BR")}: ${blockedConflict}`)
       }

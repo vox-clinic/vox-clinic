@@ -5,6 +5,13 @@ export interface AgendaItem {
   isDefault: boolean
   isActive: boolean
   appointmentCount: number
+  slotDuration?: number
+  bufferBefore?: number
+  bufferAfter?: number
+  conflictWindow?: number
+  operatingHours?: Record<number, { start: string; end: string } | null> | null
+  maxBookingsPerDay?: number | null
+  minNoticeMinutes?: number
 }
 
 export interface AppointmentItem {
