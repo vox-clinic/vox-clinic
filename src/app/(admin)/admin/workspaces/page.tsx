@@ -90,7 +90,7 @@ export default function AdminWorkspacesPage() {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
                   <th className="px-4 py-3 font-semibold text-slate-600">
-                    Clinica
+                    Clínica
                   </th>
                   <th className="px-4 py-3 font-semibold text-slate-600">
                     Profissao
@@ -111,7 +111,7 @@ export default function AdminWorkspacesPage() {
                     Criado em
                   </th>
                   <th className="px-4 py-3 font-semibold text-slate-600">
-                    Acoes
+                    Ações
                   </th>
                 </tr>
               </thead>

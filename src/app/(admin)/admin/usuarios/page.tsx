@@ -27,7 +27,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Email</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Role</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Profissao</th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600">Clinica</th>
+              <th className="text-left px-4 py-3 font-semibold text-slate-600">Clínica</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Plano</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Pacientes</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-600">Onboarding</th>

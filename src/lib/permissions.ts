@@ -65,6 +65,11 @@ export const PERMISSIONS = {
   // Gateway de Pagamento
   "gateway.view": ["owner", "admin"],
   "gateway.edit": ["owner", "admin"],
+  // Quotes (Orçamentos)
+  "quotes.view": ["owner", "admin", "doctor", "secretary"],
+  "quotes.create": ["owner", "admin", "doctor", "secretary"],
+  "quotes.approve": ["owner", "admin", "doctor"],
+  "quotes.execute": ["owner", "admin", "doctor"],
 } as const satisfies Record<string, readonly WorkspaceRole[]>
 
 export type Permission = keyof typeof PERMISSIONS

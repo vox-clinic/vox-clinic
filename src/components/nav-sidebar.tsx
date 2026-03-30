@@ -5,14 +5,10 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Users,
-  Mic,
   CalendarDays,
   ClipboardList,
-  MessageCircle,
   DollarSign,
-  BarChart3,
   Settings,
-  Sparkles,
 } from "lucide-react"
 import { hasPermission, type WorkspaceRole, type Permission } from "@/lib/permissions"
 
@@ -32,15 +28,11 @@ const mainNav: NavItem[] = [
   { href: "/patients", label: "Pacientes", icon: Users, permission: "patients.list", tourId: "nav-pacientes" },
   { href: "/calendar", label: "Agenda", icon: CalendarDays, permission: "appointments.view", tourId: "nav-agenda" },
   { href: "/appointments", label: "Atendimentos", icon: ClipboardList, permission: "appointments.view", tourId: "nav-atendimentos" },
-  { href: "/mensagens", label: "Mensagens", icon: MessageCircle, permission: "messaging.view", tourId: "nav-mensagens" },
   { href: "/financial", label: "Financeiro", icon: DollarSign, permission: "financial.view", tourId: "nav-financeiro" },
-  { href: "/reports", label: "Relatórios", icon: BarChart3, permission: "reports.view", tourId: "nav-relatorios" },
   { href: "/settings", label: "Configurações", icon: Settings, permission: "settings.view", tourId: "nav-configuracoes" },
 ]
 
-const actionNav: NavItem[] = [
-  { href: "/appointments/new", label: "Nova Consulta", icon: Mic, accent: true, permission: "clinical.recordings", tourId: "nav-nova-consulta" },
-]
+const actionNav: NavItem[] = []
 
 export function NavSidebar({ clinicName, role = "owner" }: { clinicName?: string | null; role?: WorkspaceRole }) {
   const pathname = usePathname()
@@ -73,9 +65,6 @@ export function NavSidebar({ clinicName, role = "owner" }: { clinicName?: string
           isActive || item.accent ? "text-vox-primary" : "group-hover:text-foreground"
         }`} />
         {item.label}
-        {item.accent && !isActive && (
-          <Sparkles className="size-3 ml-auto text-vox-primary/50" />
-        )}
       </Link>
     )
   }
@@ -84,7 +73,7 @@ export function NavSidebar({ clinicName, role = "owner" }: { clinicName?: string
   const visibleActionNav = actionNav.filter(isVisible)
 
   return (
-    <aside data-testid="nav-sidebar" aria-label="Navegação principal" className="hidden md:flex w-56 flex-col border-r border-border/40 bg-sidebar overflow-y-auto">
+    <aside data-testid="nav-sidebar" aria-label="Navegação principal" className="hidden md:flex w-56 flex-col border-r border-border/40 bg-sidebar overflow-y-auto h-[calc(100vh-56px)] sticky top-14">
       <nav className="flex flex-col gap-0.5 px-3 pt-5">
         <p className="px-3 pb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
           Menu

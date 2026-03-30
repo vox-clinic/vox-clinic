@@ -331,3 +331,174 @@ Transcricao da consulta:
 
   return extractToolResult(message, 'generate_consultation_summary', AppointmentSummarySchema) as AppointmentSummary
 }
+
+// ---------------------------------------------------------------------------
+// extractPatientUpdateIntents
+// ---------------------------------------------------------------------------
+const PatientUpdateIntentSchema = z.object({
+  actions: z.array(z.object({
+    type: z.enum(['ADD_NOTE', 'ADD_PERSONAL_NOTE', 'ADD_ALLERGY', 'ADD_MEDICAL_HISTORY', 'UNKNOWN']),
+    value: z.string(),
+    confidence: z.number().min(0).max(1),
+  })),
+})
+
+export type PatientUpdateIntents = z.infer<typeof PatientUpdateIntentSchema>
+
+export async function extractPatientUpdateIntents(
+  transcript: string,
+  patientName: string
+): Promise<PatientUpdateIntents> {
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    temperature: 0,
+    system: `You are a clinical assistant for a dental clinic. Extract structured update actions from the professional's speech about an existing patient. Always respond with valid JSON only, no explanation, no markdown.
+
+The JSON must follow this structure exactly:
+{
+  "actions": [
+    {
+      "type": "ADD_NOTE" | "ADD_ALLERGY" | "ADD_MEDICAL_HISTORY" | "UNKNOWN",
+      "value": string,
+      "confidence": number between 0 and 1
+    }
+  ]
+}
+
+Action type rules:
+- ADD_NOTE: clinical observations, procedures performed, general notes
+- ADD_ALLERGY: allergies or medication intolerances mentioned
+- ADD_MEDICAL_HISTORY: chronic diseases, conditions, ongoing medications
+- UNKNOWN: anything that cannot be mapped to the above types
+
+Always extract at least one action. If nothing clinical is mentioned, use UNKNOWN.`,
+    messages: [{
+      role: 'user',
+      content: `Patient: ${patientName}\n\nProfessional's speech: ${transcript}`,
+    }],
+  })
+
+  const textBlock = message.content.find(
+    (c): c is Anthropic.TextBlock => c.type === 'text'
+  )
+  if (!textBlock) {
+    throw new Error('Resposta da IA nao contem texto')
+  }
+
+  return parseAIResponse(textBlock.text, PatientUpdateIntentSchema)
+}
+
+// ---------------------------------------------------------------------------
+// extractVoiceCommand — extracts patient name + intents from free speech
+// ---------------------------------------------------------------------------
+const VoiceCommandSchema = z.object({
+  intent: z.enum(['update', 'register', 'schedule', 'quote', 'payment', 'execute']),
+  patientQuery: z.string(),
+  patientData: z.object({
+    name: z.string().optional(),
+    document: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    birthDate: z.string().optional(),
+    gender: z.string().optional(),
+    insurance: z.string().optional(),
+    guardian: z.string().optional(),
+    notes: z.string().optional(),
+  }).optional(),
+  scheduleData: z.object({
+    date: z.string().optional(),
+    time: z.string().optional(),
+    procedure: z.string().optional(),
+  }).optional(),
+  paymentData: z.object({
+    amount: z.string().optional(),
+    method: z.string().optional(),
+  }).optional(),
+  quoteData: z.object({
+    procedures: z.array(z.object({
+      name: z.string(),
+      tooth: z.string().optional(),
+    })).optional(),
+  }).optional(),
+  actions: z.array(z.object({
+    type: z.enum(['ADD_NOTE', 'ADD_PERSONAL_NOTE', 'ADD_ALLERGY', 'ADD_MEDICAL_HISTORY', 'UNKNOWN']),
+    value: z.string(),
+    confidence: z.number().min(0).max(1),
+  })),
+})
+
+export type VoiceCommand = z.infer<typeof VoiceCommandSchema>
+
+export async function extractVoiceCommand(
+  transcript: string
+): Promise<VoiceCommand> {
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    temperature: 0,
+    system: `Você é um assistente clínico de uma clínica odontológica/médica. O profissional fala livremente em português brasileiro. Identifique a intenção e extraia dados estruturados.
+
+IMPORTANTE: A fala pode ser informal, com erros de transcrição, gírias ou abreviações. Interprete com bom senso.
+
+Responda APENAS com JSON válido, sem explicação, sem markdown.
+
+{
+  "intent": "register" | "update" | "schedule" | "quote" | "payment" | "execute",
+  "patientQuery": string (nome do paciente mencionado — usado para buscar),
+  "patientData": { "name", "document" (CPF, só dígitos), "phone" (só dígitos), "email", "birthDate" (YYYY-MM-DD), "gender", "insurance", "guardian", "notes" },
+  "scheduleData": { "date" (YYYY-MM-DD), "time" (HH:MM), "procedure" },
+  "paymentData": { "amount": valor em centavos como string ex "150000" para R$1500, "method": "pix" | "dinheiro" | "credito" | "debito" | "boleto" | "convenio" | "transferencia" },
+  "quoteData": { "procedures": [{ "name": nome do procedimento, "tooth": notação FDI ex "11" }] },
+  "actions": [{ "type": "ADD_NOTE" | "ADD_PERSONAL_NOTE" | "ADD_ALLERGY" | "ADD_MEDICAL_HISTORY" | "UNKNOWN", "value": string, "confidence": number 0-1 }]
+
+Tipos de action:
+- ADD_NOTE: observações clínicas, procedimentos, evolução
+- ADD_PERSONAL_NOTE: informações pessoais para conexão com paciente (aniversário, preferências, hobbies, quem indicou, coisas para lembrar no próximo atendimento)
+- ADD_ALLERGY: alergias e intolerâncias medicamentosas
+- ADD_MEDICAL_HISTORY: doenças crônicas, condições, medicações de uso contínuo
+}
+
+REGRAS DE INTENÇÃO:
+- "register": cadastrar, adicionar, registrar, novo paciente, incluir paciente
+- "update": menciona paciente existente + dado clínico (anotação, alergia, histórico, observação)
+- "schedule": agendar, marcar, marcar consulta, agendar horário, agendar retorno
+- "quote": orçamento, orçar, fazer orçamento, preço de procedimento, quanto custa — QUALQUER menção de procedimento + dente
+- "payment": pagamento, paciente pagou, receber, recebimento, pagar, baixar pagamento
+- "execute": executar, realizar, procedimento feito, concluído, executei, fiz o procedimento
+
+EXEMPLOS de fala → intent:
+- "Cadastra aí o paciente João Silva CPF 123" → register
+- "Paciente Maria tem alergia a dipirona" → update
+- "Agenda consulta pro Lucas amanhã às duas da tarde" → schedule
+- "Orçamento pro paciente Ana canal no dente 11 e restauração no 12" → quote
+- "O João pagou 1500 no pix" → payment (paymentData: {amount:"150000", method:"pix"})
+- "Paciente Maria pagou" → payment (paymentData sem amount = pagar tudo)
+- "Recebimento de 500 reais em dinheiro do Lucas" → payment (paymentData: {amount:"50000", method:"dinheiro"})
+- "Fiz o canal da Maria" → execute
+- "Profilaxia dente 32 12 e 43 da paciente Ana" → quote (procedures: [{name:"profilaxia",tooth:"32"},{name:"profilaxia",tooth:"12"},{name:"profilaxia",tooth:"43"}])
+
+REGRAS:
+- patientQuery: SEMPRE extraia o nome se mencionado. String vazia se não mencionado.
+- Números de dentes: notação FDI (11-18, 21-28, 31-38, 41-48). Se ouvir "dente da frente" = 11 ou 21. Se múltiplos dentes, crie um item por dente.
+- Horários: "duas da tarde" = "14:00", "oito da manhã" = "08:00", "meio-dia" = "12:00"
+- Datas relativas: hoje = ${new Date().toISOString().split('T')[0]}. "amanhã", "segunda", "próxima terça" → calcule a data correta.
+- Para payment: extraia valor em CENTAVOS (R$1500 = "150000", R$50 = "5000"). Se não mencionar valor, omita amount. Métodos: "pix", "dinheiro", "credito", "debito", "boleto", "convenio", "transferencia".
+- Campos opcionais podem ser omitidos. actions pode ser array vazio para intents que não são "update".`,
+    messages: [{
+      role: 'user',
+      content: `Fala do profissional: "${transcript}"
+
+Responda APENAS com JSON válido.`,
+    }],
+  })
+
+  const textBlock = message.content.find(
+    (c): c is Anthropic.TextBlock => c.type === 'text'
+  )
+  if (!textBlock) {
+    throw new Error('Resposta da IA nao contem texto')
+  }
+
+  return parseAIResponse(textBlock.text, VoiceCommandSchema)
+}

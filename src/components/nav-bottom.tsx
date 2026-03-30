@@ -9,9 +9,7 @@ import {
   CalendarDays,
   Mic,
   ClipboardList,
-  MessageCircle,
   DollarSign,
-  BarChart3,
   Settings,
   MoreHorizontal,
 } from "lucide-react"
@@ -42,9 +40,7 @@ const primaryNav: NavItem[] = [
 
 const moreNav: NavItem[] = [
   { href: "/appointments", label: "Atendimentos", icon: ClipboardList, permission: "appointments.view" },
-  { href: "/mensagens", label: "Mensagens", icon: MessageCircle, permission: "messaging.view" },
   { href: "/financial", label: "Financeiro", icon: DollarSign, permission: "financial.view" },
-  { href: "/reports", label: "Relatórios", icon: BarChart3, permission: "reports.view" },
   { href: "/settings", label: "Configurações", icon: Settings, permission: "settings.view", tourId: "nav-bottom-config" },
 ]
 

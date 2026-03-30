@@ -140,16 +140,17 @@ function DraggableAppointment({ appointment, children }: { appointment: Appointm
   )
 }
 
-function DroppableCell({ id, children, className, ghostMinute }: {
+function DroppableCell({ id, children, className, ghostMinute, onClick }: {
   id: string
   children: React.ReactNode
   className?: string
   ghostMinute?: number | null
+  onClick?: () => void
 }) {
   const { isOver, setNodeRef } = useDroppable({ id })
 
   return (
-    <div ref={setNodeRef} className={`relative ${className ?? ""} ${isOver ? "bg-vox-primary/10 ring-1 ring-vox-primary/30" : ""}`}>
+    <div ref={setNodeRef} onClick={onClick} className={`relative ${className ?? ""} ${isOver ? "bg-vox-primary/10 ring-1 ring-vox-primary/30" : ""}`}>
       {children}
       {isOver && ghostMinute !== null && ghostMinute !== undefined && (() => {
         const hour = parseInt(id.substring(id.lastIndexOf("-") + 1), 10)
@@ -185,6 +186,7 @@ function WeekViewInner({
   onDelete,
   onDeleteBlockedSlot,
   onUpdateBlockedSlot,
+  onSlotClick,
 }: {
   weekDays: Date[]
   appointments: AppointmentItem[]
@@ -194,6 +196,7 @@ function WeekViewInner({
   onDelete: (id: string) => void
   onDeleteBlockedSlot: (id: string) => void
   onUpdateBlockedSlot: (id: string, data: { title?: string; startDate?: string; endDate?: string; allDay?: boolean; recurring?: string | null }) => Promise<void>
+  onSlotClick?: (date: string, time: string) => void
 }) {
   const router = useRouter()
   const weekGridRef = useRef<HTMLDivElement>(null)
@@ -376,7 +379,12 @@ function WeekViewInner({
                       key={cellId}
                       id={cellId}
                       ghostMinute={overCellId === cellId ? ghostMinute : null}
-                      className={`h-[88px] border-b border-l border-border/[0.06] transition-colors hover:bg-muted/20 min-w-0 ${isToday(d) ? "bg-vox-primary/[0.015]" : ""} ${hourBlocked.length > 0 ? "bg-muted/30" : ""}`}
+                      className={`h-[88px] border-b border-l border-border/[0.06] transition-colors hover:bg-muted/20 min-w-0 ${isToday(d) ? "bg-vox-primary/[0.015]" : ""} ${hourBlocked.length > 0 ? "bg-muted/30" : ""} ${onSlotClick ? "cursor-pointer" : ""}`}
+                      onClick={() => {
+                        if (onSlotClick && hourAppts.length === 0 && hourBlocked.length === 0) {
+                          onSlotClick(dayKey, `${String(hour).padStart(2, "0")}:00`)
+                        }
+                      }}
                     >
                       {/* Cell ID for ghost indicator matching */}
 

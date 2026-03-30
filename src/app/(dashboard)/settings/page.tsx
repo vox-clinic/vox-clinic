@@ -6,26 +6,12 @@ import {
   Loader2,
   Users,
   Building2,
-  Palette,
   ListChecks,
   FormInput,
-  Sparkles,
-  Shield,
   Save,
-  MessageSquare,
-  Receipt,
-  CreditCard,
   ClipboardList,
   Stethoscope,
-  FileText,
-  Percent,
-  RotateCcw,
-  Salad,
-  Brain,
-  Scale,
-  Dumbbell,
-  PawPrint,
-  Briefcase,
+  Stethoscope as DefaultProfIcon,
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -34,9 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { getWorkspace, updateWorkspace } from "@/server/actions/workspace"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
-import { useTourOptional } from "@/components/tour/tour-provider"
 import Link from "next/link"
-import { CalendarDays, Globe, Zap } from "lucide-react"
+import { CalendarDays } from "lucide-react"
 import dynamic from "next/dynamic"
 import type { Procedure, CustomField } from "@/types"
 
@@ -58,63 +43,18 @@ const AgendasSection = dynamic(
   () => import("./sections/agendas-section").then((m) => m.AgendasSection),
   { ssr: false, loading: SectionSkeleton }
 )
-const BookingSection = dynamic(
-  () => import("./sections/booking-section").then((m) => m.BookingSection),
-  { ssr: false, loading: SectionSkeleton }
-)
-const MessagingSection = dynamic(
-  () => import("./sections/messaging-section").then((m) => m.MessagingSection),
-  { ssr: false, loading: SectionSkeleton }
-)
-const AparenciaSection = dynamic(
-  () => import("./sections/aparencia-section").then((m) => m.AparenciaSection),
-  { ssr: false, loading: SectionSkeleton }
-)
-const PlanoSection = dynamic(
-  () => import("./sections/plano-section").then((m) => m.PlanoSection),
-  { ssr: false, loading: SectionSkeleton }
-)
-const FiscalTab = dynamic(
-  () => import("./fiscal-tab").then((m) => m.FiscalTab),
-  { ssr: false, loading: SectionSkeleton }
-)
-const FormulariosSection = dynamic(
-  () => import("./sections/formularios-section").then((m) => m.FormulariosSection),
-  { ssr: false, loading: SectionSkeleton }
-)
-const ComissoesSection = dynamic(
-  () => import("./sections/comissoes-section").then((m) => m.ComissoesSection),
-  { ssr: false, loading: SectionSkeleton }
-)
-const GatewaySection = dynamic(
-  () => import("./sections/gateway-section").then((m) => m.GatewaySection),
-  { ssr: false, loading: SectionSkeleton }
-)
 
 const professionLabels: Record<string, string> = {
   dentista: "Dentista",
-  nutricionista: "Nutricionista",
-  esteticista: "Esteticista",
   medico: "Médico",
-  advogado: "Advogado",
-  psicologo: "Psicólogo",
-  fisioterapeuta: "Fisioterapeuta",
-  veterinario: "Veterinário",
 }
 
 const professionIcons: Record<string, LucideIcon> = {
   dentista: Stethoscope,
-  nutricionista: Salad,
-  esteticista: Sparkles,
   medico: Stethoscope,
-  advogado: Scale,
-  psicologo: Brain,
-  fisioterapeuta: Dumbbell,
-  veterinario: PawPrint,
 }
 
 export default function SettingsPage() {
-  const tour = useTourOptional()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -206,42 +146,23 @@ export default function SettingsPage() {
         { key: "clinica", label: "Dados da Clínica", icon: Building2 },
         { key: "procedimentos", label: "Procedimentos", icon: ListChecks },
         { key: "campos", label: "Campos Customizados", icon: FormInput },
-        { key: "aparencia", label: "Aparência", icon: Palette },
       ],
     },
     {
       title: "Equipe",
       items: [
         { key: "equipe", label: "Membros", icon: Users },
-        { key: "comissoes", label: "Comissões", icon: Percent },
       ],
     },
     {
       title: "Agendamento",
       items: [
         { key: "agendas", label: "Agendas", icon: CalendarDays },
-        { key: "booking", label: "Agendamento Online", icon: Globe },
-      ],
-    },
-    {
-      title: "Comunicação",
-      items: [
-        { key: "mensagens", label: "Mensagens", icon: MessageSquare },
-        { key: "formularios", label: "Formulários", icon: FileText },
-      ],
-    },
-    {
-      title: "Financeiro",
-      items: [
-        { key: "gateway", label: "Pagamento", icon: Zap },
-        { key: "fiscal", label: "Fiscal (NFS-e)", icon: Receipt },
-        { key: "tiss", label: "TISS", icon: Stethoscope, href: "/settings/tiss" },
       ],
     },
     {
       title: "Sistema",
       items: [
-        { key: "plano", label: "Plano", icon: CreditCard },
         { key: "auditoria", label: "Auditoria", icon: ClipboardList, href: "/settings/audit" },
       ],
     },
@@ -263,7 +184,7 @@ export default function SettingsPage() {
     )
   }
 
-  const ProfIcon = professionIcons[professionType?.toLowerCase()] ?? Briefcase
+  const ProfIcon = professionIcons[professionType?.toLowerCase()] ?? DefaultProfIcon
   const profLabel = professionLabels[professionType?.toLowerCase()] ?? profession
 
   return (
@@ -298,28 +219,6 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">
               Gerencie seu workspace, procedimentos e preferências
             </p>
-            <div className="flex items-center gap-4 pt-1">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80">
-                <Shield className="size-3.5 text-vox-success" />
-                <span>LGPD Ativo</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80">
-                <Sparkles className="size-3.5 text-vox-primary" />
-                <span>IA Configurada</span>
-              </div>
-              {tour && (
-                <button
-                  onClick={async () => {
-                    await tour.resetTour()
-                    toast.success("Tour reiniciado! Volte ao Dashboard para comecar.")
-                  }}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground/80 hover:text-vox-primary transition-colors"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span>Refazer tour guiado</span>
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Save button (desktop) */}
@@ -441,16 +340,8 @@ export default function SettingsPage() {
           {activeSection === "campos" && (
             <CamposSection customFields={customFields} onCustomFieldsChange={setCustomFields} />
           )}
-          {activeSection === "formularios" && <FormulariosSection />}
           {activeSection === "equipe" && <TeamSection clinicName={clinicName} />}
           {activeSection === "agendas" && <AgendasSection />}
-          {activeSection === "booking" && <BookingSection />}
-          {activeSection === "mensagens" && <MessagingSection />}
-          {activeSection === "aparencia" && <AparenciaSection />}
-          {activeSection === "comissoes" && <ComissoesSection />}
-          {activeSection === "gateway" && <GatewaySection />}
-          {activeSection === "fiscal" && <FiscalTab />}
-          {activeSection === "plano" && <PlanoSection />}
         </div>
       </div>
 

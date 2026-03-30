@@ -36,7 +36,7 @@ export default function TermosPage() {
             Termos de Uso
           </h1>
           <p className="text-sm text-slate-500">
-            Ultima atualizacao: {lastUpdated}
+            Última atualização: {lastUpdated}
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export default function TermosPage() {
             A VoxClinic e uma plataforma SaaS (Software as a Service) de CRM inteligente voltada para profissionais de saude e servicos (dentistas, medicos, nutricionistas, esteticistas, psicologos, advogados, entre outros). O servico inclui:
           </p>
           <ul>
-            <li>Transcricao automatica de consultas por voz com inteligencia artificial</li>
+            <li>Transcrição automática de consultas por voz com inteligencia artificial</li>
             <li>Extracao e estruturacao automatizada de dados clinicos</li>
             <li>Gerenciamento de prontuarios eletronicos de pacientes</li>
             <li>Agendamento de consultas com multiplas agendas</li>
@@ -60,7 +60,7 @@ export default function TermosPage() {
             <li>Emissao de prescricoes, atestados e certificados</li>
             <li>Gestao financeira (receitas, despesas, NFS-e)</li>
             <li>Comunicacao com pacientes (e-mail e WhatsApp)</li>
-            <li>Relatorios analiticos e indicadores de desempenho</li>
+            <li>Relatórios analíticos e indicadores de desempenho</li>
             <li>Agendamento online para pacientes</li>
           </ul>
 
@@ -88,7 +88,7 @@ export default function TermosPage() {
             <li><strong>Veracidade dos dados:</strong> garantir que todas as informacoes inseridas na plataforma (incluindo dados de pacientes) sejam verdadeiras e precisas</li>
             <li><strong>Consentimento dos pacientes:</strong> obter o consentimento informado dos pacientes antes de realizar gravacoes de audio, em conformidade com a LGPD e as normas eticas de sua profissao</li>
             <li><strong>Revisao de dados de IA:</strong> revisar e confirmar todos os dados extraidos automaticamente pela inteligencia artificial antes de salva-los no prontuario. A IA e uma ferramenta auxiliar, e a responsabilidade clinica permanece integralmente com o profissional</li>
-            <li><strong>Sigilo profissional:</strong> manter o sigilo profissional conforme o codigo de etica de sua categoria (CFM, CRO, CRN, etc.)</li>
+            <li><strong>Sigilo profissional:</strong> manter o sigilo profissional conforme o código de ética de sua categoria (CFM, CRO, CRN, etc.)</li>
             <li><strong>Uso licito:</strong> utilizar a plataforma apenas para fins licitos e em conformidade com a legislacao aplicavel</li>
             <li><strong>Seguranca da conta:</strong> manter suas credenciais seguras e notificar imediatamente a VoxClinic sobre qualquer uso nao autorizado</li>
             <li><strong>Backup:</strong> manter copias de seguranca dos dados criticos conforme exigido pela regulamentacao de sua profissao</li>
@@ -125,7 +125,7 @@ export default function TermosPage() {
           <h2>6. Propriedade Intelectual</h2>
           <h3>6.1. Da VoxClinic</h3>
           <p>
-            A plataforma VoxClinic, incluindo seu codigo-fonte, design, marca, logotipos, textos, algoritmos e documentacao, e de propriedade exclusiva da VoxClinic Tecnologia Ltda. O Usuario recebe uma licenca limitada, nao exclusiva, nao transferivel e revogavel para utilizar a plataforma durante a vigencia de sua assinatura.
+            A plataforma VoxClinic, incluindo seu código-fonte, design, marca, logotipos, textos, algoritmos e documentação, e de propriedade exclusiva da VoxClinic Tecnologia Ltda. O Usuario recebe uma licenca limitada, nao exclusiva, nao transferivel e revogavel para utilizar a plataforma durante a vigencia de sua assinatura.
           </p>
           <p>
             E expressamente proibido:
@@ -225,7 +225,7 @@ export default function TermosPage() {
           </p>
           <ul>
             <li>Lista de pacientes em formato Excel (.xlsx)</li>
-            <li>Relatorios financeiros e analiticos em formato Excel (.xlsx)</li>
+            <li>Relatórios financeiros e analíticos em formato Excel (.xlsx)</li>
             <li>Prontuario individual em formato PDF (via impressao)</li>
           </ul>
           <p>

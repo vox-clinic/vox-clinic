@@ -20,7 +20,8 @@ async function fetchDashboardData(workspaceId: string, clinicName: string, profe
     lastMonthAppointments,
     todayAppointments,
     scheduledAppointments,
-    totalRecordings,
+    monthlyRevenue,
+    pendingCharges,
     recentAppointments,
   ] = await Promise.all([
     db.patient.findMany({
@@ -63,13 +64,21 @@ async function fetchDashboardData(workspaceId: string, clinicName: string, profe
         date: { gte: now },
       },
     }),
-    db.recording.count({
+    db.payment.aggregate({
       where: {
-        OR: [
-          { workspaceId },
-          { patient: { workspaceId } },
-        ],
+        workspaceId,
+        status: "paid",
+        paidAt: { gte: startOfMonth },
       },
+      _sum: { paidAmount: true },
+    }),
+    db.charge.aggregate({
+      where: {
+        workspaceId,
+        status: { in: ["pending", "partial"] },
+      },
+      _sum: { netAmount: true },
+      _count: true,
     }),
     db.appointment.findMany({
       where: { workspaceId },
@@ -102,7 +111,9 @@ async function fetchDashboardData(workspaceId: string, clinicName: string, profe
       agenda: a.agenda,
     })),
     scheduledAppointments,
-    totalRecordings,
+    monthlyRevenue: monthlyRevenue._sum.paidAmount ?? 0,
+    pendingAmount: pendingCharges._sum.netAmount ?? 0,
+    pendingChargesCount: pendingCharges._count,
     recentAppointments: recentAppointments.map((a) => ({
       id: a.id,
       date: a.date,

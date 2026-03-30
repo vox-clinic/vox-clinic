@@ -8,7 +8,7 @@ const openai = new OpenAI({
 })
 
 const DEFAULT_MEDICAL_PROMPT =
-  'Transcrição de consulta médica/odontológica em português brasileiro. Termos: anamnese, profilaxia, endodontia, periodontia, restauração, prótese, implante, ortodontia, radiografia, hemograma, pressão arterial, glicemia, alergia, medicamento, prescrição.'
+  'Transcrição de fala de profissional de saúde em português brasileiro. Comandos comuns: agendar consulta, cadastrar paciente, orçamento, registrar pagamento, executar procedimento, adicionar nota, alergia, histórico médico. Termos clínicos: anamnese, profilaxia, endodontia, periodontia, restauração, prótese, implante, ortodontia, canal, extração, limpeza, clareamento, faceta, coroa, gengivoplastia, raspagem, radiografia, hemograma, pressão arterial, glicemia, alergia, medicamento, prescrição, dente, CPF, convênio.'
 
 const MIME_TYPES: Record<string, string> = {
   webm: 'audio/webm',

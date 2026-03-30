@@ -36,7 +36,7 @@ export default function PrivacidadePage() {
             Politica de Privacidade
           </h1>
           <p className="text-sm text-slate-500">
-            Ultima atualizacao: {lastUpdated}
+            Última atualização: {lastUpdated}
           </p>
         </div>
 
@@ -91,7 +91,7 @@ export default function PrivacidadePage() {
 
           <h3>3.3. Dados Sensiveis de Saude (Art. 5, II, LGPD)</h3>
           <ul>
-            <li>Historico medico: alergias, doencas cronicas, medicamentos em uso, tipo sanguineo</li>
+            <li>Histórico médico: alergias, doenças crônicas, medicamentos em uso, tipo sanguineo</li>
             <li>Resumos de consultas gerados por inteligencia artificial</li>
             <li>Prescricoes medicas (medicamentos, dosagens, posologia)</li>
             <li>Atestados e certificados medicos</li>
@@ -146,7 +146,7 @@ export default function PrivacidadePage() {
           {/* 5 */}
           <h2>5. Finalidades do Tratamento</h2>
           <ul>
-            <li>Transcricao de audio e extracao automatizada de dados clinicos via inteligencia artificial</li>
+            <li>Transcrição de áudio e extração automatizada de dados clinicos via inteligencia artificial</li>
             <li>Gerenciamento de prontuarios eletronicos de pacientes</li>
             <li>Agendamento de consultas e envio de lembretes (e-mail e WhatsApp)</li>
             <li>Emissao de prescricoes, atestados e certificados medicos</li>
@@ -177,7 +177,7 @@ export default function PrivacidadePage() {
               <tbody className="text-slate-600">
                 <tr className="border-b border-slate-100">
                   <td className="py-2 pr-4 font-medium">OpenAI (Whisper)</td>
-                  <td className="py-2 pr-4">Transcricao de audio para texto</td>
+                  <td className="py-2 pr-4">Transcrição de áudio para texto</td>
                   <td className="py-2">EUA</td>
                 </tr>
                 <tr className="border-b border-slate-100">
@@ -282,7 +282,7 @@ export default function PrivacidadePage() {
             <li><strong>URLs assinadas:</strong> acesso a arquivos de audio e documentos apenas via URLs temporarias com expiracao de 5 minutos</li>
             <li><strong>Isolamento multi-tenant:</strong> todos os dados sao isolados por workspace — nenhum profissional pode acessar dados de outro</li>
             <li><strong>Autenticacao segura:</strong> autenticacao gerenciada por Clerk com suporte a MFA (autenticacao multi-fator)</li>
-            <li><strong>Logs de auditoria:</strong> todas as operacoes de criacao, alteracao e exclusao de dados sao registradas com identificacao do usuario, data/hora e tipo de acao</li>
+            <li><strong>Logs de auditoria:</strong> todas as operações de criação, alteração e exclusão de dados sao registradas com identificação do usuario, data/hora e tipo de acao</li>
             <li><strong>Validacao de ambiente:</strong> todas as chaves de API sao validadas na inicializacao da aplicacao (fail-fast)</li>
             <li><strong>Sem cache local de audio:</strong> gravacoes de audio sao mantidas apenas em memoria durante o upload e nunca armazenadas no dispositivo do usuario</li>
             <li><strong>Consentimento registrado:</strong> cada gravacao de audio e precedida por um registro de consentimento LGPD no banco de dados</li>

@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   DollarSign,
@@ -11,7 +10,6 @@ import {
   TrendingUp,
   Receipt,
   Tag,
-  ArrowRight,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -21,24 +19,6 @@ import {
 } from "@/server/actions/financial"
 import { toast } from "sonner"
 import type { Procedure } from "@/types"
-import { ReceivablesTab } from "./receivables-tab"
-import ExpensesTab from "./expenses-tab"
-import CashflowTab from "./cashflow-tab"
-import { NfseTab } from "./nfse-tab"
-import dynamic from "next/dynamic"
-
-const TissTab = dynamic(
-  () => import("./tiss-tab").then((m) => m.TissTab),
-  { ssr: false }
-)
-const CommissionsTab = dynamic(
-  () => import("./commissions-tab").then((m) => m.CommissionsTab),
-  { ssr: false }
-)
-const InventoryTab = dynamic(
-  () => import("./inventory-tab").then((m) => m.InventoryTab),
-  { ssr: false }
-)
 
 const formatBRL = (centavos: number) =>
   (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -48,7 +28,7 @@ const monthNames = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ]
 
-type Tab = "resumo" | "receivables" | "expenses" | "cashflow" | "nfse" | "tiss" | "commissions" | "inventory" | "pricing"
+type Tab = "resumo" | "pricing"
 
 export default function FinancialPage() {
   const [activeTab, setActiveTab] = useState<Tab>("resumo")
@@ -106,13 +86,6 @@ export default function FinancialPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "resumo", label: "Resumo" },
-    { key: "receivables", label: "Contas a Receber" },
-    { key: "expenses", label: "Despesas" },
-    { key: "cashflow", label: "Fluxo de Caixa" },
-    { key: "nfse", label: "NFS-e" },
-    { key: "tiss", label: "TISS" },
-    { key: "commissions", label: "Comissoes" },
-    { key: "inventory", label: "Estoque" },
     { key: "pricing", label: "Tabela de Precos" },
   ]
 
@@ -372,14 +345,6 @@ export default function FinancialPage() {
           )}
         </>
       )}
-
-      {activeTab === "receivables" && <ReceivablesTab />}
-      {activeTab === "expenses" && <ExpensesTab />}
-      {activeTab === "cashflow" && <CashflowTab />}
-      {activeTab === "nfse" && <NfseTab />}
-      {activeTab === "tiss" && <TissTab />}
-      {activeTab === "commissions" && <CommissionsTab />}
-      {activeTab === "inventory" && <InventoryTab />}
 
       {activeTab === "pricing" && (
         <Card className="rounded-2xl">

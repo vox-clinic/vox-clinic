@@ -1,7 +1,6 @@
 import { getPrescription } from "@/server/actions/prescription"
 import { PrintButton } from "./print-button"
 import { GeneratePdfButton } from "./generate-pdf-button"
-import { SendWhatsAppButton } from "./send-whatsapp-button"
 import { SendEmailButton } from "./send-email-button"
 import { PrescriptionActions } from "./prescription-actions"
 import Link from "next/link"
@@ -44,9 +43,6 @@ export default async function PrescriptionPage({
           Voltar
         </Link>
         <div className="flex items-center gap-2">
-          {prescription.patientPhone && prescription.patientWhatsappConsent && (
-            <SendWhatsAppButton prescriptionId={id} />
-          )}
           {prescription.patientEmail && (
             <SendEmailButton prescriptionId={id} />
           )}
@@ -86,7 +82,7 @@ export default async function PrescriptionPage({
               </div>
               <div className="text-right">
                 <p className="text-xs font-medium uppercase tracking-widest text-teal-600">
-                  Prescricao Medica
+                  Prescrição Médica
                 </p>
                 <p className="text-xs text-gray-400 mt-1">{today}</p>
               </div>

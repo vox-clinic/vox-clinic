@@ -1,18 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import dynamic from "next/dynamic"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Calendar,
-  FileText,
-  Mic,
-  User,
   ClipboardList,
+  User,
   Pill,
   FileImage,
-  Camera,
+  Receipt,
+  DollarSign,
 } from "lucide-react"
 import type { PatientData, CustomFieldDef, AnamnesisQuestionDef } from "./tabs/types"
 
@@ -29,28 +29,36 @@ function TabSkeleton() {
 
 const ResumoTab = dynamic(() => import("./tabs/resumo-tab"), { ssr: false, loading: TabSkeleton })
 const HistoricoTab = dynamic(() => import("./tabs/historico-tab"), { ssr: false, loading: TabSkeleton })
-const TratamentosTab = dynamic(() => import("./tabs/tratamentos-tab"), { ssr: false, loading: TabSkeleton })
 const PrescricoesTab = dynamic(() => import("./tabs/prescricoes-tab"), { ssr: false, loading: TabSkeleton })
 const DocumentosTab = dynamic(() => import("./tabs/documentos-tab"), { ssr: false, loading: TabSkeleton })
-const GravacoesTab = dynamic(() => import("./tabs/gravacoes-tab"), { ssr: false, loading: TabSkeleton })
-const FormulariosTab = dynamic(() => import("./tabs/formularios-tab"), { ssr: false, loading: TabSkeleton })
-const ImagensTab = dynamic(() => import("./tabs/imagens-tab"), { ssr: false, loading: TabSkeleton })
+const FichaClinicaTab = dynamic(() => import("./tabs/ficha-clinica-tab"), { ssr: false, loading: TabSkeleton })
+const OrcamentosTab = dynamic(() => import("./tabs/orcamentos-tab"), { ssr: false, loading: TabSkeleton })
+const FinanceiroTab = dynamic(() => import("./tabs/financeiro-tab"), { ssr: false, loading: TabSkeleton })
 
 const tabs = [
   { id: "resumo" as const, label: "Resumo", icon: User },
+  { id: "ficha-clinica" as const, label: "Ficha Clínica", icon: ClipboardList },
+  { id: "orcamentos" as const, label: "Orçamentos", icon: Receipt },
+  { id: "financeiro" as const, label: "Financeiro", icon: DollarSign },
   { id: "historico" as const, label: "Histórico", icon: Calendar },
-  { id: "tratamentos" as const, label: "Tratamentos", icon: ClipboardList },
   { id: "prescricoes" as const, label: "Prescrições", icon: Pill },
   { id: "documentos" as const, label: "Documentos", icon: FileImage },
-  { id: "imagens" as const, label: "Imagens", icon: Camera },
-  { id: "gravacoes" as const, label: "Gravações", icon: Mic },
-  { id: "formularios" as const, label: "Formulários", icon: FileText },
 ]
 
-type TabId = "resumo" | "historico" | "tratamentos" | "prescricoes" | "documentos" | "imagens" | "gravacoes" | "formularios"
+type TabId = "resumo" | "ficha-clinica" | "orcamentos" | "financeiro" | "historico" | "prescricoes" | "documentos"
 
-export function PatientTabs({ patient, customFields, anamnesisTemplate }: { patient: PatientData; customFields?: CustomFieldDef[]; anamnesisTemplate?: AnamnesisQuestionDef[] }) {
-  const [activeTab, setActiveTab] = useState<TabId>("resumo")
+export function PatientTabs({ patient, customFields }: { patient: PatientData; customFields?: CustomFieldDef[] }) {
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab") as TabId | null
+  const [activeTab, setActiveTab] = useState<TabId>(
+    tabParam && tabs.some((t) => t.id === tabParam) ? tabParam : "resumo"
+  )
+
+  useEffect(() => {
+    if (tabParam && tabs.some((t) => t.id === tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
 
   return (
     <div className="space-y-4">
@@ -83,12 +91,11 @@ export function PatientTabs({ patient, customFields, anamnesisTemplate }: { pati
       <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
         {activeTab === "resumo" && <ResumoTab patient={patient} customFields={customFields} />}
         {activeTab === "historico" && <HistoricoTab appointments={patient.appointments} patientId={patient.id} />}
-        {activeTab === "tratamentos" && <TratamentosTab patientId={patient.id} />}
         {activeTab === "prescricoes" && <PrescricoesTab patientId={patient.id} />}
         {activeTab === "documentos" && <DocumentosTab patientId={patient.id} />}
-        {activeTab === "imagens" && <ImagensTab patientId={patient.id} />}
-        {activeTab === "gravacoes" && <GravacoesTab recordings={patient.recordings} />}
-        {activeTab === "formularios" && <FormulariosTab patient={patient} anamnesisTemplate={anamnesisTemplate} />}
+        {activeTab === "ficha-clinica" && <FichaClinicaTab patientId={patient.id} />}
+        {activeTab === "orcamentos" && <OrcamentosTab patientId={patient.id} />}
+        {activeTab === "financeiro" && <FinanceiroTab patientId={patient.id} />}
       </div>
     </div>
   )

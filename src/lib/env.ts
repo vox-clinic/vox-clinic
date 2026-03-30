@@ -80,14 +80,6 @@ const envSchema = z.object({
     .string()
     .optional()
     .default(''),
-  INNGEST_EVENT_KEY: z
-    .string()
-    .optional()
-    .default(''),
-  INNGEST_SIGNING_KEY: z
-    .string()
-    .optional()
-    .default(''),
 })
 
 function validateEnv() {

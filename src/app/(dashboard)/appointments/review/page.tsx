@@ -328,7 +328,7 @@ export default function AppointmentReviewPage() {
                   />
                 )}
                 {cidCodes.length === 0 && !editing && (
-                  <p className="text-sm text-muted-foreground">Nenhum codigo CID identificado</p>
+                  <p className="text-sm text-muted-foreground">Nenhum código CID identificado</p>
                 )}
               </CardContent>
             </Card>
@@ -484,7 +484,7 @@ export default function AppointmentReviewPage() {
           {transcript && (
             <Accordion>
               <AccordionItem value="transcript">
-                <AccordionTrigger className="text-sm">Transcricao Original</AccordionTrigger>
+                <AccordionTrigger className="text-sm">Transcrição Original</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                     {transcript}

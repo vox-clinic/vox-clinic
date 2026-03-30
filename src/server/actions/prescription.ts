@@ -4,12 +4,11 @@ import { randomUUID } from "crypto"
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { logAudit } from "@/lib/audit"
-import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_PRESCRIPTION_NOT_FOUND, ERR_PATIENT_NO_PHONE, ERR_PATIENT_NO_WHATSAPP_CONSENT, ERR_PATIENT_NO_EMAIL, ActionError, safeAction } from "@/lib/error-messages"
+import { ERR_UNAUTHORIZED, ERR_USER_NOT_FOUND, ERR_WORKSPACE_NOT_CONFIGURED, ERR_PATIENT_NOT_FOUND, ERR_PRESCRIPTION_NOT_FOUND, ERR_PATIENT_NO_EMAIL, ActionError, safeAction } from "@/lib/error-messages"
 import { requirePermission, normalizeRole, type WorkspaceRole } from "@/lib/permissions"
 import { generatePrescriptionPdf as buildPdf } from "@/lib/pdf/prescription-pdf"
 import { createClient } from "@supabase/supabase-js"
 import { env } from "@/lib/env"
-import { createWhatsAppClient } from "@/lib/whatsapp/client"
 import { sendEmail } from "@/lib/email"
 import { prescriptionEmail } from "@/lib/email-templates"
 
@@ -538,59 +537,6 @@ async function ensurePdfSignedUrl(
 
   return signedData.signedUrl
 }
-
-// ---- Send via WhatsApp ----
-
-export const sendPrescriptionWhatsApp = safeAction(async (prescriptionId: string) => {
-  const { userId, user, workspaceId, role } = await getAuthContext()
-  requirePermission(role, "clinical.prescriptions")
-
-  const prescription = await db.prescription.findFirst({
-    where: { id: prescriptionId, workspaceId },
-    include: { patient: { select: { name: true, phone: true, whatsappConsent: true } } },
-  })
-  if (!prescription) throw new ActionError(ERR_PRESCRIPTION_NOT_FOUND)
-  if (!prescription.patient.phone) throw new ActionError(ERR_PATIENT_NO_PHONE)
-  if (!prescription.patient.whatsappConsent) throw new ActionError(ERR_PATIENT_NO_WHATSAPP_CONSENT)
-
-  // Ensure PDF exists and get signed URL
-  const pdfUrl = await ensurePdfSignedUrl(prescriptionId, workspaceId, userId, user)
-
-  // Send WhatsApp message
-  let client
-  try {
-    client = await createWhatsAppClient(workspaceId)
-  } catch {
-    throw new ActionError("WhatsApp não configurado para este workspace.")
-  }
-
-  const message = `Olá ${prescription.patient.name}, segue sua prescrição médica. Acesse o documento: ${pdfUrl}`
-  await client.sendText(prescription.patient.phone, message)
-
-  // Update prescription sentVia, sentAt, and status
-  const currentSentVia = prescription.sentVia ?? []
-  const updatedSentVia = currentSentVia.includes("whatsapp") ? currentSentVia : [...currentSentVia, "whatsapp"]
-
-  await db.prescription.update({
-    where: { id: prescriptionId },
-    data: {
-      sentVia: updatedSentVia,
-      ...(!prescription.sentAt && { sentAt: new Date() }),
-      ...(prescription.status === "signed" && { status: "sent" }),
-    },
-  })
-
-  await logAudit({
-    workspaceId,
-    userId,
-    action: "prescription.sent_whatsapp",
-    entityType: "Prescription",
-    entityId: prescriptionId,
-    details: { to: prescription.patient.phone },
-  })
-
-  return { success: true as const }
-})
 
 // ---- Send via Email ----
 

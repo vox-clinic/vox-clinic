@@ -106,13 +106,6 @@ export default function NewAppointmentPage() {
         const result = await processConsultation(fd, selectedPatient.id)
         if ('error' in result) { setError(result.error!); setStep("recording"); return }
 
-        // Inngest async path: redirect to processing page
-        if ('status' in result && result.status === "processing") {
-          router.push(`/appointments/processing/${result.recordingId}?type=consultation&patientId=${selectedPatient.id}`)
-          return
-        }
-
-        // Inline path: redirect directly to review
         router.push(`/appointments/review?recordingId=${result.recordingId}&patientId=${selectedPatient.id}`)
       } catch (err) {
         setError(friendlyError(err, "Erro ao processar consulta"))

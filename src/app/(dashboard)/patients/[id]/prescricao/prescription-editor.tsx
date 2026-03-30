@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect, useCallback, useRef } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -21,15 +21,12 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
-  AlertCircle,
-  Info,
   Save,
   FileSignature,
   Pill,
   GripVertical,
 } from "lucide-react"
 import { createPrescription, updatePrescription, signPrescription } from "@/server/actions/prescription"
-import { checkDrugInteractions, type DrugInteractionResult } from "@/server/actions/drug-interaction"
 import { upsertMedicationFavorite } from "@/server/actions/medication"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
@@ -115,9 +112,6 @@ export function PrescriptionEditor({
   const [prescriptionType, setPrescriptionType] = useState("simple")
   const [medications, setMedications] = useState<MedicationItem[]>([{ ...emptyMedication }])
   const [generalNotes, setGeneralNotes] = useState("")
-  const [interactions, setInteractions] = useState<DrugInteractionResult[]>([])
-  const [checkingInteractions, setCheckingInteractions] = useState(false)
-  const [acknowledgedInteractions, setAcknowledgedInteractions] = useState(false)
   const [saving, startSave] = useTransition()
   const [signing, startSign] = useTransition()
 
@@ -125,51 +119,11 @@ export function PrescriptionEditor({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const interactionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const hasGraveInteraction = interactions.some((i) => i.severity === "grave")
 
   // Mark changes
   useEffect(() => {
     setHasUnsavedChanges(true)
   }, [medications, generalNotes, prescriptionType])
-
-  // ---------- Drug interaction check (debounced 800ms) ----------
-
-  const checkInteractionsDebounced = useCallback(async (meds: MedicationItem[]) => {
-    const names = meds.map((m) => m.name.trim()).filter(Boolean)
-    if (names.length < 2) {
-      setInteractions([])
-      return
-    }
-
-    setCheckingInteractions(true)
-    try {
-      const result = await checkDrugInteractions(names)
-      if ("error" in result) {
-        setInteractions([])
-        return
-      }
-      setInteractions(result.interactions)
-      if (result.interactions.some((i) => i.severity === "grave")) {
-        setAcknowledgedInteractions(false)
-      }
-    } catch {
-      setInteractions([])
-    } finally {
-      setCheckingInteractions(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (interactionDebounceRef.current) clearTimeout(interactionDebounceRef.current)
-    interactionDebounceRef.current = setTimeout(() => {
-      checkInteractionsDebounced(medications)
-    }, 800)
-    return () => {
-      if (interactionDebounceRef.current) clearTimeout(interactionDebounceRef.current)
-    }
-  }, [medications, checkInteractionsDebounced])
 
   // ---------- Auto-save every 30 seconds ----------
 
@@ -310,11 +264,6 @@ export function PrescriptionEditor({
     const payload = buildPayload()
     if (!payload) return
 
-    if (hasGraveInteraction && !acknowledgedInteractions) {
-      toast.error("Confirme ciencia das interacoes graves antes de assinar")
-      return
-    }
-
     startSign(async () => {
       try {
         // Create or update first
@@ -336,7 +285,7 @@ export function PrescriptionEditor({
         const signResult = await signPrescription(id!)
         if ("error" in signResult) { toast.error(signResult.error); return }
 
-        toast.success("Prescricao assinada com sucesso")
+        toast.success("Prescrição assinada com sucesso")
         router.push(`/prescriptions/${id}`)
       } catch (e) {
         toast.error(friendlyError(e, "Erro ao assinar prescricao"))
@@ -577,61 +526,6 @@ export function PrescriptionEditor({
             ))}
           </div>
 
-          {/* Drug interaction alerts */}
-          {(interactions.length > 0 || checkingInteractions) && (
-            <div className="space-y-2">
-              {checkingInteractions && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                  <Loader2 className="size-3 animate-spin" />
-                  Verificando interacoes medicamentosas...
-                </div>
-              )}
-              {interactions.map((ix, idx) => {
-                const isGrave = ix.severity === "grave"
-                const isModerada = ix.severity === "moderada"
-                return (
-                  <div
-                    key={idx}
-                    className={`flex items-start gap-2 rounded-xl border p-3 text-xs ${
-                      isGrave
-                        ? "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
-                        : isModerada
-                          ? "border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300"
-                          : "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
-                    }`}
-                  >
-                    {isGrave ? (
-                      <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                    ) : isModerada ? (
-                      <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                    ) : (
-                      <Info className="size-4 shrink-0 mt-0.5" />
-                    )}
-                    <div>
-                      <span className="font-semibold">
-                        {isGrave ? "Interacao grave" : isModerada ? "Interacao moderada" : "Interacao leve"}:
-                      </span>{" "}
-                      {ix.drug1} + {ix.drug2} — {ix.description}
-                    </div>
-                  </div>
-                )
-              })}
-              {hasGraveInteraction && (
-                <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-red-300 bg-red-50/50 p-3 dark:border-red-800 dark:bg-red-950/20">
-                  <input
-                    type="checkbox"
-                    checked={acknowledgedInteractions}
-                    onChange={(e) => setAcknowledgedInteractions(e.target.checked)}
-                    className="size-4 rounded accent-red-600"
-                  />
-                  <span className="text-xs font-medium text-red-800 dark:text-red-300">
-                    Ciente das interacoes graves detectadas
-                  </span>
-                </label>
-              )}
-            </div>
-          )}
-
           {/* Add medication button */}
           <Button
             variant="outline"
@@ -653,7 +547,7 @@ export function PrescriptionEditor({
               <div className="p-6 space-y-5 text-xs text-foreground" style={{ minHeight: 500 }}>
                 {/* Clinic header */}
                 <div className="text-center border-b border-border/40 pb-4">
-                  <p className="text-sm font-semibold">Clinica</p>
+                  <p className="text-sm font-semibold">Clínica</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
                     {PRESCRIPTION_TYPES.find((t) => t.value === prescriptionType)?.label ?? "Receita simples"}
                   </p>

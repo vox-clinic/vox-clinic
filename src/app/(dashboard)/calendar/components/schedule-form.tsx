@@ -67,12 +67,14 @@ function ScheduleFormInner({
   agendas,
   defaultAgendaId,
   defaultDate,
+  defaultTime,
   onSchedule,
   onCancel,
 }: {
   agendas: AgendaItem[]
   defaultAgendaId: string
   defaultDate?: string
+  defaultTime?: string
   onSchedule: (data: {
     patientId: string
     date: string
@@ -92,7 +94,7 @@ function ScheduleFormInner({
   const [selectedPatient, setSelectedPatient] = useState<PatientOption | null>(null)
   const [searchingPatients, setSearchingPatients] = useState(false)
   const [scheduleDate, setScheduleDate] = useState(defaultDate || "")
-  const [scheduleTime, setScheduleTime] = useState("")
+  const [scheduleTime, setScheduleTime] = useState(defaultTime || "")
   const [scheduleNotes, setScheduleNotes] = useState("")
   const [scheduleAgendaId, setScheduleAgendaId] = useState(defaultAgendaId)
   const [appointmentType, setAppointmentType] = useState<"presencial" | "teleconsulta">("presencial")
