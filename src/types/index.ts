@@ -25,6 +25,10 @@ export interface Procedure {
   category: string
   price?: number
   duration?: number // minutes (default 30)
+  specialty?: string
+  cost?: number        // clinic cost in centavos
+  commission?: number  // percentage 0-100
+  internalCode?: string
 }
 
 export interface CustomField {

@@ -11,7 +11,6 @@ import { NavBottom } from "@/components/nav-bottom"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CommandPalette } from "@/components/command-palette"
 import { NotificationBell } from "@/components/notification-bell"
-import { TourProvider } from "@/components/tour/tour-provider"
 import { VoiceAssistantButton } from "@/components/voice-assistant-button"
 import { normalizeRole, type WorkspaceRole } from "@/lib/permissions"
 
@@ -50,7 +49,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-full flex flex-col">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-xl focus:bg-vox-primary focus:px-4 focus:py-2 focus:text-white focus:text-sm focus:font-medium focus:shadow-lg">
-        Pular para conteudo
+        Pular para conteúdo
       </a>
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-4 md:px-6">
@@ -97,12 +96,7 @@ export default async function DashboardLayout({
         <NavSidebar clinicName={user.clinicName} role={role} />
         <main id="main-content" className="flex-1 overflow-auto">
           <div className="px-4 py-5 pb-24 md:px-6 md:py-6 md:pb-8 lg:px-8">
-            <TourProvider
-              initialTourCompleted={user.tourCompleted}
-              initialTourStep={user.tourStep}
-            >
-              {children}
-            </TourProvider>
+            {children}
           </div>
         </main>
       </div>

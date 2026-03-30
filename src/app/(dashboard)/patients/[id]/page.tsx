@@ -7,12 +7,10 @@ import { AlertTriangle, FileText, ChevronLeft, Phone, Mail, Calendar, Shield, Ta
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { PatientTabs } from "./patient-tabs"
-import { ExportButton } from "./export-button"
 import { DeactivateButton } from "./deactivate-button"
 import { MergeDialog } from "./merge-dialog"
 import { MoreActionsDropdown } from "./more-actions-dropdown"
 import { CreatePrescriptionButton } from "@/components/create-prescription-dialog"
-import { CreateCertificateButton } from "@/components/create-certificate-dialog"
 
 export default async function PatientPage({
   params,
@@ -32,11 +30,10 @@ export default async function PatientPage({
   const user = userId
     ? await db.user.findUnique({
         where: { clerkId: userId },
-        include: { workspace: { select: { customFields: true, anamnesisTemplate: true } } },
+        include: { workspace: { select: { customFields: true } } },
       })
     : null
   const customFields = (user?.workspace?.customFields as any[]) ?? []
-  const anamnesisTemplate = (user?.workspace?.anamnesisTemplate as any[]) ?? []
 
   const initials = patient.name
     .split(" ")
@@ -138,61 +135,49 @@ export default async function PatientPage({
           <div className="flex items-center gap-2 shrink-0">
             {/* Desktop: show all buttons */}
             <div className="hidden sm:flex items-center gap-2 flex-wrap">
-              <div title="Criar nova prescricao de medicamentos para este paciente">
+              <div title="Criar nova prescrição de medicamentos para este paciente">
                 <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} patientCpf={patient.document} patientPhone={patient.phone} />
               </div>
-              <Link href={`/patients/${patient.id}/prescricao`} title="Abrir editor completo de prescricao com pre-visualizacao">
+              <Link href={`/patients/${patient.id}/prescricao`} title="Abrir editor completo de prescrição com pré-visualização">
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <FilePen className="size-3.5" />
-                  Editor de Prescricao
+                  Editor de Prescrição
                 </Button>
               </Link>
-              <div title="Gerar atestado, declaracao de comparecimento, encaminhamento ou laudo">
-                <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
-              </div>
-              <Link href={`/patients/${patient.id}/report`} target="_blank" title="Abrir relatorio completo para impressao (Ctrl+P)">
+              <Link href={`/patients/${patient.id}/report`} target="_blank" title="Abrir relatório completo para impressão (Ctrl+P)">
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <FileText className="size-3.5" />
-                  Relatorio
+                  Relatório
                 </Button>
               </Link>
               <MoreActionsDropdown>
-                <div title="Exportar todos os dados deste paciente em CSV (LGPD)" className="w-full">
-                  <ExportButton patientId={patient.id} patientName={patient.name} />
-                </div>
-                <div title="Mesclar outro paciente duplicado neste registro. Transfere consultas, gravacoes e documentos." className="w-full">
+                <div title="Mesclar outro paciente duplicado neste registro. Transfere consultas, gravações e documentos." className="w-full">
                   <MergeDialog patientId={patient.id} patientName={patient.name} />
                 </div>
-                <div title="Desativar paciente (soft delete — historico preservado por 20 anos conforme CFM)" className="w-full">
+                <div title="Desativar paciente (soft delete — histórico preservado por 20 anos conforme CFM)" className="w-full">
                   <DeactivateButton patientId={patient.id} />
                 </div>
               </MoreActionsDropdown>
             </div>
             {/* Mobile: single dropdown with all actions */}
             <div className="sm:hidden">
-              <MoreActionsDropdown label="Acoes">
+              <MoreActionsDropdown label="Ações">
                 <div className="w-full">
                   <CreatePrescriptionButton patientId={patient.id} patientName={patient.name} patientCpf={patient.document} patientPhone={patient.phone} />
                 </div>
                 <Link href={`/patients/${patient.id}/prescricao`} className="w-full">
                   <Button variant="ghost" size="sm" className="gap-1.5 w-full justify-start">
                     <FilePen className="size-3.5" />
-                    Editor de Prescricao
+                    Editor de Prescrição
                   </Button>
                 </Link>
-                <div className="w-full">
-                  <CreateCertificateButton patientId={patient.id} patientName={patient.name} />
-                </div>
                 <Link href={`/patients/${patient.id}/report`} target="_blank" className="w-full">
                   <Button variant="ghost" size="sm" className="gap-1.5 w-full justify-start">
                     <FileText className="size-3.5" />
-                    Relatorio
+                    Relatório
                   </Button>
                 </Link>
                 <div className="w-full border-t border-border/40 pt-1 mt-1">
-                  <ExportButton patientId={patient.id} patientName={patient.name} />
-                </div>
-                <div className="w-full">
                   <MergeDialog patientId={patient.id} patientName={patient.name} />
                 </div>
                 <div className="w-full">
@@ -204,7 +189,7 @@ export default async function PatientPage({
         </div>
       </div>
 
-      <PatientTabs patient={patient} customFields={customFields} anamnesisTemplate={anamnesisTemplate} />
+      <PatientTabs patient={patient} customFields={customFields} />
     </div>
   )
 }

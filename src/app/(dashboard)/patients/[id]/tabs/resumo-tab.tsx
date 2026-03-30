@@ -24,15 +24,89 @@ import {
   MessageSquare,
 } from "lucide-react"
 import { updatePatient, grantWhatsAppConsent, revokeWhatsAppConsent } from "@/server/actions/patient"
-import { getPatientBalance } from "@/server/actions/receivable"
 import { toast } from "sonner"
+import { updatePatientNotes } from "@/server/actions/patient"
 import type { PatientData, CustomFieldDef } from "./types"
+
+function QuickAddNotes({
+  label,
+  notes,
+  patientId,
+  field,
+  isEditing,
+  onNotesChange,
+  placeholder,
+  accent = "vox-primary",
+}: {
+  label: string
+  notes: string
+  patientId: string
+  field: "notes" | "personalNotes"
+  isEditing: boolean
+  onNotesChange: (val: string) => void
+  placeholder?: string
+  accent?: string
+}) {
+  const [newNote, setNewNote] = useState("")
+  const [adding, setAdding] = useState(false)
+
+  const entries = notes.split("\n").filter((l) => l.trim())
+
+  async function handleAdd() {
+    if (!newNote.trim()) return
+    setAdding(true)
+    const datePrefix = new Date().toISOString().split("T")[0]
+    const entry = `[${datePrefix}]: ${newNote.trim()}`
+    const updated = notes ? `${notes}\n${entry}` : entry
+    try {
+      await updatePatientNotes(patientId, field, updated)
+      onNotesChange(updated)
+      setNewNote("")
+      toast.success("Adicionado")
+    } catch {
+      toast.error("Erro ao salvar")
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      {entries.length > 0 ? (
+        <div className="space-y-0.5">
+          {entries.map((entry, i) => (
+            <p key={i} className="text-xs text-foreground">{entry}</p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-muted-foreground/60 italic">Nenhuma anotação</p>
+      )}
+      {isEditing ? (
+        <Textarea value={notes} onChange={(e) => onNotesChange(e.target.value)} placeholder="Editar..." className="text-xs" rows={2} />
+      ) : (
+        <div className="flex gap-2 mt-1">
+          <Input
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            placeholder={placeholder ?? "Adicionar anotação..."}
+            className="flex-1 h-7 text-xs"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd() } }}
+          />
+          <Button size="sm" onClick={handleAdd} disabled={!newNote.trim() || adding} variant="outline" className="h-7 px-2">
+            <Plus className="size-3" />
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const genderLabels: Record<string, string> = {
   masculino: "Masculino",
   feminino: "Feminino",
   outro: "Outro",
-  nao_informado: "Nao informado",
+  nao_informado: "Não informado",
 }
 
 const sourceLabels: Record<string, string> = {
@@ -89,11 +163,6 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
   const [consentLoading, setConsentLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [cepLoading, setCepLoading] = useState(false)
-  const [balance, setBalance] = useState<{ pending: number; overdue: number; total: number } | null>(null)
-
-  useEffect(() => {
-    getPatientBalance(patient.id).then(setBalance).catch(() => {})
-  }, [patient.id])
 
   useEffect(() => {
     const zip = address?.zipCode || ""
@@ -249,27 +318,15 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
             <p className="text-[10px] text-muted-foreground mt-0.5">Gravações</p>
           </div>
         </div>
-        {balance && balance.total > 0 ? (
-          <div className="flex items-center gap-2.5 rounded-xl bg-vox-warning/5 border border-vox-warning/20 px-3 py-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-vox-warning/10 shrink-0">
-              <AlertTriangle className="size-3.5 text-vox-warning" />
-            </div>
-            <div>
-              <p className="text-[12px] font-bold text-vox-warning leading-none">R$ {(balance.total / 100).toFixed(2).replace(".", ",")}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Saldo devedor</p>
-            </div>
+        <div className="flex items-center gap-2.5 rounded-xl bg-muted/30 border border-border/30 px-3 py-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-vox-success/10 shrink-0">
+            <Shield className="size-3.5 text-vox-success" />
           </div>
-        ) : (
-          <div className="flex items-center gap-2.5 rounded-xl bg-muted/30 border border-border/30 px-3 py-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-vox-success/10 shrink-0">
-              <Shield className="size-3.5 text-vox-success" />
-            </div>
-            <div>
-              <p className="text-[12px] font-semibold text-vox-success leading-none">Em dia</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Financeiro</p>
-            </div>
+          <div>
+            <p className="text-[12px] font-semibold text-vox-success leading-none">Em dia</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Financeiro</p>
           </div>
-        )}
+        </div>
       </div>
 
     <Card>
@@ -293,7 +350,7 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
             { id: "rg", label: "RG", value: patient.rg, editEl: <Input value={rg} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRg(e.target.value)} placeholder="00.000.000-0" /> },
             { id: "gender", label: "Sexo", value: patient.gender ? genderLabels[patient.gender] || patient.gender : null, editEl: (
               <select value={gender} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGender(e.target.value)} className="h-10 w-full rounded-xl border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                <option value="">Nao informado</option>
+                <option value="">Não informado</option>
                 <option value="masculino">Masculino</option>
                 <option value="feminino">Feminino</option>
                 <option value="outro">Outro</option>
@@ -306,7 +363,7 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
             { id: "guardian", label: "Responsavel", value: patient.guardian, editEl: <Input value={guardian} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGuardian(e.target.value)} placeholder="Nome do responsavel" /> },
             { id: "source", label: "Origem", value: patient.source ? sourceLabels[patient.source] || patient.source : null, editEl: (
               <select value={source} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSource(e.target.value)} className="h-10 w-full rounded-xl border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                <option value="">Nao informado</option>
+                <option value="">Não informado</option>
                 <option value="instagram">Instagram</option>
                 <option value="google">Google</option>
                 <option value="facebook">Facebook</option>
@@ -513,9 +570,9 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
 
         {/* Medical History */}
         <div className="rounded-lg border border-vox-primary/30 bg-vox-primary/5 p-3 space-y-3">
-          <p className="text-sm font-medium text-vox-primary flex items-center gap-1.5"><Heart className="size-3.5" /> Historico Medico</p>
+          <p className="text-sm font-medium text-vox-primary flex items-center gap-1.5"><Heart className="size-3.5" /> Histórico Médico</p>
           {(["allergies", "chronicDiseases", "medications"] as const).map((field) => {
-            const labels: Record<string, string> = { allergies: "Alergias", chronicDiseases: "Doencas Cronicas", medications: "Medicacoes em Uso" }
+            const labels: Record<string, string> = { allergies: "Alergias", chronicDiseases: "Doenças Crônicas", medications: "Medicações em Uso" }
             const items = (medicalHistory[field] as string[]) ?? []
             return (
               <div key={field} className="space-y-1">
@@ -541,24 +598,25 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
             )
           })}
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Tipo Sanguineo</p>
+            <p className="text-xs font-medium text-muted-foreground">Tipo Sanguíneo</p>
             {isEditing ? (
               <select value={(medicalHistory.bloodType as string) ?? ""} onChange={(e) => setMedicalHistory({ ...medicalHistory, bloodType: e.target.value || null })} className="h-8 rounded-xl border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                <option value="">Nao informado</option>
+                <option value="">Não informado</option>
                 {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             ) : (
               <p className="text-sm">{(medicalHistory.bloodType as string) || <span className="text-muted-foreground/60 italic text-[11px]">Não informado</span>}</p>
             )}
           </div>
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Observacoes Medicas</p>
-            {isEditing ? (
-              <Textarea value={(medicalHistory.notes as string) ?? ""} onChange={(e) => setMedicalHistory({ ...medicalHistory, notes: e.target.value || null })} placeholder="Observacoes gerais..." className="text-xs" rows={2} />
-            ) : (
-              <p className="text-sm">{(medicalHistory.notes as string) || <span className="text-muted-foreground/60 italic text-[11px]">Nenhuma observação</span>}</p>
-            )}
-          </div>
+          <QuickAddNotes
+            label="Observações Médicas"
+            notes={(medicalHistory.notes as string) ?? ""}
+            patientId={patient.id}
+            field="notes"
+            isEditing={isEditing}
+            onNotesChange={(val) => setMedicalHistory({ ...medicalHistory, notes: val || null })}
+            placeholder="Observação clínica..."
+          />
         </div>
 
         {/* Alerts */}
@@ -614,23 +672,20 @@ export default function ResumoTab({ patient, customFields }: { patient: PatientD
           )}
         </div>
 
-        {/* WhatsApp Consent */}
-        <div className="flex items-center justify-between rounded-lg border border-border/40 p-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="size-4 text-green-600" />
-            <div>
-              <p className="text-sm font-medium">Autoriza receber mensagens via WhatsApp</p>
-              {patient.whatsappConsentAt && whatsappConsent && (
-                <p className="text-xs text-muted-foreground">
-                  Autorizado em {new Date(patient.whatsappConsentAt).toLocaleDateString("pt-BR")}
-                </p>
-              )}
-            </div>
-          </div>
-          <Switch
-            checked={whatsappConsent}
-            onCheckedChange={handleWhatsAppConsentToggle}
-            disabled={consentLoading}
+        {/* Personal Notes - for relationship building */}
+        <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 space-y-2">
+          <p className="text-sm font-medium text-blue-500 flex items-center gap-1.5">
+            <MessageSquare className="size-3.5" /> Anotações Pessoais
+          </p>
+          <p className="text-[10px] text-muted-foreground">Aniversário, preferências, indicação — coisas para lembrar no atendimento</p>
+          <QuickAddNotes
+            label=""
+            notes={(medicalHistory.personalNotes as string) ?? ""}
+            patientId={patient.id}
+            field="personalNotes"
+            isEditing={isEditing}
+            onNotesChange={(val) => setMedicalHistory({ ...medicalHistory, personalNotes: val || null })}
+            placeholder="Ex: Aniversário 11/10, gosta de café..."
           />
         </div>
 

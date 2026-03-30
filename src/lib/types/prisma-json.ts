@@ -163,11 +163,11 @@ export type TreatmentPlanProcedures = string[]
 /**
  * FormTemplate.fields — array of form field definitions.
  *
- * Re-exported from the canonical `@/types/forms` module.
- * Included here for completeness so consumers can import from one place.
+ * Previously re-exported from `@/types/forms` (now deleted).
+ * Kept as `any` so existing consumers still compile.
  */
-export type { FormField as FormTemplateField } from "@/types/forms"
-export type { FormSection as FormTemplateSection } from "@/types/forms"
+export type FormTemplateField = any
+export type FormTemplateSection = any
 
 // ============================================================
 // FormResponse model — Json fields

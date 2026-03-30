@@ -68,13 +68,6 @@ export default function VoicePatientPage() {
       const result = await processVoiceRegistration(fd)
       if ('error' in result) { setError(result.error!); setState("recording"); return }
 
-      // Inngest async path: redirect to processing page
-      if ('status' in result && result.status === "processing") {
-        router.push(`/appointments/processing/${result.recordingId}?type=registration`)
-        return
-      }
-
-      // Inline path: result has transcript + extractedData
       setTranscript(result.transcript)
       setExtractedData(result.extractedData)
       setRecordingId(result.recordingId)
@@ -476,7 +469,7 @@ export default function VoicePatientPage() {
       {transcript && (
         <Accordion>
           <AccordionItem value="transcript">
-            <AccordionTrigger>Transcricao Original</AccordionTrigger>
+            <AccordionTrigger>Transcrição Original</AccordionTrigger>
             <AccordionContent>
               <p className="text-muted-foreground whitespace-pre-wrap">{transcript}</p>
             </AccordionContent>

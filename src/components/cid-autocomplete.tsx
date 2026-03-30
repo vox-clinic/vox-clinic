@@ -216,7 +216,7 @@ export function CidAutocomplete(props: CidAutocompleteProps) {
           }}
           onKeyDown={handleKeyDown}
           placeholder={
-            placeholder ?? "Digite o codigo ou nome da doenca (CID-10)"
+            placeholder ?? "Digite o código ou nome da doença (CID-10)"
           }
           disabled={disabled}
           className="pl-9 pr-9"

@@ -12,7 +12,6 @@ import { recordConsent } from "@/lib/consent"
 import { getDefaultAgendaIdForWorkspace } from "@/server/actions/agenda"
 import { readProcedures, toJsonValue, readMedicalHistory } from "@/lib/json-helpers"
 import { logger } from "@/lib/logger"
-import { sendInngestEvent, isInngestEnabled } from "@/lib/inngest/client"
 import { requireWorkspaceRole } from "@/lib/auth-context"
 import type { AppointmentSummary } from "@/types"
 import { ERR_UNAUTHORIZED, ERR_WORKSPACE_NOT_CONFIGURED, ERR_NO_AUDIO, ERR_AUDIO_TOO_LARGE, ERR_RECORDING_NOT_FOUND, ERR_ALREADY_CONFIRMED, ERR_PROCESSING_FAILED, ERR_RECORDING_RATE_LIMIT, ERR_RECORDING_PLAN_LIMIT, ActionError, safeAction } from "@/lib/error-messages"
@@ -52,38 +51,6 @@ export const processConsultation = safeAction(async (formData: FormData, patient
   const arrayBuffer = await audioFile.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
 
-  // --- Inngest path: upload audio first, then send lightweight event ---
-  if (isInngestEnabled()) {
-    const audioPath = await uploadAudio(buffer, audioFile.name || "consultation.webm")
-
-    const recording = await db.recording.create({
-      data: {
-        workspaceId,
-        audioUrl: audioPath,
-        status: "processing",
-        patientId,
-        fileSize: audioFile.size,
-      },
-    })
-
-    await sendInngestEvent("app/audio.uploaded", {
-      workspaceId,
-      userId,
-      patientId,
-      type: "consultation",
-      recordingId: recording.id,
-      audioPath,
-      filename: audioFile.name || "consultation.webm",
-      fileSize: audioFile.size,
-    })
-
-    return {
-      recordingId: recording.id,
-      status: "processing" as const,
-    }
-  }
-
-  // --- Inline path: existing synchronous pipeline (default) ---
   let audioPath: string | null = null
   let transcript: string | null = null
 

@@ -72,10 +72,10 @@ export function PrescriptionActions({
         toast.error(result.error)
         return
       }
-      toast.success("Prescricao assinada com sucesso")
+      toast.success("Prescrição assinada com sucesso")
       router.refresh()
     } catch {
-      toast.error("Erro ao assinar prescricao.")
+      toast.error("Erro ao assinar prescrição.")
     } finally {
       setSigning(false)
     }
@@ -96,12 +96,12 @@ export function PrescriptionActions({
         toast.error(result.error)
         return
       }
-      toast.success("Prescricao cancelada")
+      toast.success("Prescrição cancelada")
       setCancelDialogOpen(false)
       setCancelReasonText("")
       router.refresh()
     } catch {
-      toast.error("Erro ao cancelar prescricao.")
+      toast.error("Erro ao cancelar prescrição.")
     } finally {
       setCancelling(false)
     }
@@ -142,7 +142,7 @@ export function PrescriptionActions({
       {status === "expired" && validUntil && (
         <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-200/60 dark:border-orange-800/40 px-4 py-3">
           <p className="text-sm text-orange-700 dark:text-orange-400">
-            Prescricao expirada em {new Date(validUntil).toLocaleDateString("pt-BR")}
+            Prescrição expirada em {new Date(validUntil).toLocaleDateString("pt-BR")}
           </p>
         </div>
       )}
@@ -183,7 +183,7 @@ export function PrescriptionActions({
       {cancelDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-background rounded-2xl border shadow-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-2">Cancelar prescricao</h3>
+            <h3 className="text-lg font-semibold mb-2">Cancelar prescrição</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Informe o motivo do cancelamento. Esta acao nao pode ser desfeita.
             </p>

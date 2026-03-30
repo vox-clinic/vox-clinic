@@ -86,7 +86,7 @@ export default async function PatientReportPage({
               </p>
             </div>
             <h1 className="text-2xl font-semibold mt-4 tracking-tight print:text-3xl text-slate-900 print:text-black">
-              Relatorio do Paciente
+              Relatório do Paciente
             </h1>
           </header>
 
@@ -171,7 +171,7 @@ export default async function PatientReportPage({
           {patient.medicalHistory && Object.values(patient.medicalHistory).some(v => v && (Array.isArray(v) ? v.length > 0 : true)) && (
             <section>
               <h2 className="text-lg font-semibold mb-3 text-slate-900 print:text-black">
-                Historico Medico
+                Histórico Médico
               </h2>
               <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
                 {(patient.medicalHistory.allergies as string[] ?? []).length > 0 && (
@@ -251,7 +251,7 @@ export default async function PatientReportPage({
           {/* Appointment History */}
           <section className="print:break-before-auto">
             <h2 className="text-lg font-semibold mb-4 text-slate-900 print:text-black">
-              Historico de Consultas
+              Histórico de Consultas
             </h2>
             {patient.appointments.length === 0 ? (
               <p className="text-sm text-slate-500 italic">

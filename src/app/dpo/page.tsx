@@ -9,7 +9,7 @@ const REQUEST_TYPES = [
   { value: "exclusao", label: "Exclusao dos meus dados" },
   { value: "portabilidade", label: "Portabilidade dos dados" },
   { value: "revogacao", label: "Revogacao de consentimento" },
-  { value: "informacao", label: "Informacoes sobre tratamento de dados" },
+  { value: "informacao", label: "Informações sobre tratamento de dados" },
   { value: "oposicao", label: "Oposicao ao tratamento" },
   { value: "outro", label: "Outra solicitacao" },
 ] as const

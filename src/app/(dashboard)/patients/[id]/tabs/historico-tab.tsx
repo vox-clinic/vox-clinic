@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,24 +14,11 @@ import {
   XCircle,
   FileText,
   Video,
-  ClipboardList,
 } from "lucide-react"
 import { updateAppointmentStatus } from "@/server/actions/appointment"
-import { getPatientFormResponses } from "@/server/actions/form-response"
-import { FormRenderer } from "@/components/form-renderer"
 import { toast } from "sonner"
 import Link from "next/link"
 import type { PatientData } from "./types"
-import type { FormField } from "@/types/forms"
-
-// Form responses linked to appointments (for badge display)
-interface AppointmentFormData {
-  id: string
-  templateName: string
-  templateFields: unknown[]
-  answers: Record<string, unknown>
-  status: string
-}
 
 export default function HistoricoTab({
   appointments,
@@ -43,35 +30,6 @@ export default function HistoricoTab({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({})
-
-  // Form responses per appointment
-  const [formsByAppointment, setFormsByAppointment] = useState<Record<string, AppointmentFormData[]>>({})
-  const [formsExpanded, setFormsExpanded] = useState<Record<string, boolean>>({})
-
-  // Load form responses for the patient and group by appointmentId
-  useEffect(() => {
-    async function loadForms() {
-      try {
-        const responses = await getPatientFormResponses(patientId)
-        const grouped: Record<string, AppointmentFormData[]> = {}
-        for (const r of responses) {
-          if (!r.appointmentId) continue
-          if (!grouped[r.appointmentId]) grouped[r.appointmentId] = []
-          grouped[r.appointmentId].push({
-            id: r.id,
-            templateName: r.templateName,
-            templateFields: r.templateFields,
-            answers: r.answers,
-            status: r.status,
-          })
-        }
-        setFormsByAppointment(grouped)
-      } catch {
-        // Silently fail — form responses are supplementary info
-      }
-    }
-    loadForms()
-  }, [patientId])
 
   async function handleStatusChange(appointmentId: string, newStatus: string) {
     setUpdatingId(appointmentId)
@@ -164,12 +122,6 @@ export default function HistoricoTab({
                             <span className="text-sm font-medium text-vox-primary">
                               R$ {(apt.price / 100).toFixed(2).replace(".", ",")}
                             </span>
-                          )}
-                          {formsByAppointment[apt.id] && formsByAppointment[apt.id].length > 0 && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-                              <ClipboardList className="size-3 mr-1" />
-                              {formsByAppointment[apt.id].length} formulario{formsByAppointment[apt.id].length !== 1 ? "s" : ""}
-                            </Badge>
                           )}
                         </div>
                         {(apt.procedures as any[]).length > 0 && (
@@ -295,7 +247,7 @@ export default function HistoricoTab({
                       )}
                       {apt.transcript && (
                         <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">Transcricao</p>
+                          <p className="text-xs font-medium text-muted-foreground">Transcrição</p>
                           <p className="text-sm whitespace-pre-wrap text-muted-foreground bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
                             {apt.transcript}
                           </p>
@@ -316,60 +268,6 @@ export default function HistoricoTab({
                               </Badge>
                             ))}
                           </div>
-                        </div>
-                      )}
-                      {formsByAppointment[apt.id] && formsByAppointment[apt.id].length > 0 && (
-                        <div className="space-y-1">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setFormsExpanded((prev) => ({
-                                ...prev,
-                                [apt.id]: !prev[apt.id],
-                              }))
-                            }}
-                            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <ClipboardList className="size-3" />
-                            Formularios ({formsByAppointment[apt.id].length})
-                            {formsExpanded[apt.id] ? (
-                              <ChevronUp className="size-3" />
-                            ) : (
-                              <ChevronDown className="size-3" />
-                            )}
-                          </button>
-                          {formsExpanded[apt.id] && (
-                            <div className="space-y-2 mt-2">
-                              {formsByAppointment[apt.id].map((form) => (
-                                <div
-                                  key={form.id}
-                                  className="rounded-xl border bg-muted/30 p-3 space-y-2"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-xs font-medium">{form.templateName}</p>
-                                    <Badge
-                                      variant="outline"
-                                      className={
-                                        form.status === "completed"
-                                          ? "text-[10px] bg-vox-success/10 text-vox-success border-vox-success/20"
-                                          : "text-[10px] bg-vox-warning/10 text-vox-warning border-vox-warning/20"
-                                      }
-                                    >
-                                      {form.status === "completed" ? "Preenchido" : "Rascunho"}
-                                    </Badge>
-                                  </div>
-                                  <FormRenderer
-                                    fields={form.templateFields as FormField[]}
-                                    values={form.answers}
-                                    onChange={() => {}}
-                                    readOnly
-                                    showValidation={false}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       )}
                       {currentStatus === "completed" && (

@@ -12,11 +12,8 @@ import {
   DollarSign,
   UserPlus,
   ArrowRight,
-  FileText,
   Loader2,
   Command,
-  CreditCard,
-  BarChart3,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { searchPatients } from "@/server/actions/patient"
@@ -34,9 +31,7 @@ const pages = [
   { id: "calendar", label: "Agenda", href: "/calendar", icon: CalendarDays, keywords: "calendario consultas agendamento" },
   { id: "appointments", label: "Atendimentos", href: "/appointments", icon: CalendarDays, keywords: "atendimentos consultas historico lista" },
   { id: "financial", label: "Financeiro", href: "/financial", icon: DollarSign, keywords: "receita faturamento valor" },
-  { id: "reports", label: "Relatórios", href: "/reports", icon: BarChart3, keywords: "relatorios analytics graficos" },
   { id: "settings", label: "Configurações", href: "/settings", icon: Settings, keywords: "config preferencias workspace" },
-  { id: "billing", label: "Plano e Assinatura", href: "/settings/billing", icon: CreditCard, keywords: "plano billing assinatura upgrade stripe pagamento" },
 ]
 
 const actions = [

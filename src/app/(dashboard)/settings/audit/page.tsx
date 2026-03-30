@@ -39,19 +39,19 @@ const ACTION_LABELS: Record<string, string> = {
   // Consultation
   "processConsultation": "Consulta processada por IA",
   // Prescription
-  "prescription.created": "Prescricao criada",
-  "prescription.updated": "Prescricao atualizada",
-  "prescription.deleted": "Prescricao excluida",
-  "prescription.cancelled": "Prescricao cancelada",
-  "prescription.signed": "Prescricao assinada",
-  "prescription.type_updated": "Tipo de prescricao atualizado",
-  "prescription.pdf_generated": "PDF de prescricao gerado",
-  "prescription.sent_email": "Prescricao enviada por email",
-  "prescription.sent_whatsapp": "Prescricao enviada por WhatsApp",
+  "prescription.created": "Prescrição criada",
+  "prescription.updated": "Prescrição atualizada",
+  "prescription.deleted": "Prescrição excluida",
+  "prescription.cancelled": "Prescrição cancelada",
+  "prescription.signed": "Prescrição assinada",
+  "prescription.type_updated": "Tipo de prescrição atualizado",
+  "prescription.pdf_generated": "PDF de prescrição gerado",
+  "prescription.sent_email": "Prescrição enviada por email",
+  "prescription.sent_whatsapp": "Prescrição enviada por WhatsApp",
   // Prescription Template
-  "prescription_template.created": "Modelo de prescricao criado",
-  "prescription_template.created_from_prescription": "Modelo criado a partir de prescricao",
-  "prescription_template.deleted": "Modelo de prescricao excluido",
+  "prescription_template.created": "Modelo de prescrição criado",
+  "prescription_template.created_from_prescription": "Modelo criado a partir de prescrição",
+  "prescription_template.deleted": "Modelo de prescrição excluido",
   // Certificate
   "certificate.created": "Atestado criado",
   "certificate.deleted": "Atestado excluido",
@@ -99,9 +99,9 @@ const ACTION_LABELS: Record<string, string> = {
   // NFS-e
   "nfse.emitted": "NFS-e emitida",
   "nfse.cancelled": "NFS-e cancelada",
-  "nfse_config.saved": "Configuracao NFS-e salva",
+  "nfse_config.saved": "Configuração NFS-e salva",
   // TISS
-  "tiss_config.save": "Configuracao TISS salva",
+  "tiss_config.save": "Configuração TISS salva",
   "tiss_guide.create": "Guia TISS criada",
   "tiss_guide.status_update": "Status de guia TISS atualizado",
   "tiss_batch.generate": "Lote TISS gerado",
@@ -133,11 +133,11 @@ const ENTITY_LABELS: Record<string, string> = {
   Appointment: "Consulta",
   Recording: "Gravacao",
   TreatmentPlan: "Tratamento",
-  Prescription: "Prescricao",
-  PrescriptionTemplate: "Modelo Prescricao",
+  Prescription: "Prescrição",
+  PrescriptionTemplate: "Modelo Prescrição",
   MedicalCertificate: "Atestado",
   PatientDocument: "Documento",
-  ClinicalImage: "Imagem Clinica",
+  ClinicalImage: "Imagem Clínica",
   Charge: "Cobranca",
   Payment: "Pagamento",
   Expense: "Despesa",
@@ -261,11 +261,11 @@ function getActionCategory(action: string): string {
     patient: "Paciente",
     appointment: "Consulta",
     recording: "Gravacao",
-    prescription: "Prescricao",
-    prescription_template: "Modelo Prescricao",
+    prescription: "Prescrição",
+    prescription_template: "Modelo Prescrição",
     certificate: "Atestado",
     treatmentPlan: "Tratamento",
-    clinical_image: "Imagem Clinica",
+    clinical_image: "Imagem Clínica",
     document: "Documento",
     charge: "Financeiro",
     payment: "Financeiro",
@@ -358,7 +358,7 @@ export default function AuditLogPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Log de Auditoria</h1>
         <p className="text-muted-foreground mt-1">
-          Historico completo de todas as acoes realizadas na clinica
+          Histórico completo de todas as ações realizadas na clínica
         </p>
       </div>
 

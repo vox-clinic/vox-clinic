@@ -18,6 +18,7 @@ function DayViewInner({
   onDelete,
   onDeleteBlockedSlot,
   onUpdateBlockedSlot,
+  onSlotClick,
 }: {
   currentDate: Date
   appointments: AppointmentItem[]
@@ -26,6 +27,7 @@ function DayViewInner({
   onDelete: (id: string) => void
   onDeleteBlockedSlot: (id: string) => void
   onUpdateBlockedSlot: (id: string, data: { title?: string; startDate?: string; endDate?: string; allDay?: boolean; recurring?: string | null }) => Promise<void>
+  onSlotClick?: (date: string, time: string) => void
 }) {
   const appointmentIndex = useMemo(() => buildAppointmentIndex(appointments), [appointments])
   const [selectedSlot, setSelectedSlot] = useState<{ slot: BlockedSlotItem; position: { top: number; left: number } } | null>(null)
@@ -49,7 +51,16 @@ function DayViewInner({
           const hourAppts = appointmentIndex.get(key) || []
           const hourBlocked = getBlockedSlotsForHour(blockedSlots, currentDate, hour)
           return (
-            <div key={hour} className={`flex border-b border-border/10 ${hourBlocked.length > 0 ? "bg-muted/40" : ""}`}>
+            <div
+              key={hour}
+              className={`flex border-b border-border/10 ${hourBlocked.length > 0 ? "bg-muted/40" : ""} ${onSlotClick && hourAppts.length === 0 && hourBlocked.length === 0 ? "cursor-pointer hover:bg-muted/20" : ""}`}
+              onClick={() => {
+                if (onSlotClick && hourAppts.length === 0 && hourBlocked.length === 0) {
+                  const dayKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`
+                  onSlotClick(dayKey, `${String(hour).padStart(2, "0")}:00`)
+                }
+              }}
+            >
               <div className="flex w-16 shrink-0 items-start justify-end pr-3 pt-2 text-[11px] text-muted-foreground font-medium">
                 {String(hour).padStart(2, "0")}:00
               </div>

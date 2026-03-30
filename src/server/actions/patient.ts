@@ -285,6 +285,26 @@ export const updatePatient = safeAction(async (
   return updated
 })
 
+export async function updatePatientNotes(patientId: string, field: "notes" | "personalNotes", value: string) {
+  const { workspaceId } = await getWorkspaceContext()
+
+  const patient = await db.patient.findFirst({
+    where: { id: patientId, workspaceId },
+    select: { medicalHistory: true },
+  })
+  if (!patient) throw new Error(ERR_PATIENT_NOT_FOUND)
+
+  const history = (patient.medicalHistory as any) ?? {}
+  history[field] = value
+
+  await db.patient.update({
+    where: { id: patientId },
+    data: { medicalHistory: history },
+  })
+
+  revalidateTag("patient-search", "max")
+}
+
 export const createPatient = safeAction(async (formData: FormData) => {
   const { workspaceId, clerkId } = await getWorkspaceContext()
   requirePermission(await getRole(), "patients.create")

@@ -48,7 +48,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* Feature pills */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            {['Transcricao por voz', 'IA integrada', 'LGPD compliant'].map(
+            {['Transcrição por voz', 'IA integrada', 'LGPD compliant'].map(
               (label) => (
                 <span
                   key={label}

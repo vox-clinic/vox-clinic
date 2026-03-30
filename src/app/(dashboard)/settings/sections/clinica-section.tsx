@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Building2, Stethoscope, Sparkles, Upload } from "lucide-react"
+import { Building2, Stethoscope, Upload } from "lucide-react"
 import Link from "next/link"
 
 interface ClinicaSectionProps {
@@ -21,19 +21,19 @@ export function ClinicaSection({ clinicName, onClinicNameChange, profLabel }: Cl
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Building2 className="size-4 text-vox-primary" />
-          Dados da Clinica
+          Dados da Clínica
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Nome da Clinica
+              Nome da Clínica
             </Label>
             <Input
               value={clinicName}
               onChange={(e) => onClinicNameChange(e.target.value)}
-              placeholder="Ex: Clinica Sorriso"
+              placeholder="Ex: Clínica Sorriso"
             />
           </div>
           <div className="space-y-2">
@@ -46,23 +46,6 @@ export function ClinicaSection({ clinicName, onClinicNameChange, profLabel }: Cl
               <Badge variant="secondary" className="ml-auto text-[10px] whitespace-nowrap">
                 Via onboarding
               </Badge>
-            </div>
-          </div>
-        </div>
-
-        <Separator className="my-2" />
-
-        <div className="rounded-xl bg-muted/30 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-vox-primary/10">
-              <Sparkles className="size-4 text-vox-primary" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Workspace criado por IA</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Seus procedimentos e campos foram sugeridos pela inteligencia artificial
-                com base na sua profissao. Voce pode personaliza-los nas abas ao lado.
-              </p>
             </div>
           </div>
         </div>

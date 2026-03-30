@@ -90,6 +90,8 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
         select: {
           id: true,
           name: true,
+          alerts: true,
+          medicalHistory: true,
         },
       },
       agenda: {
@@ -103,10 +105,17 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
     orderBy: { date: "asc" },
   })
 
-  return appointments.map((a) => ({
+  return appointments.map((a) => {
+    const mh = (a.patient.medicalHistory as any) ?? {}
+    return {
     id: a.id,
     date: a.date.toISOString(),
-    patient: a.patient,
+    patient: {
+      id: a.patient.id,
+      name: a.patient.name,
+      alerts: Array.isArray(a.patient.alerts) ? a.patient.alerts as string[] : [],
+      personalNotes: typeof mh.personalNotes === "string" ? mh.personalNotes : null,
+    },
     procedures: (Array.isArray(a.procedures) ? a.procedures : []).map((p: unknown) => typeof p === "string" ? p : (p as any)?.name ?? String(p)),
     notes: a.notes,
     status: a.status,
@@ -115,7 +124,7 @@ export async function getAppointmentsByDateRange(startDate: string, endDate: str
     agendaId: a.agendaId,
     agenda: a.agenda,
     cidCodes: (Array.isArray(a.cidCodes) ? a.cidCodes : []) as { code: string; description: string }[],
-  }))
+  }})
 }
 
 export async function checkAppointmentConflicts(date: string, agendaId?: string, patientId?: string) {
@@ -499,7 +508,39 @@ export const updateAppointmentStatus = safeAction(async (appointmentId: string, 
   const updated = await db.appointment.update({
     where: { id: appointmentId },
     data: { status },
+    include: { patient: { select: { name: true } } },
   })
+
+  if (status === "completed" && existing.price && existing.price > 0) {
+    const existingCharge = await db.charge.findFirst({
+      where: { appointmentId, workspaceId },
+    })
+    if (!existingCharge) {
+      const procedures = Array.isArray(existing.procedures)
+        ? (existing.procedures as any[]).map((p) => typeof p === "string" ? p : p?.name ?? "").filter(Boolean).join(", ")
+        : ""
+      await db.charge.create({
+        data: {
+          workspaceId,
+          patientId: existing.patientId,
+          appointmentId,
+          description: procedures || `Consulta ${updated.patient?.name ?? ""}`,
+          totalAmount: existing.price,
+          discount: 0,
+          netAmount: existing.price,
+          status: "pending",
+          createdBy: userId,
+        },
+      })
+    }
+  }
+
+  if (status === "cancelled" || status === "no_show") {
+    await db.charge.updateMany({
+      where: { appointmentId, workspaceId, status: "pending" },
+      data: { status: "cancelled" },
+    })
+  }
 
   await logAudit({
     workspaceId,
@@ -509,48 +550,10 @@ export const updateAppointmentStatus = safeAction(async (appointmentId: string, 
     entityId: appointmentId,
   })
 
-  // Waitlist hook: when appointment is cancelled, find matching waitlist entries and notify staff
-  let waitlistMatches = 0
-  if (status === "cancelled" && existing.agendaId) {
-    try {
-      const { findMatchesForSlot } = await import("@/server/actions/waitlist")
-      const matches = await findMatchesForSlot(workspaceId, existing.date, existing.agendaId)
-      waitlistMatches = matches.length
-      if (matches.length > 0) {
-        const timeStr = existing.date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-        const dateStr = existing.date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-        await db.notification.create({
-          data: {
-            workspaceId,
-            userId,
-            type: "waitlist_match",
-            title: "Lista de espera: horario disponivel",
-            body: `Horario disponivel: ${dateStr} as ${timeStr}. ${matches.length} paciente${matches.length > 1 ? "s" : ""} na lista de espera.`,
-            entityType: "Appointment",
-            entityId: appointmentId,
-          },
-        })
-      }
-    } catch {
-      // Non-critical: don't fail the status update if waitlist check fails
-    }
-  }
-
-  // Auto-calculate commissions when appointment is completed with a price
-  if (status === "completed" && updated.price && updated.price > 0) {
-    try {
-      const { calculateCommissions } = await import("./commission")
-      await calculateCommissions(appointmentId)
-    } catch (err) {
-      // Commission calculation failure should not block status update
-      console.error("[updateAppointmentStatus] Commission calculation failed:", err)
-    }
-  }
-
   revalidateTag("dashboard", "max")
   await invalidate(`ws:dashboard:${workspaceId}`)
 
-  return { id: updated.id, status: updated.status, waitlistMatches }
+  return { id: updated.id, status: updated.status }
 })
 
 export const rescheduleAppointment = safeAction(async (appointmentId: string, newDate: string, forceSchedule = false) => {

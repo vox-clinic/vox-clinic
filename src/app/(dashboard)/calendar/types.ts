@@ -17,7 +17,7 @@ export interface AgendaItem {
 export interface AppointmentItem {
   id: string
   date: string
-  patient: { id: string; name: string }
+  patient: { id: string; name: string; alerts?: string[]; personalNotes?: string | null }
   procedures: string[]
   notes: string | null
   status: string

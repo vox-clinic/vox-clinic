@@ -67,7 +67,7 @@ export function CamposSection({ customFields, onCustomFieldsChange }: CamposSect
                 onCheckedChange={() => toggleFieldRequired(field.id)}
               />
               <span className="text-[10px] text-muted-foreground w-16">
-                {field.required ? "Obrigatorio" : "Opcional"}
+                {field.required ? "Obrigatório" : "Opcional"}
               </span>
             </div>
             <button

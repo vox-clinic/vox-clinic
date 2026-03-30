@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useTransition, useEffect, useCallback, useRef } from "react"
+import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
-import { Pill, Plus, Trash2, Loader2, AlertTriangle, AlertCircle, Info } from "lucide-react"
+import { Pill, Plus, Trash2, Loader2 } from "lucide-react"
 import { createPrescription } from "@/server/actions/prescription"
-import { checkDrugInteractions, type DrugInteractionResult } from "@/server/actions/drug-interaction"
 import { toast } from "sonner"
 import { friendlyError } from "@/lib/error-messages"
 import { useRouter } from "next/navigation"
@@ -77,51 +76,7 @@ function CreatePrescriptionForm({
   const [medications, setMedications] = useState<Medication[]>([{ ...emptyMedication }])
   const [notes, setNotes] = useState("")
   const [saving, startSave] = useTransition()
-  const [interactions, setInteractions] = useState<DrugInteractionResult[]>([])
-  const [checkingInteractions, setCheckingInteractions] = useState(false)
-  const [acknowledgedInteractions, setAcknowledgedInteractions] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
-
-  const hasGraveInteraction = interactions.some((i) => i.severity === "grave")
-
-  // Check drug interactions when medications change (debounced)
-  const checkInteractions = useCallback(async (meds: Medication[]) => {
-    const names = meds.map((m) => m.name.trim()).filter(Boolean)
-    if (names.length < 2) {
-      setInteractions([])
-      return
-    }
-
-    setCheckingInteractions(true)
-    try {
-      const result = await checkDrugInteractions(names)
-      if ("error" in result) {
-        // Silently fail — don't block the prescription flow
-        setInteractions([])
-        return
-      }
-      setInteractions(result.interactions)
-      // Reset acknowledgment when interactions change
-      if (result.interactions.some((i) => i.severity === "grave")) {
-        setAcknowledgedInteractions(false)
-      }
-    } catch {
-      setInteractions([])
-    } finally {
-      setCheckingInteractions(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      checkInteractions(medications)
-    }, 800)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [medications, checkInteractions])
 
   const updateMedication = (index: number, field: keyof Medication, value: string) => {
     setMedications((prev) =>
@@ -251,61 +206,6 @@ function CreatePrescriptionForm({
             rows={3}
           />
         </div>
-
-        {/* Drug interaction alerts */}
-        {(interactions.length > 0 || checkingInteractions) && (
-          <div className="space-y-2">
-            {checkingInteractions && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                <Loader2 className="size-3 animate-spin" />
-                Verificando interacoes medicamentosas...
-              </div>
-            )}
-            {interactions.map((ix, idx) => {
-              const isGrave = ix.severity === "grave"
-              const isModerada = ix.severity === "moderada"
-              return (
-                <div
-                  key={idx}
-                  className={`flex items-start gap-2 rounded-xl border p-3 text-xs ${
-                    isGrave
-                      ? "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
-                      : isModerada
-                        ? "border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300"
-                        : "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
-                  }`}
-                >
-                  {isGrave ? (
-                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                  ) : isModerada ? (
-                    <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                  ) : (
-                    <Info className="size-4 shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <span className="font-semibold">
-                      {isGrave ? "Interacao grave" : isModerada ? "Interacao moderada" : "Interacao leve"}:
-                    </span>{" "}
-                    {ix.drug1} + {ix.drug2} — {ix.description}
-                  </div>
-                </div>
-              )
-            })}
-            {hasGraveInteraction && (
-              <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-red-300 bg-red-50/50 p-3 dark:border-red-800 dark:bg-red-950/20">
-                <input
-                  type="checkbox"
-                  checked={acknowledgedInteractions}
-                  onChange={(e) => setAcknowledgedInteractions(e.target.checked)}
-                  className="size-4 rounded accent-red-600"
-                />
-                <span className="text-xs font-medium text-red-800 dark:text-red-300">
-                  Ciente das interacoes graves detectadas
-                </span>
-              </label>
-            )}
-          </div>
-        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">

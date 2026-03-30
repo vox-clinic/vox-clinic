@@ -11,7 +11,6 @@ import {
   Ban,
   Loader2,
   Calendar as CalendarIcon,
-  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,8 +42,6 @@ import {
   type BlockedSlotItem,
 } from "@/server/actions/blocked-slot"
 import { getAgendas } from "@/server/actions/agenda"
-import { getWaitlistCount } from "@/server/actions/waitlist"
-import { getWorkspace } from "@/server/actions/workspace"
 import type { AgendaItem, AppointmentItem, ViewMode } from "./types"
 import { MONTH_NAMES, MONTH_SHORT, DAY_FULL, getMonday, getWeekDays } from "./helpers"
 import { WeekView } from "./components/week-view"
@@ -54,8 +51,6 @@ import { ListView } from "./components/list-view"
 import { ScheduleForm } from "./components/schedule-form"
 import { BlockTimeForm } from "./components/block-time-form"
 import { ConflictDialog } from "./components/conflict-dialog"
-import { WaitlistPanel } from "./components/waitlist-panel"
-import { AddWaitlistDialog } from "./components/add-waitlist-dialog"
 
 // ────────────────────── Cache ──────────────────────
 
@@ -80,6 +75,7 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
   const [showScheduleForm, setShowScheduleForm] = useState(false)
   const [scheduleDefaultDate, setScheduleDefaultDate] = useState("")
+  const [scheduleDefaultTime, setScheduleDefaultTime] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [showBlockForm, setShowBlockForm] = useState(false)
@@ -94,12 +90,6 @@ export default function CalendarPage() {
     } catch { return [] }
   })
   const defaultAgendaId = agendas.find((a) => a.isDefault)?.id || agendas[0]?.id || ""
-
-  // Waitlist
-  const [showWaitlistPanel, setShowWaitlistPanel] = useState(false)
-  const [showAddWaitlist, setShowAddWaitlist] = useState(false)
-  const [waitlistCount, setWaitlistCount] = useState(0)
-  const [workspaceProcedures, setWorkspaceProcedures] = useState<{ id: string; name: string }[]>([])
 
   // Conflict dialog (replaces native confirm())
   const [conflictMessage, setConflictMessage] = useState("")
@@ -149,22 +139,6 @@ export default function CalendarPage() {
     }
   }, [])
 
-  const loadWaitlistCount = useCallback(async () => {
-    try {
-      setWaitlistCount(await getWaitlistCount())
-    } catch {
-      setWaitlistCount(0)
-    }
-  }, [])
-
-  const loadWorkspaceProcedures = useCallback(async () => {
-    try {
-      const ws = await getWorkspace()
-      setWorkspaceProcedures(ws.procedures.map((p) => ({ id: p.id, name: p.name })))
-    } catch {
-      setWorkspaceProcedures([])
-    }
-  }, [])
 
   const initialLoadDone = useRef(false)
 
@@ -206,7 +180,7 @@ export default function CalendarPage() {
     }
   }, [getDateRange, selectedAgendaIds])
 
-  useEffect(() => { loadAgendas(); loadWaitlistCount(); loadWorkspaceProcedures() }, [loadAgendas, loadWaitlistCount, loadWorkspaceProcedures])
+  useEffect(() => { loadAgendas() }, [loadAgendas])
   useEffect(() => { loadData() }, [loadData])
 
   /** Background refresh without loading spinner */
@@ -306,7 +280,6 @@ export default function CalendarPage() {
       setShowScheduleForm(false)
       // Background refresh — no loading spinner
       refreshInBackground()
-      loadWaitlistCount()
     } catch (err) {
       toast.error(friendlyError(err, "Erro ao agendar consulta"))
     }
@@ -483,27 +456,13 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            onClick={() => setShowWaitlistPanel(true)}
-            className="rounded-xl text-xs gap-1.5 active:scale-[0.98] relative"
-          >
-            <Clock className="size-3.5" />
-            <span className="hidden sm:inline">Espera</span>
-            {waitlistCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-vox-primary text-white text-[9px] font-bold px-1">
-                {waitlistCount}
-              </span>
-            )}
-          </Button>
-
           <Button variant="outline" onClick={() => setShowBlockForm(true)} className="rounded-xl text-xs gap-1.5 active:scale-[0.98]">
             <Ban className="size-3.5" />
             <span className="hidden sm:inline">Bloquear</span>
           </Button>
 
           <Button
-            onClick={() => { setScheduleDefaultDate(""); setShowScheduleForm(true) }}
+            onClick={() => { setScheduleDefaultDate(""); setScheduleDefaultTime(""); setShowScheduleForm(true) }}
             className="bg-vox-primary hover:bg-vox-primary/90 text-white rounded-xl text-xs gap-1.5 shadow-sm shadow-vox-primary/15 active:scale-[0.98]"
           >
             <Plus className="size-3.5" />
@@ -551,6 +510,7 @@ export default function CalendarPage() {
           agendas={agendas.filter((a) => a.isActive)}
           defaultAgendaId={defaultAgendaId}
           defaultDate={scheduleDefaultDate}
+          defaultTime={scheduleDefaultTime}
           onSchedule={(data) => handleSchedule(data)}
           onCancel={() => setShowScheduleForm(false)}
         />
@@ -608,6 +568,11 @@ export default function CalendarPage() {
             onDelete={(id) => setDeleteTarget(id)}
             onDeleteBlockedSlot={handleDeleteBlockedSlot}
             onUpdateBlockedSlot={handleUpdateBlockedSlot}
+            onSlotClick={(date, time) => {
+              setScheduleDefaultDate(date)
+              setScheduleDefaultTime(time)
+              setShowScheduleForm(true)
+            }}
           />
         )}
 
@@ -620,6 +585,11 @@ export default function CalendarPage() {
             onDelete={(id) => setDeleteTarget(id)}
             onDeleteBlockedSlot={handleDeleteBlockedSlot}
             onUpdateBlockedSlot={handleUpdateBlockedSlot}
+            onSlotClick={(date, time) => {
+              setScheduleDefaultDate(date)
+              setScheduleDefaultTime(time)
+              setShowScheduleForm(true)
+            }}
           />
         )}
 
@@ -637,6 +607,7 @@ export default function CalendarPage() {
             onUpdateBlockedSlot={handleUpdateBlockedSlot}
             onScheduleForDay={(day) => {
               setScheduleDefaultDate(`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`)
+              setScheduleDefaultTime("")
               setShowScheduleForm(true)
             }}
           />
@@ -647,7 +618,7 @@ export default function CalendarPage() {
             appointments={appointments}
             onStatusChange={handleStatusChange}
             onDelete={(id) => setDeleteTarget(id)}
-            onShowSchedule={() => setShowScheduleForm(true)}
+            onShowSchedule={() => { setScheduleDefaultTime(""); setShowScheduleForm(true) }}
           />
         )}
       </div>
@@ -660,7 +631,7 @@ export default function CalendarPage() {
           <p className="text-sm font-medium text-muted-foreground">Sem consultas neste período</p>
           <p className="text-xs text-muted-foreground/70">Agende uma consulta para começar</p>
           <button
-            onClick={() => { setScheduleDefaultDate(""); setShowScheduleForm(true) }}
+            onClick={() => { setScheduleDefaultDate(""); setScheduleDefaultTime(""); setShowScheduleForm(true) }}
             className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-vox-primary hover:text-vox-primary/80 rounded-lg px-3 py-1.5 hover:bg-vox-primary/5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-vox-primary/50 focus-visible:ring-offset-2"
           >
             <Plus className="size-3" />
@@ -699,31 +670,6 @@ export default function CalendarPage() {
         }}
       />
 
-      {/* ─── Waitlist Panel ─── */}
-      <WaitlistPanel
-        open={showWaitlistPanel}
-        onClose={() => setShowWaitlistPanel(false)}
-        onSchedulePatient={(_patientId, _patientName) => {
-          setShowWaitlistPanel(false)
-          setScheduleDefaultDate("")
-          setShowScheduleForm(true)
-        }}
-        onAddToWaitlist={() => {
-          setShowWaitlistPanel(false)
-          setShowAddWaitlist(true)
-        }}
-      />
-
-      {/* ─── Add to Waitlist Dialog ─── */}
-      <AddWaitlistDialog
-        open={showAddWaitlist}
-        onClose={() => setShowAddWaitlist(false)}
-        onAdded={() => {
-          loadWaitlistCount()
-        }}
-        agendas={agendas.filter((a) => a.isActive)}
-        procedures={workspaceProcedures}
-      />
     </div>
   )
 }

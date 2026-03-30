@@ -233,6 +233,16 @@ export const ERR_GATEWAY_CHARGE_FAILED = "Erro ao criar cobrança no gateway. Te
 export const ERR_GATEWAY_PAYMENT_NOT_FOUND = "Cobrança não encontrada no gateway."
 
 // ============================================================
+// ORÇAMENTOS (Quotes)
+// ============================================================
+export const ERR_QUOTE_NOT_FOUND = "Orçamento não encontrado."
+export const ERR_QUOTE_NOT_DRAFT = "Apenas orçamentos em rascunho podem ser editados."
+export const ERR_QUOTE_NO_ITEMS = "Adicione pelo menos um procedimento ao orçamento."
+export const ERR_QUOTE_ALREADY_APPROVED = "Este orçamento já foi aprovado."
+export const ERR_QUOTE_ITEM_NOT_FOUND = "Item do orçamento não encontrado."
+export const ERR_QUOTE_ITEM_ALREADY_EXECUTED = "Este procedimento já foi executado."
+
+// ============================================================
 // VALIDAÇÃO GENÉRICA
 // ============================================================
 export const ERR_REQUIRED_FIELD = (field: string) => `O campo "${field}" é obrigatório.`

@@ -1,13 +1,11 @@
 "use client"
 
-import { memo, useState } from "react"
+import { memo } from "react"
 import Link from "next/link"
-import { Clock, Check, XCircle, AlertTriangle, X, ExternalLink, User, Video, Loader2 } from "lucide-react"
+import { Clock, Check, XCircle, AlertTriangle, X, ClipboardList, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import type { AppointmentItem } from "../types"
 import { formatTime, STATUS_CONFIG, agendaColorBg } from "../helpers"
-import { createTeleconsultaRoom } from "@/server/actions/teleconsulta"
 
 function StatusBadge({ status }: { status: string }) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.scheduled
@@ -31,69 +29,71 @@ function AppointmentPopoverInner({
   onStatusChange: (id: string, status: string) => void
   onDelete: (id: string) => void
 }) {
-  const [startingRoom, setStartingRoom] = useState(false)
-
-  async function handleStartTeleconsulta() {
-    setStartingRoom(true)
-    try {
-      const result = await createTeleconsultaRoom(appointment.id)
-      if ('error' in result) { toast.error(result.error); setStartingRoom(false); return }
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      const link = `${baseUrl}/sala/${result.videoToken}`
-      await navigator.clipboard.writeText(link).catch(() => {})
-      toast.success("Sala criada! Link do paciente copiado.", {
-        description: link,
-        duration: 10000,
-      })
-      window.location.href = `/teleconsulta/${appointment.id}`
-    } catch {
-      toast.error("Erro ao criar sala de teleconsulta")
-      setStartingRoom(false)
-    }
-  }
-
-  function isTeleconsultaWindowOpen() {
-    if (appointment.type !== "teleconsulta" || appointment.status !== "scheduled") return false
-    const now = Date.now()
-    const appointmentTime = new Date(appointment.date).getTime()
-    const oneHourBefore = appointmentTime - 60 * 60 * 1000
-    const threeHoursAfter = appointmentTime + 3 * 60 * 60 * 1000
-    return now >= oneHourBefore && now <= threeHoursAfter
-  }
-
   return (
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
       {/* Popover */}
       <div
-        className="fixed z-50 w-72 rounded-2xl border border-border/60 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150 border-l-[3px]"
+        className="fixed z-50 w-72 rounded-2xl border border-border/60 bg-background shadow-xl animate-in fade-in-0 zoom-in-95 duration-150 border-l-[3px]"
         style={{
           top: Math.min(position.top, window.innerHeight - 320),
           left: Math.min(position.left, window.innerWidth - 300),
           borderLeftColor: appointment.agenda?.color || "transparent",
-          backgroundColor: appointment.agenda?.color
-            ? agendaColorBg(appointment.agenda.color, 0.05)
-            : undefined,
         }}
       >
         <div className="p-4 space-y-3">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <Link
-                href={`/patients/${appointment.patient.id}`}
-                className="text-sm font-semibold hover:text-vox-primary transition-colors flex items-center gap-1.5"
-              >
+              <div className="flex items-center gap-1.5">
                 <User className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="truncate">{appointment.patient.name}</span>
-                <ExternalLink className="size-3 shrink-0 opacity-40" />
-              </Link>
+                <span className="text-sm font-semibold truncate">{appointment.patient.name}</span>
+              </div>
             </div>
             <button onClick={onClose} className="p-0.5 rounded-lg hover:bg-muted/60 text-muted-foreground shrink-0">
               <X className="size-3.5" />
             </button>
           </div>
+
+          {/* Patient alerts */}
+          {appointment.patient.alerts && appointment.patient.alerts.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {appointment.patient.alerts.map((alert, i) => (
+                <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-vox-error/10 text-vox-error">
+                  {alert}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Personal notes — last 3 entries */}
+          {appointment.patient.personalNotes && (() => {
+            const entries = appointment.patient.personalNotes.split("\n").filter((l) => l.trim()).slice(-3)
+            return entries.length > 0 ? (
+              <div className="rounded-lg bg-blue-500/5 border border-blue-500/20 px-2.5 py-2 space-y-1">
+                <p className="text-[10px] text-blue-400 font-semibold">Lembrar</p>
+                {entries.map((entry, i) => {
+                  const cleaned = entry.replace(/^\[\d{4}-\d{2}-\d{2}\]:\s*/, "")
+                  return (
+                    <p key={i} className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                      <span className="text-blue-400/60 mt-0.5">•</span>
+                      <span>{cleaned}</span>
+                    </p>
+                  )
+                })}
+              </div>
+            ) : null
+          })()}
+
+          {/* Prontuário link */}
+          <Link
+            href={`/patients/${appointment.patient.id}`}
+            className="flex items-center gap-2 w-full rounded-xl bg-vox-primary/10 border border-vox-primary/20 px-3 py-2.5 text-vox-primary hover:bg-vox-primary/15 transition-colors"
+          >
+            <ClipboardList className="size-4 shrink-0" />
+            <span className="text-sm font-semibold">Prontuário Eletrônico</span>
+          </Link>
 
           {/* Time & Status */}
           <div className="flex items-center justify-between">
@@ -144,39 +144,28 @@ function AppointmentPopoverInner({
             </p>
           )}
 
-          {/* Teleconsulta Actions */}
-          {isTeleconsultaWindowOpen() && (
-            <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/30">
-              <Button size="sm" onClick={handleStartTeleconsulta} disabled={startingRoom}
-                className="rounded-xl text-[10px] h-7 gap-1 bg-vox-primary hover:bg-vox-primary/90 text-white">
-                {startingRoom ? <Loader2 className="size-3 animate-spin" /> : <Video className="size-3" />}
-                {startingRoom ? "Criando..." : "Iniciar Teleconsulta"}
-              </Button>
-            </div>
-          )}
-
           {/* Actions */}
-          <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/30">
+          <div className="space-y-2 pt-2 border-t border-border/30">
             {appointment.status === "scheduled" && (
-              <>
-                <Button size="sm" onClick={() => { onStatusChange(appointment.id, "completed"); onClose() }} className="rounded-xl text-[10px] h-7 gap-1 bg-vox-success hover:bg-vox-success/90 text-white">
-                  <Check className="size-3" />Concluir
+              <div className="grid grid-cols-3 gap-2">
+                <Button size="sm" onClick={() => { onStatusChange(appointment.id, "completed"); onClose() }} className="rounded-xl text-xs h-8 gap-1.5 bg-vox-success hover:bg-vox-success/90 text-white">
+                  <Check className="size-3.5" />Concluir
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { onStatusChange(appointment.id, "cancelled"); onClose() }} className="rounded-xl text-[10px] h-7 gap-1 text-vox-error border-vox-error/30 hover:bg-vox-error/5">
-                  <XCircle className="size-3" />Cancelar
+                <Button size="sm" variant="outline" onClick={() => { onStatusChange(appointment.id, "cancelled"); onClose() }} className="rounded-xl text-xs h-8 gap-1.5 text-vox-error border-vox-error/30 hover:bg-vox-error/5">
+                  <XCircle className="size-3.5" />Cancelar
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { onStatusChange(appointment.id, "no_show"); onClose() }} className="rounded-xl text-[10px] h-7 gap-1 text-vox-warning border-vox-warning/30 hover:bg-vox-warning/5">
-                  <AlertTriangle className="size-3" />Faltou
+                <Button size="sm" variant="outline" onClick={() => { onStatusChange(appointment.id, "no_show"); onClose() }} className="rounded-xl text-xs h-8 gap-1.5 text-vox-warning border-vox-warning/30 hover:bg-vox-warning/5">
+                  <AlertTriangle className="size-3.5" />Faltou
                 </Button>
-              </>
+              </div>
             )}
             {appointment.status !== "scheduled" && (
-              <Button size="sm" variant="outline" onClick={() => { onStatusChange(appointment.id, "scheduled"); onClose() }} className="rounded-xl text-[10px] h-7 gap-1">
+              <Button size="sm" variant="outline" onClick={() => { onStatusChange(appointment.id, "scheduled"); onClose() }} className="w-full rounded-xl text-xs h-8 gap-1.5">
                 Reagendar
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={() => { onDelete(appointment.id); onClose() }} className="rounded-xl text-[10px] h-7 gap-1 text-vox-error border-vox-error/30 hover:bg-vox-error/5 ml-auto">
-              <X className="size-3" />Excluir
+            <Button size="sm" variant="outline" onClick={() => { onDelete(appointment.id); onClose() }} className="w-full rounded-xl text-xs h-8 gap-1.5 text-vox-error border-vox-error/30 hover:bg-vox-error/5">
+              <X className="size-3.5" />Excluir
             </Button>
           </div>
         </div>

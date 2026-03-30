@@ -13,6 +13,10 @@ export function readProcedures(json: Prisma.JsonValue): Procedure[] {
       category: (obj?.category as string) ?? "Geral",
       price: typeof obj?.price === "number" ? obj.price : undefined,
       duration: typeof obj?.duration === "number" ? obj.duration : undefined,
+      specialty: typeof obj?.specialty === "string" ? obj.specialty : undefined,
+      cost: typeof obj?.cost === "number" ? obj.cost : undefined,
+      commission: typeof obj?.commission === "number" ? obj.commission : undefined,
+      internalCode: typeof obj?.internalCode === "string" ? obj.internalCode : undefined,
     }
   })
 }
